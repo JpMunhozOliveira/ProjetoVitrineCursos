@@ -54,10 +54,15 @@
   }
 
   // Catálogo
-  var catalog = document.getElementById("catalogo");
-  if (catalog) {
-    C.forEach(function (c) {
+  function renderCards(target, list) {
+    target.textContent = "";
+    if (!list.length) {
+      target.append(el("p", { "class": "muted", text: "Nenhum curso encontrado. Tente outra busca ou categoria." }));
+      return;
+    }
+    list.forEach(function (c) {
       var body = el("div", { "class": "card-body" }, [
+        c.categoria ? el("p", { "class": "eyebrow", text: c.categoria }) : "",
         el("h3", { text: c.titulo }),
         el("p", { text: c.resumo }),
         c.publico ? el("p", { "class": "muted", text: c.publico }) : "",
@@ -65,8 +70,36 @@
         el("a", { "class": "btn btn-outline", href: "curso.html?id=" + encodeURIComponent(c.id),
                   "aria-label": "Ver detalhes: " + c.titulo, text: "Ver detalhes" })
       ]);
-      catalog.append(el("article", { "class": "card" }, [cover(c), body]));
+      target.append(el("article", { "class": "card" }, [cover(c), body]));
     });
+  }
+  var catalog = document.getElementById("catalogo");
+  if (catalog && page === "home") {
+    var feat = C.filter(function (c) { return c.destaque; });
+    var shown = (feat.length ? feat : C).slice(0, 6);
+    renderCards(catalog, shown);
+    var all = document.getElementById("ver-todos");
+    if (all && C.length <= shown.length) all.hidden = true;
+  } else if (catalog) {
+    var q = document.getElementById("busca"), sel = document.getElementById("categoria"),
+        out = document.getElementById("resultado"), cats = [];
+    C.forEach(function (c) { if (c.categoria && cats.indexOf(c.categoria) < 0) cats.push(c.categoria); });
+    if (cats.length > 1) cats.forEach(function (t) { sel.append(el("option", { value: t, text: t })); });
+    else document.getElementById("filtro-categoria").hidden = true;
+    if (C.length < 4) document.getElementById("filtros").hidden = true; // poucos cursos: sem filtros
+    var norm = function (t) { return (t || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); };
+    var apply = function () {
+      var term = norm(q.value), cat = sel.value;
+      var list = C.filter(function (c) {
+        return (!cat || c.categoria === cat) &&
+          (!term || norm([c.titulo, c.resumo, c.publico, c.categoria].join(" ")).indexOf(term) >= 0);
+      });
+      renderCards(catalog, list);
+      out.textContent = list.length + (list.length === 1 ? " curso encontrado" : " cursos encontrados");
+    };
+    q.addEventListener("input", apply);
+    sel.addEventListener("change", apply);
+    apply();
   }
 
   // Página de detalhes
@@ -77,7 +110,7 @@
     if (!c) {
       document.title = "Curso não encontrado — " + S.nome;
       box.append(el("h1", { text: "Curso não encontrado" }),
-        el("p", {}, [el("a", { href: "index.html#cursos", text: "Voltar ao catálogo" })]));
+        el("p", {}, [el("a", { href: "catalogo.html", text: "Voltar ao catálogo" })]));
     } else {
       document.title = c.titulo + " — " + S.nome;
       var m = document.querySelector('meta[name="description"]');
@@ -86,7 +119,7 @@
         .filter(function (f) { return f[1]; })
         .map(function (f) { return el("li", {}, [el("strong", { text: f[0] + ": " }), f[1]]); });
       var main = el("div", {}, [
-        el("a", { "class": "crumb", href: "index.html#cursos", text: "← Todos os cursos" }),
+        el("a", { "class": "crumb", href: "catalogo.html", text: "← Todos os cursos" }),
         el("h1", { text: c.titulo }),
         el("p", { "class": "muted", text: c.resumo }),
         el("h2", { text: "Sobre o curso" }), el("p", { text: c.descricao }),

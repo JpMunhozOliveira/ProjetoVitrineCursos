@@ -68,3 +68,11 @@ h2{font-size:clamp(1.4rem,3.5vw,2rem)}
 .site-footer p{margin:.25rem 0}
 
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important;animation:none!important}}
+
+[hidden]{display:none!important}
+.filters{display:grid;gap:1rem;margin-bottom:1.5rem;padding:1rem;background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius)}
+@media (min-width:640px){.filters{grid-template-columns:2fr 1fr}}
+.filters label{display:block;font-weight:700;margin-bottom:.25rem}
+.filters input,.filters select{width:100%;min-height:44px;padding:.5rem .75rem;font:inherit;color:var(--color-text);background:var(--color-bg);border:2px solid var(--color-border);border-radius:8px}
+.section-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:.5rem 1rem}
+.more{margin-top:1.5rem;text-align:center}

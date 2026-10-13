@@ -25,7 +25,9 @@ window.SITE = {
 
 window.CURSOS = [
   {
-    id: "curso-exemplo-1",                 // usado na URL: curso.html?id=curso-exemplo-1
+    id: "curso-exemplo-1",
+    categoria: "Categoria A",              // usada no filtro do catálogo (opcional)
+    destaque: true,                        // true = aparece na página inicial                 // usado na URL: curso.html?id=curso-exemplo-1
     titulo: "Curso de Exemplo 1",
     resumo: "Resumo curto e objetivo do que o aluno vai aprender.",
     descricao: "Descrição completa do curso. Explique o resultado de aprendizagem, como funciona e o que está incluído.",
@@ -41,6 +43,8 @@ window.CURSOS = [
   },
   {
     id: "curso-exemplo-2",
+    categoria: "Categoria B",
+    destaque: true,
     titulo: "Curso de Exemplo 2",
     resumo: "Outro resumo curto, focado no principal benefício do curso.",
     descricao: "Descrição completa do segundo curso.",
@@ -53,7 +57,37 @@ window.CURSOS = [
   },
   {
     id: "curso-exemplo-3",
+    categoria: "Categoria A",
+    destaque: false,
     titulo: "Curso de Exemplo 3",
+    resumo: "Mais um resumo de exemplo para ilustrar o catálogo.",
+    descricao: "Descrição completa do terceiro curso.",
+    imagem: null, imagemAlt: "",
+    publico: "Para quem busca aplicar o conteúdo no dia a dia.",
+    preRequisitos: "",
+    conteudo: ["Módulo 1", "Módulo 2"],
+    formato: "", cargaHoraria: null, preco: null,
+    checkoutUrl: "INSERIR_URL_OFICIAL_DO_CHECKOUT"
+  },
+  {
+    id: "curso-exemplo-4",
+    categoria: "Categoria A",
+    destaque: false,
+    titulo: "Curso de Exemplo 4",
+    resumo: "Mais um resumo de exemplo para ilustrar o catálogo.",
+    descricao: "Descrição completa do terceiro curso.",
+    imagem: null, imagemAlt: "",
+    publico: "Para quem busca aplicar o conteúdo no dia a dia.",
+    preRequisitos: "",
+    conteudo: ["Módulo 1", "Módulo 2"],
+    formato: "", cargaHoraria: null, preco: null,
+    checkoutUrl: "INSERIR_URL_OFICIAL_DO_CHECKOUT"
+  },
+  {
+    id: "curso-exemplo-5",
+    categoria: "Categoria A",
+    destaque: false,
+    titulo: "Curso de Exemplo 5",
     resumo: "Mais um resumo de exemplo para ilustrar o catálogo.",
     descricao: "Descrição completa do terceiro curso.",
     imagem: null, imagemAlt: "",

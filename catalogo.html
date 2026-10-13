@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Catálogo de cursos</title>
+  <meta name="description" content="Veja todos os cursos disponíveis, busque por tema e escolha o seu.">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <link rel="stylesheet" href="css/theme.css">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="data/cursos.js" defer></script>
+  <script src="js/main.js" defer></script>
+</head>
+<body data-page="catalogo">
+<a class="skip" href="#conteudo">Pular para o conteúdo</a>
+<header class="site-header">
+  <div class="container header-row">
+    <a class="brand" href="index.html" data-site="nome">Nome da Marca</a>
+    <button id="menu-btn" class="menu-btn" aria-expanded="false" aria-controls="nav">Menu</button>
+    <nav id="nav" class="nav" aria-label="Principal">
+      <ul>
+        <li><a href="index.html">Início</a></li>
+        <li><a href="catalogo.html">Catálogo</a></li>
+        <li><a href="index.html#sobre">Sobre</a></li>
+        <li><a href="index.html#contato">Contato</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+<main id="conteudo">
+  <div class="container section">
+    <h1>Catálogo de cursos</h1>
+    <div id="filtros" class="filters" role="search" aria-label="Filtrar cursos">
+      <div>
+        <label for="busca">Buscar curso</label>
+        <input id="busca" type="search" placeholder="Digite um tema ou nome" autocomplete="off">
+      </div>
+      <div id="filtro-categoria">
+        <label for="categoria">Categoria</label>
+        <select id="categoria"><option value="">Todas</option></select>
+      </div>
+    </div>
+    <p id="resultado" class="muted" role="status" aria-live="polite"></p>
+    <div id="catalogo" class="grid"></div>
+    <noscript><p>Ative o JavaScript para ver o catálogo de cursos.</p></noscript>
+  </div>
+</main>
+<footer class="site-footer">
+  <div class="container">
+    <p><strong data-site="nome">Nome da Marca</strong> © <span data-year></span></p>
+    <p>Pagamentos e acesso aos cursos processados pela Kiwify.</p>
+  </div>
+</footer>
+</body>
+</html>
