@@ -9,6 +9,8 @@ services:
       NODE_ENV: production
       PORT: 3000
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      KIWIFY_CLIENT_ID: ${KIWIFY_CLIENT_ID:-}
+      KIWIFY_CLIENT_SECRET: ${KIWIFY_CLIENT_SECRET:-}
     ports:
       - "3000:3000"
     depends_on:
