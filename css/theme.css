@@ -14,8 +14,36 @@
   --color-muted: #4b5563;
   --color-border: #e0e0ee;
   --color-focus: #b45309;
+  --color-cover-start: #4338ca;      /* gradiente das capas sem imagem */
+  --color-cover-end: #f59e0b;
+  --color-footer-bg: #312e81;
+  --color-footer-text: #ffffff;
+  color-scheme: light;
 
   --font-base: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
   --radius: 12px;
   --max-width: 1100px;
+}
+
+/* ==========================================================
+   MODO NOTURNO — mesmas variáveis, valores para fundo escuro.
+   Ativado pelo botão do cabeçalho (ou pela preferência do
+   sistema, na primeira visita). Também placeholders.
+   ========================================================== */
+:root[data-theme="dark"] {
+  --color-primary: #a5b4fc;
+  --color-primary-dark: #c7d2fe;     /* hover dos botões */
+  --color-on-primary: #1e1b4b;
+  --color-accent: #fbbf24;
+  --color-bg: #0f172a;
+  --color-surface: #1e293b;
+  --color-text: #e5e7eb;
+  --color-muted: #a8b3c5;
+  --color-border: #334155;
+  --color-focus: #fbbf24;
+  --color-cover-start: #4338ca;
+  --color-cover-end: #b45309;
+  --color-footer-bg: #0b1020;
+  --color-footer-text: #e5e7eb;
+  color-scheme: dark;
 }

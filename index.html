@@ -8,25 +8,13 @@
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <link rel="stylesheet" href="css/theme.css">
   <link rel="stylesheet" href="css/style.css">
+  <script src="js/theme.js"></script>
   <script src="data/cursos.js" defer></script>
+  <script src="js/components.js" defer></script>
   <script src="js/main.js" defer></script>
 </head>
 <body data-page="home">
-<a class="skip" href="#conteudo">Pular para o conteúdo</a>
-<header class="site-header">
-  <div class="container header-row">
-    <a class="brand" href="index.html" data-site="nome">Nome da Marca</a>
-    <button id="menu-btn" class="menu-btn" aria-expanded="false" aria-controls="nav">Menu</button>
-    <nav id="nav" class="nav" aria-label="Principal">
-      <ul>
-        <li><a href="index.html">Início</a></li>
-        <li><a href="catalogo.html">Catálogo</a></li>
-        <li><a href="index.html#sobre">Sobre</a></li>
-        <li><a href="index.html#contato">Contato</a></li>
-      </ul>
-    </nav>
-  </div>
-</header>
+<div id="site-header"></div>
 <main id="conteudo">
   <section class="hero">
     <div class="container">
@@ -64,11 +52,6 @@
     </div>
   </section>
 </main>
-<footer class="site-footer">
-  <div class="container">
-    <p><strong data-site="nome">Nome da Marca</strong> © <span data-year></span></p>
-    <p>Pagamentos e acesso aos cursos processados pela Kiwify.</p>
-  </div>
-</footer>
+<div id="site-footer"></div>
 </body>
 </html>

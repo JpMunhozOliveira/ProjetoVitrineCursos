@@ -46,7 +46,7 @@ h2{font-size:clamp(1.4rem,3.5vw,2rem)}
 .card-body{display:flex;flex-direction:column;gap:.5rem;padding:1.25rem;flex:1}
 .card-body h3{margin:0;font-size:1.15rem}
 .card-body .btn{margin-top:auto;align-self:flex-start}
-.cover{aspect-ratio:16/9;display:grid;place-items:center;background:linear-gradient(135deg,var(--color-primary),var(--color-accent));color:#fff;font-size:3rem;font-weight:800;overflow:hidden}
+.cover{aspect-ratio:16/9;display:grid;place-items:center;background:linear-gradient(135deg,var(--color-cover-start),var(--color-cover-end));color:#fff;font-size:3rem;font-weight:800;overflow:hidden}
 .cover img{width:100%;height:100%;object-fit:cover}
 .price{font-weight:800;font-size:1.1rem}
 
@@ -63,8 +63,8 @@ h2{font-size:clamp(1.4rem,3.5vw,2rem)}
 .course ul{padding-left:1.2rem}
 .crumb{display:inline-block;margin-bottom:1rem}
 
-.site-footer{background:var(--color-primary-dark);color:#fff;padding:2rem 0}
-.site-footer a{color:#fff}
+.site-footer{background:var(--color-footer-bg);color:var(--color-footer-text);padding:2rem 0}
+.site-footer a{color:var(--color-footer-text)}
 .site-footer p{margin:.25rem 0}
 
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important;animation:none!important}}
@@ -76,3 +76,11 @@ h2{font-size:clamp(1.4rem,3.5vw,2rem)}
 .filters input,.filters select{width:100%;min-height:44px;padding:.5rem .75rem;font:inherit;color:var(--color-text);background:var(--color-bg);border:2px solid var(--color-border);border-radius:8px}
 .section-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:.5rem 1rem}
 .more{margin-top:1.5rem;text-align:center}
+
+.header-actions{display:flex;align-items:center;gap:.5rem}
+.theme-btn{display:none;align-items:center;gap:.5rem;min-height:44px;padding:0 .9rem;border:2px solid var(--color-border);background:none;color:var(--color-text);border-radius:8px;font:inherit;font-weight:600;cursor:pointer}
+.js .theme-btn{display:inline-flex}
+.theme-btn:hover{background:var(--color-surface)}
+@media (max-width:479px){.theme-btn span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}.theme-btn{padding:0 .7rem}}
+
+.nav a[aria-current="page"]{color:var(--color-primary);background:var(--color-surface)}

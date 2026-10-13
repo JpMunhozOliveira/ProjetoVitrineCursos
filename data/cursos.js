@@ -68,33 +68,5 @@ window.CURSOS = [
     conteudo: ["Módulo 1", "Módulo 2"],
     formato: "", cargaHoraria: null, preco: null,
     checkoutUrl: "INSERIR_URL_OFICIAL_DO_CHECKOUT"
-  },
-  {
-    id: "curso-exemplo-4",
-    categoria: "Categoria A",
-    destaque: false,
-    titulo: "Curso de Exemplo 4",
-    resumo: "Mais um resumo de exemplo para ilustrar o catálogo.",
-    descricao: "Descrição completa do terceiro curso.",
-    imagem: null, imagemAlt: "",
-    publico: "Para quem busca aplicar o conteúdo no dia a dia.",
-    preRequisitos: "",
-    conteudo: ["Módulo 1", "Módulo 2"],
-    formato: "", cargaHoraria: null, preco: null,
-    checkoutUrl: "INSERIR_URL_OFICIAL_DO_CHECKOUT"
-  },
-  {
-    id: "curso-exemplo-5",
-    categoria: "Categoria A",
-    destaque: false,
-    titulo: "Curso de Exemplo 5",
-    resumo: "Mais um resumo de exemplo para ilustrar o catálogo.",
-    descricao: "Descrição completa do terceiro curso.",
-    imagem: null, imagemAlt: "",
-    publico: "Para quem busca aplicar o conteúdo no dia a dia.",
-    preRequisitos: "",
-    conteudo: ["Módulo 1", "Módulo 2"],
-    formato: "", cargaHoraria: null, preco: null,
-    checkoutUrl: "INSERIR_URL_OFICIAL_DO_CHECKOUT"
   }
 ];
