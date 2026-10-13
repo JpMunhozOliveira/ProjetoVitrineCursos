@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Manual Prático da Reforma Tributária do Consumo</title>
+    <link rel="icon" type="image/svg+xml" href="assets/favicon/favicon.svg">
+    <meta name="description"
+        content="Entenda IBS, CBS e Imposto Seletivo de forma prática, sem juridiquês. Manual digital por Lucas Coutinho.">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <link rel="stylesheet" href="css/theme.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/venda.css">
+    <script src="js/theme.js"></script>
+    <script src="data/cursos.js" defer></script>
+    <script src="js/components.js" defer></script>
+    <script src="js/main.js" defer></script>
+    <script src="js/venda.js" defer></script>
+</head>
+
+<body data-page="venda">
+    <noscript>
+        <div class="noscript-banner" role="alert"><strong>JavaScript desativado.</strong> O menu e o carrossel precisam
+            do JavaScript. O restante da página funciona normalmente.</div>
+    </noscript>
+
+    <!-- Ícones reutilizáveis -->
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+        <symbol id="i-check" viewBox="0 0 24 24">
+            <path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"
+                stroke-linejoin="round" />
+        </symbol>
+        <symbol id="i-x" viewBox="0 0 24 24">
+            <path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.6"
+                stroke-linecap="round" />
+        </symbol>
+        <symbol id="i-doc" viewBox="0 0 24 24">
+            <path d="M7 3h7l4 4v14H7zM14 3v4h4M10 12h5M10 16h5" fill="none" stroke="currentColor" stroke-width="1.8"
+                stroke-linejoin="round" />
+        </symbol>
+        <symbol id="i-bolt" viewBox="0 0 24 24">
+            <path d="M13 3L5 14h6l-1 7 8-11h-6z" fill="none" stroke="currentColor" stroke-width="1.8"
+                stroke-linejoin="round" />
+        </symbol>
+        <symbol id="i-shield" viewBox="0 0 24 24">
+            <path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" fill="none" stroke="currentColor" stroke-width="1.8"
+                stroke-linejoin="round" />
+        </symbol>
+        <symbol id="i-user" viewBox="0 0 24 24">
+            <circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="1.8" />
+            <path d="M4 21c0-4 3.5-6 8-6s8 2 8 6" fill="none" stroke="currentColor" stroke-width="1.8"
+                stroke-linecap="round" />
+        </symbol>
+        <symbol id="i-calc" viewBox="0 0 24 24">
+            <rect x="5" y="3" width="14" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="1.8" />
+            <path d="M8 7h8M8 12h2M12 12h2M8 16h2M12 16h2" stroke="currentColor" stroke-width="1.8"
+                stroke-linecap="round" />
+        </symbol>
+    </svg>
+
+    <div id="site-header"></div>
+
+    <main id="conteudo" class="venda">
+
+        <!-- 1. HERO -->
+        <section class="v-hero">
+            <div class="container v-hero-grid">
+                <div>
+                    <div class="ph ph-logo" role="img" aria-label="Logotipo da Empresa">3pci</div>
+                    <h1>Manual Prático da Reforma Tributária do Consumo</h1>
+                    <p class="lead">Fique por dentro das regras da nova tributação e entenda o impacto na rotina contábil e fiscal de empresas de todos os portes.</p>
+                    <ul class="badges" aria-label="Resumo do material">
+                        <li><strong>PDF</strong> Prático</li>
+                        <li><strong>Bônus</strong> Exclusivos</li>
+                        <li><strong>Acesso</strong> Imediato</li>
+                    </ul>
+                    <div class="offer">
+                        <p class="price-big"><span class="muted-on-dark">Por apenas</span> R$ 19,90</p>
+                        <!-- Inserir link de checkout real do cliente se necessário -->
+                        <a class="btn-cta" href="https://pay.kiwify.com.br/2IDvyM2" target="_blank"
+                            rel="noopener noreferrer">Comprar agora<span class="sr-only"> (abre em nova aba)</span></a>
+                    </div>
+                </div>
+                <div class="ph ph-mock" role="img" aria-label="Mockup 3D do manual e telas do produto">
+                    Mockup 3D do manual<br><small>800 × 700 px</small></div>
+            </div>
+        </section>
+
+        <!-- 2. BENEFÍCIOS RÁPIDOS -->
+        <section class="v-section" aria-labelledby="t-rapidos">
+            <div class="container">
+                <h2 id="t-rapidos" class="sr-only">Benefícios rápidos</h2>
+                <div class="two">
+                    <article class="v-card">
+                        <svg class="ico" aria-hidden="true">
+                            <use href="#i-bolt" />
+                        </svg>
+                        <h3>100% Direto ao Ponto</h3>
+                        <p>O que você realmente precisa saber sobre o IBS, a CBS e o Imposto Seletivo sem complicação.</p>
+                        <p class="callout">Foco total na aplicação prática para o seu dia a dia profissional.</p>
+                    </article>
+                    <article class="v-card">
+                        <svg class="ico" aria-hidden="true">
+                            <use href="#i-doc" />
+                        </svg>
+                        <h3>Atualizado e Didático</h3>
+                        <p>Estruturado de forma esquematizada para facilitar a consulta rápida de regras e prazos.</p>
+                        <p class="callout">Seu guia seguro para a transição tributária.</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. O QUE VOCÊ VAI ENCONTRAR -->
+        <section class="v-section alt" aria-labelledby="t-encontrar">
+            <div class="container">
+                <h2 id="t-encontrar">O que você vai encontrar no Manual</h2>
+                <ul class="grid8">
+                    <li><svg class="ico" aria-hidden="true">
+                            <use href="#i-doc" />
+                        </svg><strong>Contexto e Visão Geral</strong><span>Entenda os pilares e os objetivos centrais da nova reforma.</span>
+                    </li>
+                    <li><svg class="ico" aria-hidden="true">
+                            <use href="#i-calc" />
+                        </svg><strong>IBS e CBS</strong><span>Como vão funcionar os novos tributos sub-rogados e dual.</span>
+                    </li>
+                    <li><svg class="ico" aria-hidden="true">
+                            <use href="#i-shield" />
+                        </svg><strong>Imposto Seletivo</strong><span>Conheça a incidência sobre bens prejudiciais à saúde e meio ambiente.</span></li>
+                    <li><svg class="ico" aria-hidden="true">
+                            <use href="#i-check" />
+                        </svg><strong>Regras de Crédito</strong><span>A dinâmica da não cumulatividade plena no novo sistema.</span>
+                    </li>
+                    <li><svg class="ico" aria-hidden="true">
+                            <use href="#i-bolt" />
+                        </svg><strong>Split Payment</strong><span>O mecanismo de recolhimento automático e suas repercussões.</span></li>
+                    <li><svg class="ico" aria-hidden="true">
+                            <use href="#i-doc" />
+                        </svg><strong>Cronograma de Transição</strong><span>Os prazos oficiais e as fases de implantação ano a ano.</span>
+                    </li>
+                    <li><svg class="ico" aria-hidden="true">
+                            <use href="#i-user" />
+                        </svg><strong>Impactos Setoriais</strong><span>Análise das mudanças no comércio, indústria e serviços.</span></li>
+                    <li><svg class="ico" aria-hidden="true">
+                            <use href="#i-check" />
+                        </svg><strong>Checklist Prático</strong><span>Orientações passo a passo para a adaptação dos negócios.</span></li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- 4. CARROSSEL -->
+        <section class="v-section" aria-labelledby="t-dentro">
+            <div class="container">
+                <h2 id="t-dentro">Conheça o Manual por Dentro</h2>
+                <div class="carousel" id="carousel" role="region" aria-roledescription="carrossel"
+                    aria-label="Páginas do manual">
+                    <button class="car-btn prev" type="button" aria-label="Slide anterior" hidden>‹</button>
+                    <ul class="track" id="track">
+                        <li class="ph ph-slide" aria-label="Slide 1 de 4">Página do manual 1<br><small>1200 × 800 px</small></li>
+                        <li class="ph ph-slide" aria-label="Slide 2 de 4">Página do manual 2<br><small>1200 × 800 px</small></li>
+                        <li class="ph ph-slide" aria-label="Slide 3 de 4">Página do manual 3<br><small>1200 × 800 px</small></li>
+                        <li class="ph ph-slide" aria-label="Slide 4 de 4">Página do manual 4<br><small>1200 × 800 px</small></li>
+                    </ul>
+                    <button class="car-btn next" type="button" aria-label="Próximo slide" hidden>›</button>
+                    <div class="dots" id="dots" hidden></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. O QUE NÃO É / O QUE VOCÊ GANHA -->
+        <section class="v-section alt" aria-labelledby="t-nao">
+            <div class="container narrow">
+                <div class="v-card center">
+                    <svg class="ico big" aria-hidden="true">
+                        <use href="#i-shield" />
+                    </svg>
+                    <h2 id="t-nao">Conteúdo focado no que importa</h2>
+                    <ul class="mini">
+                        <li class="no"><svg aria-hidden="true">
+                                <use href="#i-x" />
+                            </svg>Textos longos, cansativos e cheios de juridiquês</li>
+                        <li class="no"><svg aria-hidden="true">
+                                <use href="#i-x" />
+                            </svg>Teorias complexas sem aplicação prática</li>
+                        <li class="yes"><svg aria-hidden="true">
+                                <use href="#i-check" />
+                            </svg>Explicações diretas e simplificadas</li>
+                        <li class="yes"><svg aria-hidden="true">
+                                <use href="#i-check" />
+                            </svg>Segurança para orientar clientes e empresas</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- 6. COMPARATIVO -->
+        <section class="v-section" aria-labelledby="t-comp">
+            <div class="container">
+                <h2 id="t-comp">Diferenciais do Manual</h2>
+                <div class="versus">
+                    <article class="v-card">
+                        <h3>Método Tradicional</h3>
+                        <ul class="mini">
+                            <li class="no"><svg aria-hidden="true">
+                                    <use href="#i-x" />
+                                </svg>Leitura exaustiva de leis</li>
+                            <li class="no"><svg aria-hidden="true">
+                                    <use href="#i-x" />
+                                </svg>Falta de exemplos visuais</li>
+                            <li class="no"><svg aria-hidden="true">
+                                    <use href="#i-x" />
+                                </svg>Difícil de aplicar no dia a dia</li>
+                        </ul>
+                    </article>
+                    <div class="vs" aria-hidden="true">VS</div>
+                    <article class="v-card dark">
+                        <h3>Manual Prático</h3>
+                        <ul class="mini">
+                            <li class="yes"><svg aria-hidden="true">
+                                    <use href="#i-check" />
+                                </svg>Esquematizado por tópicos</li>
+                            <li class="yes"><svg aria-hidden="true">
+                                    <use href="#i-check" />
+                                </svg>Casos práticos reais</li>
+                            <li class="yes"><svg aria-hidden="true">
+                                    <use href="#i-check" />
+                                </svg>Consulta ágil e objetiva</li>
+                        </ul>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <!-- 7. AUTOR -->
+        <section class="v-section alt" aria-labelledby="t-autor">
+            <div class="container author">
+                <div class="ph ph-author" role="img" aria-label="Foto de Lucas Coutinho">Foto do autor<br><small>600 × 700 px</small></div>
+                <div>
+                    <h2 id="t-autor">Lucas Coutinho</h2>
+                    <p class="muted"><strong>Especialista em Tributação e Reforma Tributária</strong></p>
+                    <p>Atua na área contábil/tributária e construiu este material prático com o objetivo de traduzir a complexidade da Reforma do Consumo em orientações claras, diretas e aplicáveis para profissionais e empresários que precisam se antecipar às mudanças.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 8. PARA QUEM É -->
+        <section class="v-section" aria-labelledby="t-quem">
+            <div class="container">
+                <h2 id="t-quem">Para quem é este material?</h2>
+                <ul class="who">
+                    <li><svg class="ico" aria-hidden="true">
+                            <use href="#i-calc" />
+                        </svg>Contadores</li>
+                    <li><svg class="ico" aria-hidden="true">
+                            <use href="#i-shield" />
+                        </svg>Advogados</li>
+                    <li><svg class="ico" aria-hidden="true">
+                            <use href="#i-user" />
+                        </svg>Empresários</li>
+                    <li><svg class="ico" aria-hidden="true">
+                            <use href="#i-doc" />
+                        </svg>Estudantes</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- 9. APROFUNDAR -->
+        <section class="v-section" aria-labelledby="t-aprof">
+            <div class="container">
+                <div class="banner">
+                    <div>
+                        <h2 id="t-aprof">Deseja aprofundar ainda mais?</h2>
+                        <p>Tenha acesso a conteúdos complementares focados em cenários avançados da transição fiscal.</p>
+                    </div>
+                    <ul class="mini">
+                        <li class="yes"><svg aria-hidden="true">
+                                <use href="#i-check" />
+                            </svg>Análise de impactos por CNAE</li>
+                        <li class="yes"><svg aria-hidden="true">
+                                <use href="#i-check" />
+                            </svg>Estratégias de planejamento tributário</li>
+                        <li class="yes"><svg aria-hidden="true">
+                                <use href="#i-check" />
+                            </svg>Atualizações normativas comentadas</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- 10. FAQ (details/summary: funciona sem JavaScript) -->
+        <section class="v-section alt" aria-labelledby="t-faq">
+            <div class="container narrow">
+                <h2 id="t-faq">Dúvidas mais frequentes</h2>
+                <details class="faq">
+                    <summary>Em que formato recebo o manual?</summary>
+                    <p>O material é disponibilizado em formato digital (PDF), otimizado para leitura em computadores, tablets e smartphones.</p>
+                </details>
+                <details class="faq">
+                    <summary>Como recebo o acesso ao produto?</summary>
+                    <p>Assim que o pagamento for confirmado, você receberá os dados de acesso diretamente no seu e-mail cadastrado através da plataforma de pagamentos.</p>
+                </details>
+                <details class="faq">
+                    <summary>O manual será atualizado com as novas leis complementares?</summary>
+                    <p>Sim! O conteúdo acompanha as atualizações normativas da regulamentação da reforma tributária.</p>
+                </details>
+                <details class="faq">
+                    <summary>Preciso ter conhecimento prévio avançado?</summary>
+                    <p>Não. O material foi desenhado para atender desde profissionais que estão começando até especialistas que buscam uma consulta rápida e esquematizada.</p>
+                </details>
+                <details class="faq">
+                    <summary>E se eu não gostar do conteúdo?</summary>
+                    <p>Você tem 7 dias de garantia incondicional. Caso sinta que o material não atendeu às suas expectativas, poderá solicitar o reembolso integral dentro do prazo.</p>
+                </details>
+            </div>
+        </section>
+
+        <!-- 11. GARANTIA -->
+        <section class="v-section" aria-labelledby="t-garantia">
+            <div class="container narrow">
+                <div class="v-card center">
+                    <h2 id="t-garantia">Compra segura e garantida</h2>
+                    <ul class="seals">
+                        <li><svg class="ico" aria-hidden="true">
+                                <use href="#i-shield" />
+                            </svg>Pagamento 100% seguro</li>
+                        <li><svg class="ico" aria-hidden="true">
+                                <use href="#i-check" />
+                            </svg>7 dias de garantia</li>
+                        <li><svg class="ico" aria-hidden="true">
+                                <use href="#i-bolt" />
+                            </svg>Acesso imediato</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- 12. OFERTA FINAL -->
+        <section class="v-final" aria-labelledby="t-final">
+            <div class="container v-hero-grid">
+                <div class="ph ph-mock small" role="img" aria-label="Mockup do manual prático">Mockup do manual<br><small>600 × 500 px</small></div>
+                <div>
+                    <h2 id="t-final">Garanta agora o seu Manual Prático da Reforma Tributária do Consumo</h2>
+                    <p class="price-big"><span class="muted-on-dark">Oferta especial</span> R$ 19,90</p>
+                    <a class="btn-cta" href="https://pay.kiwify.com.br/2IDvyM2" target="_blank"
+                        rel="noopener noreferrer">Garantir meu manual<span class="sr-only"> (abre em nova aba)</span></a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 13. RODAPÉ em 3 colunas -->
+    <footer class="site-footer v-footer">
+        <div class="container foot3">
+            <div>
+                <p><strong data-site="nome">3pci</strong> © <span data-year></span></p>
+                <p><a href="#">Termos de uso</a></p>
+            </div>
+            <div>
+                <p><strong>Links úteis</strong></p>
+                <p><a href="catalogo.html">Todos os cursos</a></p>
+                <p><a href="index.html#contato">Suporte</a></p>
+            </div>
+            <div>
+                <p><strong>Contato</strong></p>
+                <p><a href="index.html#contato">E-mail e redes sociais</a></p>
+                <p><a href="#">Política de privacidade</a></p>
+            </div>
+        </div>
+    </footer>
+</body>
+
+</html>

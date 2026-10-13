@@ -60,6 +60,7 @@
     target.setAttribute("aria-busy", "true");
     for (var i = 0; i < n; i++) target.append(el("div", { "class": "skeleton-card", "aria-hidden": "true" }));
   }
+
   function renderCards(target, list) {
     target.removeAttribute("aria-busy");
     target.textContent = "";
@@ -74,12 +75,13 @@
         el("p", { text: c.resumo }),
         c.publico ? el("p", { "class": "muted", text: c.publico }) : "",
         brl(c.preco) ? el("p", { "class": "price", text: brl(c.preco) }) : "",
-        el("a", { "class": "btn btn-outline", href: "curso.html?id=" + encodeURIComponent(c.id),
+        el("a", { "class": "btn btn-outline", href: c.pagina || ("curso.html?id=" + encodeURIComponent(c.id)),
                   "aria-label": "Ver detalhes: " + c.titulo, text: "Ver detalhes" })
       ]);
       target.append(el("article", { "class": "card" }, [cover(c), body]));
     });
   }
+  
   var catalog = document.getElementById("catalogo");
   if (catalog && page === "home") {
     var feat = C.filter(function (c) { return c.destaque; });
