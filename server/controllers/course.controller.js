@@ -1,4 +1,3 @@
-const { validate: isUuid } = require("uuid");
 const pool = require("../config/database");
 
 const COURSE_FIELDS = new Set(["title", "slug", "short_description", "status"]);
@@ -58,7 +57,7 @@ function normalizeCourseInput(body, isCreate = false) {
 }
 
 function isValidId(value) {
-  return isUuid(value);
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
 
 async function listPublicCourses(_req, res, next) {
