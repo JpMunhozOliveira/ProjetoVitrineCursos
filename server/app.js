@@ -1,4 +1,5 @@
 const express = require("express");
+const path = require("path");
 const healthRoutes = require("./routes/health.routes");
 const courseRoutes = require("./routes/course.routes");
 const adminCourseRoutes = require("./routes/admin-course.routes");
@@ -11,5 +12,8 @@ app.use(express.json({ limit: "100kb" }));
 app.use("/api/health", healthRoutes);
 app.use("/api/courses", courseRoutes);
 app.use("/api/admin/courses", adminCourseRoutes);
+
+// Mantém API e frontend na mesma origem no ambiente local, evitando CORS.
+app.use(express.static(path.join(__dirname, "public")));
 
 module.exports = app;
