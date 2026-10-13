@@ -1,27 +1,26 @@
 /* ==========================================================
    TEMA — único arquivo a editar para trocar cores e fontes.
-   Valores atuais são PLACEHOLDERS. Mantenha contraste AA
-   (4,5:1 para texto comum) ao escolher as cores definitivas.
+   Valores otimizados para plataforma de cursos profissionais.
    ========================================================== */
 :root {
-  --color-primary: #4338ca;          /* botões, links, destaques */
-  --color-primary-dark: #312e81;     /* hover e rodapé */
-  --color-on-primary: #ffffff;       /* texto sobre a cor primária */
-  --color-accent: #f59e0b;           /* detalhes e capas */
+  --color-primary: #1d4ed8;          /* Azul profissional forte: autoridade e foco */
+  --color-primary-dark: #1e40af;     /* Hover e rodapé */
+  --color-on-primary: #ffffff;       /* Texto sobre a cor primária */
+  --color-accent: #059669;           /* Verde conversão (CTAs, destaques, garantia) */
   --color-bg: #ffffff;
-  --color-surface: #f4f4fb;          /* faixas e cards */
-  --color-text: #1f2937;
-  --color-muted: #4b5563;
-  --color-border: #e0e0ee;
-  --color-focus: #b45309;
-  --color-cover-start: #4338ca;      /* gradiente das capas sem imagem */
-  --color-cover-end: #f59e0b;
-  --color-footer-bg: #312e81;
-  --color-footer-text: #ffffff;
-  --color-skeleton-base: #e5e7f0;    /* cards em carregamento */
-  --color-skeleton-shine: #f6f6fb;   /* brilho que atravessa o card */
-  --color-notice-bg: #fef3c7;        /* aviso "JavaScript desativado" */
-  --color-notice-text: #78350f;
+  --color-surface: #f8fafc;          /* Faixas e cards limpos */
+  --color-text: #0f172a;
+  --color-muted: #475569;
+  --color-border: #cbd5e1;
+  --color-focus: #047857;
+  --color-cover-start: #1e3a8a;      /* Gradiente de capas sem imagem */
+  --color-cover-end: #0f766e;
+  --color-footer-bg: #0f172a;
+  --color-footer-text: #f8fafc;
+  --color-skeleton-base: #e2e8f0;    /* Cards em carregamento */
+  --color-skeleton-shine: #f1f5f9;   /* Brilho que atravessa o card */
+  --color-notice-bg: #ecfdf5;        /* Aviso / Alerta positivo */
+  --color-notice-text: #065f46;
   color-scheme: light;
 
   --font-base: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
@@ -31,27 +30,25 @@
 
 /* ==========================================================
    MODO NOTURNO — mesmas variáveis, valores para fundo escuro.
-   Ativado pelo botão do cabeçalho (ou pela preferência do
-   sistema, na primeira visita). Também placeholders.
    ========================================================== */
 :root[data-theme="dark"] {
-  --color-primary: #a5b4fc;
-  --color-primary-dark: #c7d2fe;     /* hover dos botões */
-  --color-on-primary: #1e1b4b;
-  --color-accent: #fbbf24;
-  --color-bg: #0f172a;
-  --color-surface: #1e293b;
-  --color-text: #e5e7eb;
-  --color-muted: #a8b3c5;
-  --color-border: #334155;
-  --color-focus: #fbbf24;
-  --color-cover-start: #4338ca;
-  --color-cover-end: #b45309;
-  --color-footer-bg: #0b1020;
-  --color-footer-text: #e5e7eb;
-  --color-skeleton-base: #1e293b;
-  --color-skeleton-shine: #2d3b52;
-  --color-notice-bg: #451a03;
-  --color-notice-text: #fde68a;
+  --color-primary: #3b82f6;
+  --color-primary-dark: #60a5fa;     /* Hover dos botões */
+  --color-on-primary: #0f172a;
+  --color-accent: #10b981;
+  --color-bg: #0b0f19;
+  --color-surface: #111827;
+  --color-text: #f3f4f6;
+  --color-muted: #9ca3af;
+  --color-border: #1f2937;
+  --color-focus: #34d399;
+  --color-cover-start: #1e3a8a;
+  --color-cover-end: #047857;
+  --color-footer-bg: #030712;
+  --color-footer-text: #f3f4f6;
+  --color-skeleton-base: #1f2937;
+  --color-skeleton-shine: #374151;
+  --color-notice-bg: #064e3b;
+  --color-notice-text: #a7f3d0;
   color-scheme: dark;
 }
