@@ -1,40 +1,30 @@
-const express = require("express");
-const { Pool } = require("pg");
+const app = require("./app");
+const pool = require("./config/database");
 
-const app = express();
 const port = Number(process.env.PORT || 3000);
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
-
-app.disable("x-powered-by");
-app.use(express.json({ limit: "100kb" }));
-
-app.get("/api/health", async (_req, res) => {
-  try {
-    await pool.query("SELECT 1");
-    res.status(200).json({
-      status: "ok",
-      database: "connected",
-    });
-  } catch (error) {
-    console.error("Health check failed:", error.message);
-    res.status(503).json({
-      status: "error",
-      database: "unavailable",
-    });
-  }
-});
 
 const server = app.listen(port, "0.0.0.0", () => {
   console.log(`Vitrine de Cursos API listening on port ${port}`);
 });
 
-async function shutdown() {
-  server.close(async () => {
-    await pool.end();
-    process.exit(0);
+let isShuttingDown = false;
+
+function shutdown() {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+
+  server.close(async (error) => {
+    try {
+      await pool.end();
+    } catch (poolError) {
+      console.error("Failed to close PostgreSQL pool:", poolError.message);
+      process.exitCode = 1;
+    }
+
+    if (error) {
+      console.error("Failed to close HTTP server:", error.message);
+      process.exitCode = 1;
+    }
   });
 }
 
