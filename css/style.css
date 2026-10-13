@@ -84,3 +84,17 @@ h2{font-size:clamp(1.4rem,3.5vw,2rem)}
 @media (max-width:479px){.theme-btn span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}.theme-btn{padding:0 .7rem}}
 
 .nav a[aria-current="page"]{color:var(--color-primary);background:var(--color-surface)}
+
+/* Aviso de JavaScript desativado */
+.noscript-banner{background:var(--color-notice-bg);color:var(--color-notice-text);border-bottom:2px solid var(--color-focus);padding:1rem;text-align:center;font-weight:600}
+
+/* Esqueletos de carregamento (só aparecem com JavaScript ativo) */
+.skeleton-card,.skeleton-block{display:none}
+.js .skeleton-card{display:block;border:1px solid var(--color-border);border-radius:var(--radius);overflow:hidden;background:var(--color-bg)}
+.js .skeleton-block{display:block;border-radius:var(--radius)}
+.skeleton-card::before{content:"";display:block;aspect-ratio:16/9}
+.skeleton-card::after{content:"";display:block;height:150px;margin:1.25rem;border-radius:8px}
+.skeleton-card::before,.skeleton-card::after,.skeleton-block{background:linear-gradient(90deg,var(--color-skeleton-base) 25%,var(--color-skeleton-shine) 50%,var(--color-skeleton-base) 75%);background-size:200% 100%;animation:shimmer 1.4s linear infinite}
+.sk-main{height:420px}
+.sk-aside{height:300px}
+@keyframes shimmer{from{background-position:200% 0}to{background-position:-200% 0}}

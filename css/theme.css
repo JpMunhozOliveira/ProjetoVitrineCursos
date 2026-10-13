@@ -18,6 +18,10 @@
   --color-cover-end: #f59e0b;
   --color-footer-bg: #312e81;
   --color-footer-text: #ffffff;
+  --color-skeleton-base: #e5e7f0;    /* cards em carregamento */
+  --color-skeleton-shine: #f6f6fb;   /* brilho que atravessa o card */
+  --color-notice-bg: #fef3c7;        /* aviso "JavaScript desativado" */
+  --color-notice-text: #78350f;
   color-scheme: light;
 
   --font-base: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
@@ -45,5 +49,9 @@
   --color-cover-end: #b45309;
   --color-footer-bg: #0b1020;
   --color-footer-text: #e5e7eb;
+  --color-skeleton-base: #1e293b;
+  --color-skeleton-shine: #2d3b52;
+  --color-notice-bg: #451a03;
+  --color-notice-text: #fde68a;
   color-scheme: dark;
 }

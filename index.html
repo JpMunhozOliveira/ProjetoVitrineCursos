@@ -14,6 +14,7 @@
   <script src="js/main.js" defer></script>
 </head>
 <body data-page="home">
+<noscript><div class="noscript-banner" role="alert"><strong>JavaScript desativado.</strong> Este site precisa do JavaScript para mostrar o menu, os cursos e o rodapé. Ative-o nas configurações do navegador e recarregue a página.</div></noscript>
 <div id="site-header"></div>
 <main id="conteudo">
   <section class="hero">
@@ -28,8 +29,7 @@
   <section class="section" id="cursos" aria-labelledby="t-cursos">
     <div class="container">
       <h2 id="t-cursos">Cursos em destaque</h2>
-      <div id="catalogo" class="grid"></div>
-      <noscript><p>Ative o JavaScript para ver o catálogo de cursos.</p></noscript>
+      <div id="catalogo" class="grid"><div class="skeleton-card" aria-hidden="true"></div><div class="skeleton-card" aria-hidden="true"></div><div class="skeleton-card" aria-hidden="true"></div></div>
       <p class="more" id="ver-todos"><a class="btn" href="catalogo.html">Ver todos os cursos</a></p>
     </div>
   </section>

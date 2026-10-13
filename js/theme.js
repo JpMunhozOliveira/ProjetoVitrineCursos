@@ -1,5 +1,6 @@
 (function () {
   "use strict";
+  document.documentElement.classList.add("js"); // libera os esqueletos de carregamento
   var saved = null;
   try { saved = localStorage.getItem("tema"); } catch (e) {}
   var mq = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;

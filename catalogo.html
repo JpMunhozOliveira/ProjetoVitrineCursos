@@ -14,6 +14,7 @@
   <script src="js/main.js" defer></script>
 </head>
 <body data-page="catalogo">
+<noscript><div class="noscript-banner" role="alert"><strong>JavaScript desativado.</strong> Este site precisa do JavaScript para mostrar o menu, os cursos e o rodapé. Ative-o nas configurações do navegador e recarregue a página.</div></noscript>
 <div id="site-header"></div>
 <main id="conteudo">
   <div class="container section">
@@ -29,8 +30,7 @@
       </div>
     </div>
     <p id="resultado" class="muted" role="status" aria-live="polite"></p>
-    <div id="catalogo" class="grid"></div>
-    <noscript><p>Ative o JavaScript para ver o catálogo de cursos.</p></noscript>
+    <div id="catalogo" class="grid"><div class="skeleton-card" aria-hidden="true"></div><div class="skeleton-card" aria-hidden="true"></div><div class="skeleton-card" aria-hidden="true"></div></div>
   </div>
 </main>
 <div id="site-footer"></div>

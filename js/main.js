@@ -54,7 +54,14 @@
   }
 
   // Catálogo
+  // Cards "fantasma" com brilho, enquanto carrega ou pesquisa
+  function renderSkeleton(target, n) {
+    target.textContent = "";
+    target.setAttribute("aria-busy", "true");
+    for (var i = 0; i < n; i++) target.append(el("div", { "class": "skeleton-card", "aria-hidden": "true" }));
+  }
   function renderCards(target, list) {
+    target.removeAttribute("aria-busy");
     target.textContent = "";
     if (!list.length) {
       target.append(el("p", { "class": "muted", text: "Nenhum curso encontrado. Tente outra busca ou categoria." }));
@@ -97,14 +104,23 @@
       renderCards(catalog, list);
       out.textContent = list.length + (list.length === 1 ? " curso encontrado" : " cursos encontrados");
     };
-    q.addEventListener("input", apply);
-    sel.addEventListener("change", apply);
+    var timer, reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var onChange = function () {
+      clearTimeout(timer);
+      if (reduce) { apply(); return; }       // movimento reduzido: resposta imediata, sem esqueleto
+      renderSkeleton(catalog, 3);
+      out.textContent = "Buscando…";
+      timer = setTimeout(apply, 350);        // também evita redesenhar a cada tecla
+    };
+    q.addEventListener("input", onChange);
+    sel.addEventListener("change", onChange);
     apply();
   }
 
   // Página de detalhes
   var box = document.getElementById("curso");
   if (box) {
+    box.textContent = ""; // remove o esqueleto de carregamento
     var id = new URLSearchParams(location.search).get("id");
     var c = C.filter(function (x) { return x.id === id; })[0];
     if (!c) {
