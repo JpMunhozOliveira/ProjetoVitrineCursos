@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nome da Marca</title>
+  <meta name="description" content="Cursos online do professor. Conheça o catálogo.">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <link rel="stylesheet" href="css/theme.css">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="data/cursos.js" defer></script>
+  <script src="js/main.js" defer></script>
+</head>
+<body data-page="home">
+<a class="skip" href="#conteudo">Pular para o conteúdo</a>
+<header class="site-header">
+  <div class="container header-row">
+    <a class="brand" href="index.html" data-site="nome">Nome da Marca</a>
+    <button id="menu-btn" class="menu-btn" aria-expanded="false" aria-controls="nav">Menu</button>
+    <nav id="nav" class="nav" aria-label="Principal">
+      <ul>
+        <li><a href="index.html">Início</a></li>
+        <li><a href="index.html#cursos">Cursos</a></li>
+        <li><a href="index.html#sobre">Sobre</a></li>
+        <li><a href="index.html#contato">Contato</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+<main id="conteudo">
+  <section class="hero">
+    <div class="container">
+      <p class="eyebrow">Cursos online</p>
+      <h1 data-site="slogan">Slogan do projeto</h1>
+      <p data-site="descricao"></p>
+      <a class="btn" href="#cursos">Ver cursos</a>
+    </div>
+  </section>
+
+  <section class="section" id="cursos" aria-labelledby="t-cursos">
+    <div class="container">
+      <h2 id="t-cursos">Cursos</h2>
+      <div id="catalogo" class="grid"></div>
+      <noscript><p>Ative o JavaScript para ver o catálogo de cursos.</p></noscript>
+    </div>
+  </section>
+
+  <section class="section alt" id="sobre" aria-labelledby="t-sobre">
+    <div class="container about">
+      <div id="foto-professor" class="photo"></div>
+      <div>
+        <h2 id="t-sobre">Sobre <span data-site="professor.nome"></span></h2>
+        <p data-site="professor.bio"></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="contato" aria-labelledby="t-contato">
+    <div class="container">
+      <h2 id="t-contato">Contato</h2>
+      <p>Tem alguma dúvida? Fale com a gente.</p>
+      <ul id="contato-links" class="contact-list"></ul>
+    </div>
+  </section>
+</main>
+<footer class="site-footer">
+  <div class="container">
+    <p><strong data-site="nome">Nome da Marca</strong> © <span data-year></span></p>
+    <p>Pagamentos e acesso aos cursos processados pela Kiwify.</p>
+  </div>
+</footer>
+</body>
+</html>

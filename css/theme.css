@@ -1,0 +1,21 @@
+/* ==========================================================
+   TEMA — único arquivo a editar para trocar cores e fontes.
+   Valores atuais são PLACEHOLDERS. Mantenha contraste AA
+   (4,5:1 para texto comum) ao escolher as cores definitivas.
+   ========================================================== */
+:root {
+  --color-primary: #4338ca;          /* botões, links, destaques */
+  --color-primary-dark: #312e81;     /* hover e rodapé */
+  --color-on-primary: #ffffff;       /* texto sobre a cor primária */
+  --color-accent: #f59e0b;           /* detalhes e capas */
+  --color-bg: #ffffff;
+  --color-surface: #f4f4fb;          /* faixas e cards */
+  --color-text: #1f2937;
+  --color-muted: #4b5563;
+  --color-border: #e0e0ee;
+  --color-focus: #b45309;
+
+  --font-base: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --radius: 12px;
+  --max-width: 1100px;
+}
