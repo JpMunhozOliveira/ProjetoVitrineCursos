@@ -1,0 +1,64 @@
+/* Layout do editor React. Os componentes reaproveitam as classes do painel (admin.css):
+   .block, .list-field, .image-field, .form-actions, .segmented etc. */
+
+/* Esta página usa a largura toda: editor + pré-visualização lado a lado. */
+.editor-page .container { width: min(100% - 2rem, 1680px); }
+
+.editor-layout { display: grid; gap: 1.5rem; align-items: start; }
+.page-editor { max-width: none; }
+
+/* Pré-visualização fixa ao lado do editor, ocupando a altura disponível da tela. */
+.preview-pane {
+  position: sticky;
+  top: 8.5rem; /* abaixo do cabeçalho fixo do painel */
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+  height: calc(100vh - 9.5rem);
+}
+.device-toggle { align-self: flex-start; }
+.preview { display: flex; flex: 1; flex-direction: column; min-height: 0; }
+.preview-bar { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .5rem; min-height: 1.6em; font-size: .9rem; }
+.preview-status { font-weight: 600; color: var(--color-muted); }
+.preview-status.ok { color: var(--color-focus); }
+.preview-status.error { color: var(--color-danger); }
+.preview-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+.preview-stage iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border: 0;
+  background: #fff;
+  transform-origin: 0 0;
+}
+/* Celular: moldura centralizada (a escala só reduz se o painel for mais estreito que 390 px). */
+.preview-stage.mobile iframe { left: 50%; translate: -50% 0; transform-origin: 50% 0; box-shadow: 0 0 0 1px var(--color-border); }
+
+/* Bloco selecionado (aberto no editor / clicado na pré-visualização). */
+.block.is-selected { border-color: var(--color-primary); box-shadow: 0 0 0 2px var(--color-primary); }
+
+/* Abas Editar | Ver página: só em telas estreitas. */
+.editor-tabs { display: none; }
+
+@media (min-width: 1200px) {
+  .editor-layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+}
+@media (max-width: 1199px) {
+  .editor-tabs { display: flex; gap: .25rem; margin-bottom: 1rem; border-bottom: 1px solid var(--color-border); }
+  .editor-tabs button {
+    padding: .6rem 1rem; margin-bottom: -1px; font: inherit; font-weight: 700; color: var(--color-muted);
+    background: none; border: 0; border-bottom: 3px solid transparent; cursor: pointer;
+  }
+  .editor-tabs button[aria-selected="true"] { color: var(--color-primary); border-bottom-color: var(--color-primary); }
+  .editor-layout[data-tab="edit"] .preview-pane { display: none; }
+  .editor-layout[data-tab="preview"] .page-editor { display: none; }
+  .preview-pane { position: static; height: calc(100vh - 12rem); min-height: 420px; }
+}

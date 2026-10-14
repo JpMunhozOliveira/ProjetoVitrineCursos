@@ -7,6 +7,7 @@
 
   // Chama a API administrativa. Em requisições que alteram dados, envia o token CSRF da sessão.
   // opts.file: envia um arquivo como corpo bruto (upload de imagem), em vez de JSON.
+  // opts.text: devolve a resposta como texto (ex.: HTML da pré-visualização), em vez de JSON.
   async function api(path, opts) {
     opts = opts || {};
     var method = opts.method || "GET", headers = { Accept: "application/json" }, body;
@@ -22,6 +23,7 @@
     var res = await fetch("/api/admin" + path, {
       method: method, headers: headers, credentials: "same-origin", body: body
     });
+    if (opts.text && res.ok) return res.text();
     var payload = null;
     try { payload = await res.json(); } catch (e) { /* 204 sem corpo */ }
     if (!res.ok) {

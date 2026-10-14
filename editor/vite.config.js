@@ -18,6 +18,8 @@ export default defineConfig({
     rollupOptions: {
       input: "src/main.jsx",
       output: {
+        // IIFE: script comum (não "module"), num arquivo só, carregado com defer depois do common.js.
+        format: "iife",
         entryFileNames: "editor.js",
         assetFileNames: "editor[extname]",
       },

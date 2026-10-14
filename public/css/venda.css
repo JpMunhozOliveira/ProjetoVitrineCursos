@@ -608,3 +608,16 @@
   background: var(--color-notice-bg);
   border-bottom: 2px solid var(--color-accent);
 }
+
+/* Pré-visualização dentro do editor do painel: seções clicáveis com destaque.
+   (data-block e .is-editor-preview só existem lá; a página pública não é afetada.) */
+.is-editor-preview [data-block] {
+  cursor: pointer;
+  outline-offset: -4px;
+}
+.is-editor-preview [data-block]:hover {
+  outline: 3px dashed var(--color-accent);
+}
+.is-editor-preview [data-block].is-selected {
+  outline: 3px solid var(--color-accent);
+}
