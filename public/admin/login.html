@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Entrar — Painel administrativo</title>
+  <link rel="stylesheet" href="../css/theme.css">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/admin.css">
+  <script src="../js/theme.js"></script>
+  <script src="../js/admin.js" defer></script>
+</head>
+<body data-admin="login">
+  <main class="auth">
+    <h1>Painel administrativo</h1>
+    <noscript><p class="msg error">Ative o JavaScript para entrar.</p></noscript>
+    <form id="login-form" novalidate>
+      <div class="field"><label for="email">E-mail</label>
+        <input id="email" type="email" autocomplete="username" required></div>
+      <div class="field"><label for="password">Senha</label>
+        <input id="password" type="password" autocomplete="current-password" required></div>
+      <p id="msg" class="msg error" role="alert"></p>
+      <button id="submit" class="btn" type="submit">Entrar</button>
+    </form>
+  </main>
+</body>
+</html>
