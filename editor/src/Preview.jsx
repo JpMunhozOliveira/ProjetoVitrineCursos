@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 
 const DEBOUNCE_MS = 500; // espera uma pausa na digitação antes de pedir nova renderização
 
-export function Preview({ productId, payload, selectedIndex, scrollToSelected, onSelectBlock, device }) {
+export function Preview({ productId, payload, selectedIndex, scrollToSelected, onSelectBlock, device, hoveredIndex, onVisibleChange }) {
   const frame = useRef(null);
   const scrollY = useRef(0);          // posição da rolagem, mantida entre atualizações
   const requestId = useRef(0);        // descarta respostas atrasadas (fora de ordem)
@@ -15,6 +15,8 @@ export function Preview({ productId, payload, selectedIndex, scrollToSelected, o
   // atual da função (sem ela, ficaria "congelada" na versão do momento em que foi registrado).
   const onSelectRef = useRef(onSelectBlock);
   onSelectRef.current = onSelectBlock;
+  const onVisibleRef = useRef(onVisibleChange);
+  onVisibleRef.current = onVisibleChange;
 
   // Pede nova renderização quando o conteúdo muda (com debounce).
   useEffect(() => {
@@ -27,6 +29,8 @@ export function Preview({ productId, payload, selectedIndex, scrollToSelected, o
         });
         if (id !== requestId.current) return;
         setHtml(result);
+        // Quais blocos o servidor de fato desenhou: os que faltam "não aparecem" (ex.: galeria sem imagens).
+        onVisibleRef.current?.(new Set([...result.matchAll(/data-block="(\d+)"/g)].map((m) => Number(m[1]))));
         setStatus({ kind: "ok", text: "Atualizada" });
       } catch (err) {
         if (id !== requestId.current) return;
@@ -51,6 +55,14 @@ export function Preview({ productId, payload, selectedIndex, scrollToSelected, o
     highlight(frame.current?.contentDocument, scrollToSelected);
   }, [selectedIndex, scrollToSelected]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Passar o mouse sobre um cartão no editor destaca a seção correspondente.
+  function hover(doc) {
+    if (!doc) return;
+    doc.querySelectorAll("[data-block].is-hovered").forEach((n) => n.classList.remove("is-hovered"));
+    if (hoveredIndex !== null && hoveredIndex !== undefined) doc.querySelector(`[data-block="${hoveredIndex}"]`)?.classList.add("is-hovered");
+  }
+  useEffect(() => { hover(frame.current?.contentDocument); }, [hoveredIndex]); // eslint-disable-line react-hooks/exhaustive-deps
+
   function handleLoad() {
     const win = frame.current.contentWindow, doc = frame.current.contentDocument;
     win.scrollTo(0, scrollY.current);
@@ -63,6 +75,7 @@ export function Preview({ productId, payload, selectedIndex, scrollToSelected, o
       if (section && !e.target.closest(".car-btn, .dots, summary")) onSelectRef.current(Number(section.dataset.block));
     });
     highlight(doc, false);
+    hover(doc);
   }
 
   // Escala: a página é desenhada na largura real do dispositivo (1280 px ou 390 px) e reduzida

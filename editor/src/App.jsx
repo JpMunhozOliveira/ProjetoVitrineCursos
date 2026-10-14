@@ -5,6 +5,7 @@ import { EditorContext } from "./context.js";
 import { reducer, withKeys, stripKeys, carryKeys, newBlock } from "./state.js";
 import { BlockList } from "./Blocks.jsx";
 import { Preview } from "./Preview.jsx";
+import { BlockPicker } from "./BlockPicker.jsx";
 
 const api = (...args) => window.Admin.api(...args);
 const STATUS = { draft: "Rascunho", published: "Publicado", archived: "Arquivado" };
@@ -22,10 +23,23 @@ export default function App({ productId }) {
   const [open, setOpen] = useState(() => new Set());         // chaves dos blocos abertos
   const [selected, setSelected] = useState({ key: null, from: null });
   const [device, setDevice] = useState("desktop");
-  const [tab, setTab] = useState("edit");                    // telas estreitas: edit | preview
   const [message, setMessage] = useState({ text: "", kind: "" });
   const [saving, setSaving] = useState(false);
+  const [hovered, setHovered] = useState(null);               // bloco sob o mouse (destaca na prévia)
+  const [visible, setVisible] = useState(null);               // índices que aparecem na página (da prévia)
+  const [pickerAt, setPickerAt] = useState(null);             // posição onde inserir (null = seletor fechado)
   const pendingFocus = useRef(null);
+
+  // Altura do cabeçalho fixo do painel -> variável CSS. Com ela, a tela do editor ocupa exatamente
+  // o resto da janela: só a coluna do editor rola e a pré-visualização fica sempre inteira à vista.
+  useEffect(() => {
+    const top = document.querySelector(".admin-top");
+    if (!top) return;
+    const observer = new ResizeObserver(() =>
+      document.documentElement.style.setProperty("--top-offset", `${top.offsetHeight}px`));
+    observer.observe(top);
+    return () => observer.disconnect();
+  }, []);
   const dirtyRef = useRef(false);
   dirtyRef.current = dirty;
 
@@ -106,7 +120,6 @@ export default function App({ productId }) {
     if (!block) return;
     setOpen((prev) => new Set(prev).add(block._key));
     setSelected({ key: block._key, from });
-    setTab("edit");
     requestAnimationFrame(() => {
       const card = document.querySelector(`[data-block-key="${block._key}"]`);
       card?.scrollIntoView({ block: "start", behavior: "smooth" });
@@ -114,9 +127,10 @@ export default function App({ productId }) {
     });
   }
 
-  function addBlock(type) {
+  function addBlock(type, index) {
     const block = newBlock(type, schema);
-    dispatch({ type: "insert", path: ["sections"], value: block });
+    setPickerAt(null);
+    dispatch({ type: "insert", path: ["sections"], index, value: block });
     setOpen((prev) => new Set(prev).add(block._key));
     setSelected({ key: block._key, from: "editor" });
     focusLater(`[data-block-key="${block._key}"] .block-toggle`);
@@ -168,35 +182,65 @@ export default function App({ productId }) {
   if (boot.status === "error") return <p className="msg error" role="alert">{boot.text}</p>;
 
   const live = !!(page?.published_at && product.status === "published");
+  const productUrl = `produto.html?id=${encodeURIComponent(productId)}`;
+
+  // Tamanho da pré-visualização: ícones de monitor e celular (fica no cabeçalho para a
+  // pré-visualização ganhar altura).
+  const deviceToggle = (
+    <div className="segmented device-toggle" role="radiogroup" aria-label="Tamanho da tela da pré-visualização">
+      {[["desktop", "Computador", "M3 4h18v12H3zM8 20h8M12 16v4"], ["mobile", "Celular", "M7 2h10v20H7zM11 18h2"]].map(([value, label, d]) => (
+        <label key={value} title={label}>
+          <input type="radio" name="device" value={value} checked={device === value} onChange={() => setDevice(value)} aria-label={label} />
+          <span><svg className="device-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d={d} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          </svg></span>
+        </label>
+      ))}
+    </div>
+  );
+
+  // Cabeçalho compacto (uma linha) para sobrar altura para o editor e a pré-visualização.
+  // "Voltar ao produto" fica na barra de baixo, junto do Salvar.
   const header = (
-    <>
-      <a className="crumb" href={`produto.html?id=${encodeURIComponent(productId)}`}>← Voltar ao produto</a>
-      <div className="page-head">
-        <div>
-          <h1>Página de vendas</h1>
-          <p className="muted">{product.title}</p>
-        </div>
-        <div className="row-actions">
-          {live && <a className="btn btn-sm btn-outline" href={`/p/${encodeURIComponent(product.slug)}`} target="_blank" rel="noopener">Ver publicada<span className="sr-only"> (abre em nova aba)</span></a>}
-          {page && <a className="btn btn-sm btn-outline" href={`/admin/preview/${encodeURIComponent(productId)}`} target="_blank" rel="noopener">Abrir versão salva<span className="sr-only"> (abre em nova aba)</span></a>}
-        </div>
+    <div className="page-head editor-head">
+      <h1 className="editor-title">Página de vendas <span className="muted">· {product.title}</span></h1>
+      <div className="row-actions">
+        {live && <a className="btn btn-sm btn-outline" href={`/p/${encodeURIComponent(product.slug)}`} target="_blank" rel="noopener">Ver publicada<span className="sr-only"> (abre em nova aba)</span></a>}
+        {page && <a className="btn btn-sm btn-outline" href={`/admin/preview/${encodeURIComponent(productId)}`} target="_blank" rel="noopener">Abrir versão salva<span className="sr-only"> (abre em nova aba)</span></a>}
+        {doc && deviceToggle}
       </div>
-    </>
+    </div>
+  );
+
+  // Telas pequenas: o editor lado a lado não cabe; mostramos este aviso (via CSS) no lugar dele.
+  const unsupported = (
+    <div className="editor-unsupported" role="note">
+      <h2>Editor disponível no computador</h2>
+      <p>A edição da página de vendas precisa de uma tela com pelo menos 1024 px de largura, para mostrar o editor e a pré-visualização lado a lado.</p>
+      <div className="row-actions">
+        {page && <a className="btn btn-outline" href={`/admin/preview/${encodeURIComponent(productId)}`} target="_blank" rel="noopener">Ver versão salva<span className="sr-only"> (abre em nova aba)</span></a>}
+        <a className="btn" href={productUrl}>Voltar ao produto</a>
+      </div>
+    </div>
   );
 
   if (!doc) {
     return (
-      <>
-        {header}
-        <section className="start-box" aria-labelledby="start-title">
-          <h2 id="start-title">Este produto ainda não tem página de vendas</h2>
-          <p>Comece pelo modelo padrão — a mesma estrutura da página do Manual, com textos de orientação para você substituir — ou monte do zero.</p>
-          <div className="row-actions">
-            <button type="button" className="btn" onClick={() => start(true)}>Usar o modelo padrão</button>
-            <button type="button" className="btn btn-outline" onClick={() => start(false)}>Começar em branco</button>
-          </div>
-        </section>
-      </>
+      <div className="editor-shell">
+        {unsupported}
+        <div className="editor-main">
+          {header}
+          <section className="start-box" aria-labelledby="start-title">
+            <h2 id="start-title">Este produto ainda não tem página de vendas</h2>
+            <p>Comece pelo modelo padrão — a mesma estrutura da página do Manual, com textos de orientação para você substituir — ou monte do zero.</p>
+            <div className="row-actions">
+              <button type="button" className="btn" onClick={() => start(true)}>Usar o modelo padrão</button>
+              <button type="button" className="btn btn-outline" onClick={() => start(false)}>Começar em branco</button>
+              <a className="btn btn-outline" href={productUrl}>Voltar ao produto</a>
+            </div>
+          </section>
+        </div>
+      </div>
     );
   }
 
@@ -208,26 +252,25 @@ export default function App({ productId }) {
 
   return (
     <EditorContext.Provider value={context}>
+     <div className="editor-shell">
+      {unsupported}
+      <div className="editor-main">
       {header}
-      {/* Telas estreitas: editor e pré-visualização viram abas */}
-      <div className="editor-tabs" role="tablist" aria-label="Modo de visualização">
-        <button type="button" role="tab" aria-selected={tab === "edit"} onClick={() => setTab("edit")}>Editar</button>
-        <button type="button" role="tab" aria-selected={tab === "preview"} onClick={() => setTab("preview")}>Ver página</button>
-      </div>
 
-      <div className="editor-layout" data-tab={tab}>
+      <div className="editor-layout">
         <form className="page-editor" noValidate onSubmit={save}>
           <p className="hint">Clique numa seção da pré-visualização (ou no nome de um bloco) para editar. Preço e link de compra vêm do cadastro do produto.</p>
-          <BlockList sections={sections} open={open} selectedKey={selected.key} onToggle={toggle} />
+          <BlockList sections={sections} open={open} selectedKey={selected.key} visible={visible}
+            onToggle={toggle} onHover={setHovered}
+            onInsert={(position) => sections.length < schema.maxBlocks && setPickerAt(position)} />
 
-          <div className="add-block">
-            <label htmlFor="new-type">Adicionar bloco</label>
-            <select id="new-type" defaultValue="faq">
-              {Object.entries(schema.blocks).map(([type, def]) => <option key={type} value={type}>{def.label}</option>)}
-            </select>
-            <button type="button" className="btn btn-sm btn-outline" disabled={sections.length >= schema.maxBlocks}
-              onClick={() => addBlock(document.getElementById("new-type").value)}>Adicionar no final</button>
-          </div>
+          <button type="button" className="add-block-btn" disabled={sections.length >= schema.maxBlocks}
+            onClick={() => setPickerAt(sections.length)}>
+            <span aria-hidden="true">+</span> Adicionar bloco
+            {sections.length >= schema.maxBlocks && <span className="muted small"> (limite de {schema.maxBlocks} blocos)</span>}
+          </button>
+          <BlockPicker position={pickerAt} total={sections.length}
+            onPick={(type) => addBlock(type, pickerAt)} onClose={() => setPickerAt(null)} />
 
           <fieldset className="seo">
             <legend>Busca e compartilhamento</legend>
@@ -265,18 +308,15 @@ export default function App({ productId }) {
         </form>
 
         <aside className="preview-pane" aria-label="Pré-visualização">
-          <div className="segmented device-toggle" role="radiogroup" aria-label="Tamanho da tela">
-            {[["desktop", "Computador"], ["mobile", "Celular"]].map(([value, label]) => (
-              <label key={value}><input type="radio" name="device" value={value} checked={device === value}
-                onChange={() => setDevice(value)} /><span>{label}</span></label>
-            ))}
-          </div>
           <Preview productId={productId} payload={previewPayload} device={device}
             selectedIndex={selectedIndex >= 0 ? selectedIndex : null}
             scrollToSelected={selected.from === "editor"}
-            onSelectBlock={(index) => revealBlock(index, "preview")} />
+            onSelectBlock={(index) => revealBlock(index, "preview")}
+            hoveredIndex={hovered} onVisibleChange={setVisible} />
         </aside>
       </div>
+      </div>
+     </div>
     </EditorContext.Provider>
   );
 }

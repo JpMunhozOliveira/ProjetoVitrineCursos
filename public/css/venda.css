@@ -615,7 +615,8 @@
   cursor: pointer;
   outline-offset: -4px;
 }
-.is-editor-preview [data-block]:hover {
+.is-editor-preview [data-block]:hover,
+.is-editor-preview [data-block].is-hovered {
   outline: 3px dashed var(--color-accent);
 }
 .is-editor-preview [data-block].is-selected {
