@@ -1,4 +1,14 @@
 /* Painel administrativo. Cores vêm de ../../css/theme.css. */
+/* Reserva sempre o espaço da barra de rolagem: páginas curtas e longas ficam com a mesma
+   largura e o conteúdo não "pula" para o lado ao trocar de página. */
+html{scrollbar-gutter:stable}
+/* Com cabeçalho fixo em cima e barra de ações fixa embaixo, o navegador deixa essa margem livre
+   ao rolar até um elemento (ex.: campo com erro de validação), para ele não ficar escondido. */
+html{scroll-padding-top:8.5rem;scroll-padding-bottom:7rem}
+
+/* Cabeçalho + abas fixos no topo ao rolar. A sombra "infinita" com clip-path pinta o fundo
+   até as bordas da tela, sem precisar tirar o bloco de dentro do .container. */
+.admin-top{position:sticky;top:0;z-index:20;background:var(--color-bg);box-shadow:0 0 0 100vmax var(--color-bg);clip-path:inset(0 -100vmax)}
 .auth{max-width:420px;margin:2rem auto 4rem;padding:0 1rem}
 .auth-top{display:flex;justify-content:flex-end;margin-bottom:2rem}
 
@@ -25,6 +35,8 @@
 .admin-bar{display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:.75rem 0;border-bottom:1px solid var(--color-border)}
 .admin-id{display:flex;flex-direction:column;min-width:0;line-height:1.3}
 .admin-id strong,.admin-id #who{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* O e-mail chega depois (via JS); um espaço invisível mantém a altura da linha e o título parado. */
+.admin-id #who:empty::before{content:"\00a0"}
 .admin-actions{display:flex;flex:none;align-items:center;gap:.5rem}
 .page-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1rem}
 .page-head h1{margin:0}
@@ -121,3 +133,64 @@ dialog.confirm .buttons{display:flex;flex-wrap:wrap;justify-content:flex-end;gap
   .segmented label{flex:1;text-align:center}
   .segmented span{padding:.45rem .5rem}
 }
+
+/* Navegação entre as seções do painel (abas) */
+.admin-nav{display:flex;gap:.25rem;border-bottom:1px solid var(--color-border)}
+.admin-nav a{padding:.7rem 1rem;color:var(--color-muted);font-weight:700;text-decoration:none;border-bottom:3px solid transparent;margin-bottom:-1px}
+.admin-nav a:hover{color:var(--color-text)}
+.admin-nav a[aria-current="page"]{color:var(--color-primary);border-bottom-color:var(--color-primary)}
+
+/* Botão que abre o seletor de arquivos: o <input type="file"> fica invisível dentro do <label>,
+   mas continua focável pelo teclado (o contorno de foco aparece no botão). */
+.file-btn{position:relative}
+.file-btn input{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
+.file-btn:focus-within{outline:3px solid var(--color-focus);outline-offset:3px}
+
+/* Capa do produto no formulário */
+.cover-field{display:grid;gap:1rem;margin-bottom:1rem}
+@media (min-width:720px){.cover-field{grid-template-columns:240px 1fr;align-items:start}}
+.cover-preview{display:grid;place-items:center;aspect-ratio:16/9;overflow:hidden;background:var(--color-surface);border:2px dashed var(--color-border);border-radius:var(--radius)}
+.cover-preview img{width:100%;height:100%;object-fit:cover}
+.cover-controls .hint{margin:.5rem 0 1rem}
+.cover-controls .msg:empty{display:none}
+
+/* Diálogo "Escolher da biblioteca" */
+dialog.picker{width:min(56rem,calc(100% - 2rem));max-height:min(40rem,calc(100% - 2rem));padding:1.25rem;color:var(--color-text);background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius)}
+dialog.picker::backdrop{background:rgb(0 0 0 / .5)}
+.picker-head{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:.5rem}
+.picker-head h2{margin:0;font-size:1.25rem}
+dialog.picker .msg:empty{display:none}
+.media-grid{display:grid;gap:.75rem;grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+.media-option{display:flex;flex-direction:column;gap:.35rem;padding:.4rem;font:inherit;font-size:.85rem;text-align:left;color:var(--color-text);background:var(--color-bg);border:2px solid var(--color-border);border-radius:10px;cursor:pointer}
+.media-option:hover{border-color:var(--color-primary)}
+.media-option[aria-current="true"]{border-color:var(--color-primary);background:var(--color-surface)}
+.media-option img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:6px}
+.media-option span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* Biblioteca de imagens */
+.media-toolbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.5rem 1rem;margin:1rem 0}
+.media-toolbar .field{margin:0}
+.media-library{display:grid;gap:1rem;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));margin:0;padding:0;list-style:none}
+.media-card{display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--color-border);border-radius:var(--radius);background:var(--color-bg)}
+.media-card .media-zoom img{width:100%;aspect-ratio:16/10;object-fit:cover;background:var(--color-surface)}
+.media-body{display:flex;flex-direction:column;gap:.35rem;padding:1rem}
+.media-name{overflow-wrap:anywhere}
+.media-usage{margin:.25rem 0 .5rem}
+.media-body .field{margin-bottom:.5rem}
+.badge{display:inline-block;padding:.1rem .6rem;font-weight:700;color:var(--color-warning);border:1px solid currentColor;border-radius:999px}
+
+/* Miniatura clicável (abre o visualizador). Botão sem aparência de botão; a lupa indica o zoom. */
+.media-zoom{display:block;width:100%;padding:0;border:0;background:none;cursor:zoom-in}
+.cover-preview .media-zoom{height:100%}
+.media-zoom:focus-visible{outline:3px solid var(--color-focus);outline-offset:-3px}
+.media-zoom img{transition:opacity .2s}
+.media-zoom:hover img{opacity:.85}
+
+/* Visualizador de imagem inteira */
+dialog.viewer{width:auto;max-width:calc(100% - 2rem);max-height:calc(100% - 2rem);padding:1rem;color:var(--color-text);background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius)}
+dialog.viewer::backdrop{background:rgb(0 0 0 / .75)}
+.viewer-head{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:.75rem}
+.viewer-head h2{margin:0;font-size:1.1rem;overflow-wrap:anywhere}
+/* "contain": a imagem cabe inteira na tela, sem cortes nem distorção. */
+dialog.viewer img{display:block;width:auto;height:auto;max-width:100%;max-height:calc(100vh - 10rem);margin:0 auto;object-fit:contain;border-radius:6px}
+.viewer-info{margin:.75rem 0 0;text-align:center}

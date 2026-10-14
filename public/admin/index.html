@@ -14,16 +14,22 @@
 </head>
 <body>
   <div class="container">
-    <header class="admin-bar">
-      <div class="admin-id">
-        <strong>Painel administrativo</strong>
-        <span id="who" class="muted small"></span>
-      </div>
-      <div class="admin-actions">
-        <button id="tema-btn" class="theme-btn" type="button" aria-label="Modo noturno" title="Modo noturno" aria-pressed="false"></button>
-        <button id="logout" class="btn btn-outline btn-sm" type="button">Sair</button>
-      </div>
-    </header>
+    <div class="admin-top">
+      <header class="admin-bar">
+        <div class="admin-id">
+          <strong>Painel administrativo</strong>
+          <span id="who" class="muted small"></span>
+        </div>
+        <div class="admin-actions">
+          <button id="tema-btn" class="theme-btn" type="button" aria-label="Modo noturno" title="Modo noturno" aria-pressed="false"></button>
+          <button id="logout" class="btn btn-outline btn-sm" type="button">Sair</button>
+        </div>
+      </header>
+      <nav class="admin-nav" aria-label="Seções do painel">
+        <a href="./" aria-current="page">Produtos</a>
+        <a href="imagens.html">Imagens</a>
+      </nav>
+    </div>
     <main class="section">
       <div class="page-head">
         <h1>Produtos</h1>

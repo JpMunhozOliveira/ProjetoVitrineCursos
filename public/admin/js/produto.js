@@ -47,6 +47,7 @@
     form.elements.featured.checked = !!p.featured;
     form.elements.modules.value = (p.modules || []).join("\n");
     form.elements.price.value = priceToInput(p.price_cents);
+    showCover(p.image || null);
   }
 
   function collect() {
@@ -55,7 +56,103 @@
     data.featured = form.elements.featured.checked;
     data.modules = form.elements.modules.value.split("\n"); // linhas vazias são descartadas pela API
     data.price_cents = parsePrice(form.elements.price.value);
+    data.image_id = cover ? cover.id : null;
     return data;
+  }
+
+  /* ---------- Imagem de capa ----------
+     A imagem é enviada para a biblioteca na hora (gera um registro em /media), mas só vira capa
+     do produto quando ele é salvo. Se você desistir, ela fica na biblioteca e pode ser excluída lá. */
+  var cover = null; // { id, url, alt_text, width, height } ou null
+
+  function showCover(image) {
+    cover = image;
+    var img = $("cover-img");
+    $("cover-zoom").hidden = !image;
+    $("cover-empty").hidden = !!image;
+    if (image) {
+      img.src = image.url;
+      img.width = image.width; img.height = image.height; // reserva o espaço antes de carregar
+    } else {
+      img.removeAttribute("src");
+    }
+    $("cover-remove").hidden = !image;
+    $("cover-alt-field").hidden = !image;
+    $("cover-alt").value = image ? image.alt_text || "" : "";
+  }
+
+  function chooseCover(image, text) {
+    showCover(image);
+    dirty = true;
+    Admin.showMessage($("cover-msg"), text, "success");
+  }
+
+  $("cover-file").addEventListener("change", async function () {
+    var file = this.files[0];
+    this.value = ""; // permite escolher o mesmo arquivo de novo depois
+    if (!file) return;
+    var coverMsg = $("cover-msg");
+    Admin.showMessage(coverMsg, "Enviando “" + file.name + "”…");
+    try {
+      chooseCover(await Admin.uploadImage(file), "Imagem enviada. Clique em Salvar para aplicá-la ao produto.");
+      $("cover-alt").focus(); // próximo passo natural: descrever a imagem
+    } catch (err) {
+      Admin.showMessage(coverMsg, err.message, "error");
+    }
+  });
+
+  $("cover-zoom").addEventListener("click", function () {
+    if (!cover) return;
+    Admin.viewImage({
+      url: cover.url, alt: $("cover-alt").value.trim(), title: "Imagem de capa",
+      width: cover.width, height: cover.height
+    });
+  });
+
+  $("cover-remove").addEventListener("click", function () {
+    chooseCover(null, "Capa removida. Clique em Salvar para aplicar (a imagem continua na biblioteca).");
+  });
+
+  // Seletor de imagens já enviadas (diálogo com a biblioteca).
+  var picker = $("picker");
+  $("picker-close").addEventListener("click", function () { picker.close(); });
+  $("cover-pick").addEventListener("click", async function () {
+    var grid = $("picker-grid"), pickerMsg = $("picker-msg");
+    grid.replaceChildren();
+    Admin.showMessage(pickerMsg, "Carregando…");
+    picker.showModal();
+    try {
+      var items = await Admin.api("/media");
+      Admin.showMessage(pickerMsg, items.length ? "" : "A biblioteca está vazia. Use “Enviar imagem”.");
+      items.forEach(function (m) {
+        var b = document.createElement("button");
+        b.type = "button";
+        b.className = "media-option";
+        if (cover && cover.id === m.id) b.setAttribute("aria-current", "true");
+        var img = document.createElement("img");
+        img.src = m.url; img.alt = ""; img.loading = "lazy"; img.width = m.width; img.height = m.height;
+        var name = document.createElement("span");
+        name.textContent = m.original_name || "Imagem sem nome";
+        b.append(img, name);
+        b.setAttribute("aria-label", "Usar " + name.textContent + (m.alt_text ? " — " + m.alt_text : ""));
+        b.addEventListener("click", function () {
+          picker.close();
+          chooseCover(m, "Imagem escolhida. Clique em Salvar para aplicá-la ao produto.");
+        });
+        grid.append(b);
+      });
+    } catch (err) {
+      Admin.showMessage(pickerMsg, err.message, "error");
+    }
+  });
+
+  // O texto alternativo pertence à imagem (fica na biblioteca); é gravado junto com o produto.
+  async function saveCoverAlt() {
+    if (!cover) return;
+    var alt = $("cover-alt").value.trim();
+    if (alt === (cover.alt_text || "")) return;
+    var updated = await Admin.api("/media/" + encodeURIComponent(cover.id), { method: "PATCH", body: { alt_text: alt || null } });
+    cover.alt_text = updated.alt_text;
   }
 
   // Ajusta a tela ao produto como está GRAVADO (não ao que foi alterado e ainda não salvo).
@@ -131,6 +228,7 @@
     saveBtn.disabled = true;
     Admin.showMessage(msg, "Salvando…");
     try {
+      await saveCoverAlt();
       var saved = id
         ? await Admin.api("/products/" + encodeURIComponent(id), { method: "PATCH", body: data })
         : await Admin.api("/products", { method: "POST", body: data });
@@ -140,6 +238,7 @@
         history.replaceState(null, "", "produto.html?id=" + encodeURIComponent(id));
       }
       fill(saved); // mostra os valores como ficaram gravados (ex.: espaços removidos, link normalizado)
+      Admin.showMessage($("cover-msg"), ""); // o aviso "clique em Salvar" já foi atendido
       setMode(saved);
       dirty = false;
       Admin.showMessage(msg, "Produto salvo às " + new Date().toLocaleTimeString("pt-BR") + ".", "success");

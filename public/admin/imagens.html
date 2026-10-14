@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Imagens — Painel administrativo</title>
+  <link rel="stylesheet" href="../css/theme.css">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="css/admin.css">
+  <script src="../js/theme.js"></script>
+  <script src="js/common.js" defer></script>
+  <script src="js/imagens.js" defer></script>
+</head>
+<body>
+  <div class="container">
+    <div class="admin-top">
+      <header class="admin-bar">
+        <div class="admin-id">
+          <strong>Painel administrativo</strong>
+          <span id="who" class="muted small"></span>
+        </div>
+        <div class="admin-actions">
+          <button id="tema-btn" class="theme-btn" type="button" aria-label="Modo noturno" title="Modo noturno" aria-pressed="false"></button>
+          <button id="logout" class="btn btn-outline btn-sm" type="button">Sair</button>
+        </div>
+      </header>
+      <nav class="admin-nav" aria-label="Seções do painel">
+        <a href="./">Produtos</a>
+        <a href="imagens.html" aria-current="page">Imagens</a>
+      </nav>
+    </div>
+    <main class="section">
+      <div class="page-head">
+        <h1>Imagens</h1>
+        <label class="btn file-btn">Enviar imagens
+          <input id="upload" type="file" accept="image/png,image/jpeg,image/webp" multiple>
+        </label>
+      </div>
+      <p class="hint">PNG, JPEG ou WebP, até 5 MB cada. As imagens são convertidas para WebP, reduzidas para no máximo 1600 px e têm os metadados (como localização GPS) removidos.</p>
+
+      <div id="toolbar" class="media-toolbar" hidden>
+        <span id="summary" class="muted"></span>
+        <div class="field check">
+          <input id="only-unused" type="checkbox">
+          <label for="only-unused">Mostrar só as que não estão em uso</label>
+        </div>
+      </div>
+      <p id="msg" class="msg" role="status" aria-live="polite">Carregando…</p>
+      <p id="empty" class="empty muted" hidden></p>
+      <ul id="library" class="media-library"></ul>
+    </main>
+  </div>
+</body>
+</html>
