@@ -35,3 +35,6 @@ secrets/
 
 # Pacotes gerados
 *.zip
+
+# Imagens enviadas pelo painel (quando a API roda fora do Docker)
+server/uploads/

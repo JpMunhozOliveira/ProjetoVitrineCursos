@@ -2,7 +2,9 @@ FROM node:22-alpine
 
 ENV NODE_ENV=production
 WORKDIR /app
-RUN chown node:node /app
+# /data/uploads: imagens enviadas pelo painel (montada como volume no docker-compose).
+RUN chown node:node /app \
+    && mkdir -p /data/uploads && chown node:node /data/uploads
 USER node
 
 # Dependências primeiro (cache de camadas). Com package-lock.json usa `npm ci`

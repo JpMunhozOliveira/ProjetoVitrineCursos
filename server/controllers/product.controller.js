@@ -1,8 +1,25 @@
 const pool = require("../config/database");
+const storage = require("../lib/storage");
 
-const COLUMNS = `id, title, slug, short_description, status, category, featured, description,
-  audience, prerequisites, modules, format, workload, price_cents, checkout_url,
-  created_at, updated_at`;
+// Colunas do produto (alias "p") + dados da imagem de capa (alias "m", via LEFT JOIN).
+const COLUMNS = `p.id, p.title, p.slug, p.short_description, p.status, p.category, p.featured,
+  p.description, p.audience, p.prerequisites, p.modules, p.format, p.workload, p.price_cents,
+  p.checkout_url, p.image_id, p.created_at, p.updated_at,
+  CASE WHEN m.id IS NULL THEN NULL ELSE json_build_object(
+    'id', m.id, 'storage_key', m.storage_key, 'alt_text', m.alt_text,
+    'width', m.width, 'height', m.height) END AS image`;
+
+// "source" é a tabela products ou um CTE com o resultado de um INSERT/UPDATE.
+const selectFrom = (source) => `SELECT ${COLUMNS} FROM ${source} p LEFT JOIN media m ON m.id = p.image_id`;
+
+// Troca a chave interna do arquivo pela URL pública.
+function toResponse(row) {
+  if (row.image) {
+    const { storage_key: key, ...image } = row.image;
+    row.image = { ...image, url: storage.publicUrl(key) };
+  }
+  return row;
+}
 
 const STATUSES = ["draft", "published", "archived"];
 const MAX_PRICE_CENTS = 100_000_000; // R$ 1.000.000,00
@@ -19,7 +36,7 @@ const OPTIONAL_TEXT = {
 };
 
 const FIELDS = new Set([
-  "title", "slug", "status", "featured", "modules", "price_cents", "checkout_url",
+  "title", "slug", "status", "featured", "modules", "price_cents", "checkout_url", "image_id",
   ...Object.keys(OPTIONAL_TEXT),
 ]);
 
@@ -106,6 +123,12 @@ function normalizeProductInput(body, isCreate = false) {
     }
   }
 
+  // A existência da imagem é conferida pelo banco (chave estrangeira); aqui só o formato.
+  if ("image_id" in body) {
+    if (body.image_id !== null && !isValidId(body.image_id)) return { error: "image_id inválido." };
+    values.image_id = body.image_id;
+  }
+
   return { values };
 }
 
@@ -124,37 +147,39 @@ function isValidId(value) {
 }
 
 const isDuplicateSlug = (error) => error.code === "23505" && error.constraint === "products_slug_key";
+const isMissingImage = (error) => error.code === "23503" && error.constraint === "products_image_id_fkey";
 const DUPLICATE_SLUG = { error: "Já existe um produto com este endereço (slug)." };
+const MISSING_IMAGE = { error: "A imagem escolhida não existe mais. Escolha outra." };
 const INVALID_ID = { error: "ID de produto inválido." };
 const NOT_FOUND = { error: "Produto não encontrado." };
 
 async function listPublicProducts(_req, res) {
   const result = await pool.query(
-    `SELECT ${COLUMNS} FROM products WHERE status = 'published' ORDER BY created_at DESC`
+    `${selectFrom("products")} WHERE p.status = 'published' ORDER BY p.created_at DESC`
   );
-  return res.json({ data: result.rows });
+  return res.json({ data: result.rows.map(toResponse) });
 }
 
 async function getPublicProduct(req, res) {
   const result = await pool.query(
-    `SELECT ${COLUMNS} FROM products WHERE slug = $1 AND status = 'published'`,
+    `${selectFrom("products")} WHERE p.slug = $1 AND p.status = 'published'`,
     [req.params.slug]
   );
   if (!result.rowCount) return res.status(404).json(NOT_FOUND);
-  return res.json({ data: result.rows[0] });
+  return res.json({ data: toResponse(result.rows[0]) });
 }
 
 async function listAdminProducts(_req, res) {
-  const result = await pool.query(`SELECT ${COLUMNS} FROM products ORDER BY created_at DESC`);
-  return res.json({ data: result.rows });
+  const result = await pool.query(`${selectFrom("products")} ORDER BY p.created_at DESC`);
+  return res.json({ data: result.rows.map(toResponse) });
 }
 
 async function getAdminProduct(req, res) {
   if (!isValidId(req.params.id)) return res.status(400).json(INVALID_ID);
 
-  const result = await pool.query(`SELECT ${COLUMNS} FROM products WHERE id = $1`, [req.params.id]);
+  const result = await pool.query(`${selectFrom("products")} WHERE p.id = $1`, [req.params.id]);
   if (!result.rowCount) return res.status(404).json(NOT_FOUND);
-  return res.json({ data: result.rows[0] });
+  return res.json({ data: toResponse(result.rows[0]) });
 }
 
 async function createProduct(req, res) {
@@ -166,14 +191,17 @@ async function createProduct(req, res) {
   const placeholders = fields.map((_, index) => `$${index + 1}`);
 
   try {
+    // CTE (WITH): grava e, na mesma consulta, devolve o produto já com os dados da imagem.
     const result = await pool.query(
-      `INSERT INTO products (${fields.join(", ")}) VALUES (${placeholders.join(", ")})
-       RETURNING ${COLUMNS}`,
+      `WITH saved AS (
+         INSERT INTO products (${fields.join(", ")}) VALUES (${placeholders.join(", ")}) RETURNING *)
+       ${selectFrom("saved")}`,
       fields.map((field) => values[field])
     );
-    return res.status(201).json({ data: result.rows[0] });
+    return res.status(201).json({ data: toResponse(result.rows[0]) });
   } catch (error) {
     if (isDuplicateSlug(error)) return res.status(409).json(DUPLICATE_SLUG);
+    if (isMissingImage(error)) return res.status(400).json(MISSING_IMAGE);
     throw error;
   }
 }
@@ -190,13 +218,16 @@ async function updateProduct(req, res) {
 
   try {
     const result = await pool.query(
-      `UPDATE products SET ${assignments.join(", ")} WHERE id = $1 RETURNING ${COLUMNS}`,
+      `WITH saved AS (
+         UPDATE products SET ${assignments.join(", ")} WHERE id = $1 RETURNING *)
+       ${selectFrom("saved")}`,
       [req.params.id, ...fields.map((field) => values[field])]
     );
     if (!result.rowCount) return res.status(404).json(NOT_FOUND);
-    return res.json({ data: result.rows[0] });
+    return res.json({ data: toResponse(result.rows[0]) });
   } catch (error) {
     if (isDuplicateSlug(error)) return res.status(409).json(DUPLICATE_SLUG);
+    if (isMissingImage(error)) return res.status(400).json(MISSING_IMAGE);
     throw error;
   }
 }
