@@ -2,9 +2,9 @@
 // Cada campo recebe o "caminho" do valor que edita (ex.: ["sections", 2, "items", 0, "question"])
 // e avisa as mudanças com dispatch({ type: "set", path, value }).
 import { useId } from "react";
-import { useEditor } from "./context.js";
-import { emptyValue } from "./state.js";
-import { SortableList, useSortableItem, DragHandle } from "./dnd.jsx";
+import { useEditor } from "../state/context.js";
+import { emptyValue } from "../state/document.js";
+import { SortableList, useSortableItem, DragHandle } from "../ui/dnd.jsx";
 
 // compact: dentro de itens de lista (textos longos começam com 2 linhas em vez de 3).
 export function Field({ field, value, path, compact, inline }) {

@@ -2,7 +2,7 @@
 // As regras de contraste ficam no servidor (sales/theme.js): se uma combinação for recusada,
 // a pré-visualização mostra o motivo e mantém a última versão válida.
 import { useId } from "react";
-import { useEditor } from "./context.js";
+import { useEditor } from "../state/context.js";
 
 // Tema salvo ({ preset } ou { preset: "custom", hero, accent }) -> tema completo para o editor.
 export function resolveTheme(stored, schema) {

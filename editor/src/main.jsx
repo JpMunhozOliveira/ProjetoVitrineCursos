@@ -2,7 +2,7 @@
 // carregado antes: sessão, CSRF, diálogos de confirmação e seletor de imagens.
 import { createRoot } from "react-dom/client";
 import App from "./App.jsx";
-import "./editor.css";
+import "./styles/editor.css";
 
 const productId = new URLSearchParams(location.search).get("id");
 createRoot(document.getElementById("editor-root")).render(<App productId={productId} />);

@@ -1,9 +1,9 @@
-// Desfazer/refazer. Como cada alteração gera um objeto novo (ver state.js), o histórico é só
+// Desfazer/refazer. Como cada alteração gera um objeto novo (ver document.js), o histórico é só
 // uma lista das versões anteriores (past) e das desfeitas (future) — nada é copiado à mão.
 //
 // "saved" guarda a versão que está gravada no servidor. "Há alterações não salvas?" passa a ser
 // simplesmente doc !== saved: se você desfizer tudo até a versão salva, o aviso some sozinho.
-import { reducer } from "./state.js";
+import { reducer } from "./document.js";
 
 const LIMIT = 100;     // passos guardados
 // Digitação contínua no mesmo campo vira UM passo (Ctrl+Z não desfaz letra por letra). Só ações

@@ -1,9 +1,9 @@
 // Lista de blocos da página: cada bloco é um cartão recolhível com o formulário do seu tipo.
 import { Fragment, useId } from "react";
-import { useEditor } from "./context.js";
-import { Field } from "./fields.jsx";
-import { BlockIcon } from "./icons.jsx";
-import { SortableList, useSortableItem, DragHandle } from "./dnd.jsx";
+import { useEditor } from "../state/context.js";
+import { Field } from "./Fields.jsx";
+import { BlockIcon } from "../ui/BlockIcon.jsx";
+import { SortableList, useSortableItem, DragHandle } from "../ui/dnd.jsx";
 
 // Resumo exibido no cabeçalho do bloco (o primeiro texto que identifica o conteúdo).
 function summary(block) {

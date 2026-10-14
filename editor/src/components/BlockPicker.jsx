@@ -1,8 +1,8 @@
 // Escolha do tipo de bloco: um diálogo com um cartão por tipo (ícone, nome e descrição).
 // Usa o <dialog> nativo: foco preso no diálogo, Esc fecha e o fundo fica bloqueado.
 import { useEffect, useRef } from "react";
-import { useEditor } from "./context.js";
-import { BlockIcon } from "./icons.jsx";
+import { useEditor } from "../state/context.js";
+import { BlockIcon } from "../ui/BlockIcon.jsx";
 
 export function BlockPicker({ position, total, onPick, onClose }) {
   const { schema } = useEditor();

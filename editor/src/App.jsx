@@ -1,20 +1,24 @@
 // Editor da página de vendas (React). Coordena: carregamento, estado da página, salvar,
-// publicar e a ligação editor <-> pré-visualização ao vivo.
+// publicar e a ligação editor <-> pré-visualização ao vivo. A interface fica nos componentes
+// (components/); o estado e o histórico, em state/.
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
-import { EditorContext } from "./context.js";
-import { withKeys, stripKeys, carryKeys, newBlock } from "./state.js";
-import { historyReducer, initialHistory } from "./history.js";
-import { BlockList } from "./Blocks.jsx";
-import { Preview } from "./Preview.jsx";
-import { BlockPicker } from "./BlockPicker.jsx";
-import { ThemePicker, resolveTheme } from "./ThemePicker.jsx";
+import { EditorContext } from "./state/context.js";
+import { withKeys, stripKeys, carryKeys, newBlock } from "./state/document.js";
+import { historyReducer, initialHistory } from "./state/history.js";
+import { PRODUCT_STATUS } from "./labels.js";
+import { EditorHeader } from "./components/EditorHeader.jsx";
+import { StartScreen, UnsupportedNotice } from "./components/StartScreen.jsx";
+import { BlockList } from "./components/BlockList.jsx";
+import { BlockPicker } from "./components/BlockPicker.jsx";
+import { ThemePicker, resolveTheme } from "./components/ThemePicker.jsx";
+import { SeoFields } from "./components/SeoFields.jsx";
+import { Preview } from "./components/Preview.jsx";
 
 const api = (...args) => window.Admin.api(...args);
-const STATUS = { draft: "Rascunho", published: "Publicado", archived: "Arquivado" };
 
 export default function App({ productId }) {
   const [boot, setBoot] = useState({ status: "loading" });  // loading | error | ready
-  // Estado da página com histórico (desfazer/refazer). Ver history.js.
+  // Estado da página com histórico (desfazer/refazer). Ver state/history.js.
   const [history, rawDispatch] = useReducer(historyReducer, initialHistory);
   const doc = history.doc;
   const dirty = history.doc !== history.saved; // compara com a versão salva no servidor
@@ -105,14 +109,14 @@ export default function App({ productId }) {
         setBoot({ status: "error", text: err.message });
       }
     })();
-  }, [productId]);
+  }, [productId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const schema = boot.schema;
   const product = boot.product;
   const sections = doc?.sections || [];
   const selectedIndex = selected.key ? sections.findIndex((b) => b._key === selected.key) : -1;
 
-  // O que vai para a pré-visualização (sem _key e sem "publicada", que não muda a aparência).
+  // O que vai para a pré-visualização (sem _key).
   const previewPayload = useMemo(() => doc && stripKeys({
     sections: doc.sections, seo_title: doc.seo_title, seo_description: doc.seo_description, theme: doc.theme,
   }), [doc?.sections, doc?.seo_title, doc?.seo_description, doc?.theme]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -120,7 +124,7 @@ export default function App({ productId }) {
   const context = useMemo(() => ({
     dispatch, schema, media, focusLater,
     addMedia: (m) => setMedia((prev) => new Map(prev).set(m.id, m)),
-  }), [schema, media, focusLater]);
+  }), [dispatch, schema, media, focusLater]);
 
   /* ---------- Seleção e abertura de blocos ---------- */
   function toggle(key) {
@@ -210,12 +214,12 @@ export default function App({ productId }) {
 
   // Publica: salva o rascunho (se houver algo não salvo) e leva essa versão ao ar.
   async function publish() {
-    const visible = product.status === "published";
+    const visibleOnSite = product.status === "published";
     const ok = await window.Admin.confirm({
       title: page?.published_at ? "Publicar as alterações?" : "Publicar a página?",
-      text: visible
+      text: visibleOnSite
         ? `A versão atual do editor ficará visível para o público em /p/${product.slug}.`
-        : `A versão atual ficará pronta para o público, mas só aparece no site quando o produto “${product.title}” estiver como Publicado (hoje: ${STATUS[product.status]}).`,
+        : `A versão atual ficará pronta para o público, mas só aparece no site quando o produto “${product.title}” estiver como Publicado (hoje: ${PRODUCT_STATUS[product.status]}).`,
       action: page?.published_at ? "Publicar alterações" : "Publicar",
       cancel: "Continuar editando",
     });
@@ -229,7 +233,7 @@ export default function App({ productId }) {
       const published = await api(`/products/${encodeURIComponent(productId)}/sales-page/publish`, { method: "POST" });
       setPage(published);
       setMessage({
-        text: visible ? `Publicada às ${new Date().toLocaleTimeString("pt-BR")}: já está no ar.` : "Publicada. Aparece no site quando o produto for publicado.",
+        text: visibleOnSite ? `Publicada às ${new Date().toLocaleTimeString("pt-BR")}: já está no ar.` : "Publicada. Aparece no site quando o produto for publicado.",
         kind: "success",
       });
     } catch (err) {
@@ -243,91 +247,13 @@ export default function App({ productId }) {
   if (boot.status === "loading") return <p className="msg" role="status">Carregando…</p>;
   if (boot.status === "error") return <p className="msg error" role="alert">{boot.text}</p>;
 
-  const live = !!(page?.published_at && product.status === "published");
   const productUrl = `produto.html?id=${encodeURIComponent(productId)}`;
-
-  // Tamanho da pré-visualização: ícones de monitor e celular (fica no cabeçalho para a
-  // pré-visualização ganhar altura).
-  const deviceToggle = (
-    <div className="segmented device-toggle" role="radiogroup" aria-label="Tamanho da tela da pré-visualização">
-      {[["desktop", "Computador", "M3 4h18v12H3zM8 20h8M12 16v4"], ["mobile", "Celular", "M7 2h10v20H7zM11 18h2"]].map(([value, label, d]) => (
-        <label key={value} title={label}>
-          <input type="radio" name="device" value={value} checked={device === value} onChange={() => setDevice(value)} aria-label={label} />
-          <span><svg className="device-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <path d={d} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-          </svg></span>
-        </label>
-      ))}
-    </div>
-  );
-
-  // Versões: selo com a situação + botão Publicar (no cabeçalho), explicação logo abaixo.
-  //   nunca publicada | publicada e em dia | alterações não publicadas (salvas ou não)
-  const everPublished = !!page?.published_at;
-  const changes = !page || page.has_unpublished_changes || dirty;
-  const pubState = !everPublished ? "never" : changes ? "changes" : "live";
-  const when = everPublished ? new Date(page.published_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "";
-  const productNote = product.status !== "published"
-    ? ` O produto está como “${STATUS[product.status]}”: a página só aparece no site quando o produto for publicado.` : "";
-  const pubHint = {
-    never: "Ainda não publicada. “Salvar rascunho” guarda seu trabalho sem mostrar ao público; “Publicar” leva a página ao ar.",
-    changes: `Há alterações que o público ainda não vê (a versão no ar é de ${when}). Publique para levá-las ao ar.`,
-    live: `Publicada em ${when}. O que você vê aqui é o que está no ar.`,
-  }[pubState] + productNote;
-  const publishControls = doc && (
-    <div className="publish-controls">
-      <span className={`pub-badge ${pubState}`}>
-        {{ never: "Nunca publicada", changes: "Alterações não publicadas", live: "Publicada · em dia" }[pubState]}
-      </span>
-      <button type="button" className="btn btn-sm btn-publish" disabled={saving || pubState === "live"}
-        onClick={publish} aria-describedby="pub-hint">
-        {everPublished ? "Publicar alterações" : "Publicar"}
-      </button>
-    </div>
-  );
-
-  // Cabeçalho compacto (uma linha) para sobrar altura para o editor e a pré-visualização.
-  // "Voltar ao produto" fica na barra de baixo, junto do Salvar.
   const header = (
-    <>
-    <div className="page-head editor-head">
-      {/* Título longo é cortado com "…" (nome completo ao passar o mouse); os botões nunca descem. */}
-      <h1 className="editor-title" title={product.title}>Página de vendas <span className="muted">· {product.title}</span></h1>
-      {/* Grupos, da esquerda para a direita: histórico | visualização | links | publicação (ação principal) */}
-      <div className="editor-toolbar">
-        {doc && (
-          <div className="toolbar-group history-buttons" role="group" aria-label="Histórico de alterações">
-            <button type="button" className="icon-btn" onClick={undo} disabled={!history.past.length}
-              title="Desfazer (Ctrl+Z)" aria-label="Desfazer" aria-keyshortcuts="Control+Z">↶</button>
-            <button type="button" className="icon-btn" onClick={redo} disabled={!history.future.length}
-              title="Refazer (Ctrl+Shift+Z)" aria-label="Refazer" aria-keyshortcuts="Control+Shift+Z">↷</button>
-          </div>
-        )}
-        {doc && <div className="toolbar-group">{deviceToggle}</div>}
-        {(page || live) && (
-          <div className="toolbar-group" role="group" aria-label="Abrir em nova aba">
-            {page && <a className="btn btn-sm btn-outline" href={`/admin/preview/${encodeURIComponent(productId)}`} target="_blank" rel="noopener">Abrir versão salva<span className="sr-only"> (abre em nova aba)</span></a>}
-            {live && <a className="btn btn-sm btn-outline" href={`/p/${encodeURIComponent(product.slug)}`} target="_blank" rel="noopener">Ver publicada<span className="sr-only"> (abre em nova aba)</span></a>}
-          </div>
-        )}
-        {publishControls && <div className="toolbar-group">{publishControls}</div>}
-      </div>
-    </div>
-    {doc && <p id="pub-hint" className={`hint pub-hint${pubState === "changes" || productNote ? " warn" : ""}`}>{pubHint}</p>}
-    </>
+    <EditorHeader product={product} productId={productId} page={page} dirty={dirty} editing={!!doc}
+      canUndo={history.past.length > 0} canRedo={history.future.length > 0} onUndo={undo} onRedo={redo}
+      device={device} onDevice={setDevice} saving={saving} onPublish={publish} />
   );
-
-  // Telas pequenas: o editor lado a lado não cabe; mostramos este aviso (via CSS) no lugar dele.
-  const unsupported = (
-    <div className="editor-unsupported" role="note">
-      <h2>Editor disponível no computador</h2>
-      <p>A edição da página de vendas precisa de uma tela com pelo menos 1024 px de largura, para mostrar o editor e a pré-visualização lado a lado.</p>
-      <div className="row-actions">
-        {page && <a className="btn btn-outline" href={`/admin/preview/${encodeURIComponent(productId)}`} target="_blank" rel="noopener">Ver versão salva<span className="sr-only"> (abre em nova aba)</span></a>}
-        <a className="btn" href={productUrl}>Voltar ao produto</a>
-      </div>
-    </div>
-  );
+  const unsupported = <UnsupportedNotice productId={productId} productUrl={productUrl} hasPage={!!page} />;
 
   if (!doc) {
     return (
@@ -335,15 +261,7 @@ export default function App({ productId }) {
         {unsupported}
         <div className="editor-main">
           {header}
-          <section className="start-box" aria-labelledby="start-title">
-            <h2 id="start-title">Este produto ainda não tem página de vendas</h2>
-            <p>Comece pelo modelo padrão — a mesma estrutura da página do Manual, com textos de orientação para você substituir — ou monte do zero.</p>
-            <div className="row-actions">
-              <button type="button" className="btn" onClick={() => start(true)}>Usar o modelo padrão</button>
-              <button type="button" className="btn btn-outline" onClick={() => start(false)}>Começar em branco</button>
-              <a className="btn btn-outline" href={productUrl}>Voltar ao produto</a>
-            </div>
-          </section>
+          <StartScreen productUrl={productUrl} onStart={start} />
         </div>
       </div>
     );
@@ -351,62 +269,46 @@ export default function App({ productId }) {
 
   return (
     <EditorContext.Provider value={context}>
-     <div className="editor-shell">
-      {unsupported}
-      <div className="editor-main">
-      {header}
+      <div className="editor-shell">
+        {unsupported}
+        <div className="editor-main">
+          {header}
+          <div className="editor-layout">
+            <form className="page-editor" noValidate onSubmit={save}>
+              <BlockList sections={sections} open={open} selectedKey={selected.key} visible={visible}
+                onToggle={toggle} onHover={setHovered}
+                onInsert={(position) => sections.length < schema.maxBlocks && setPickerAt(position)} />
 
-      <div className="editor-layout">
-        <form className="page-editor" noValidate onSubmit={save}>
-          <BlockList sections={sections} open={open} selectedKey={selected.key} visible={visible}
-            onToggle={toggle} onHover={setHovered}
-            onInsert={(position) => sections.length < schema.maxBlocks && setPickerAt(position)} />
+              <button type="button" className="add-block-btn" disabled={sections.length >= schema.maxBlocks}
+                onClick={() => setPickerAt(sections.length)}>
+                <span aria-hidden="true">+</span> Adicionar bloco
+                {sections.length >= schema.maxBlocks && <span className="muted small"> (limite de {schema.maxBlocks} blocos)</span>}
+              </button>
+              <BlockPicker position={pickerAt} total={sections.length}
+                onPick={(type) => addBlock(type, pickerAt)} onClose={() => setPickerAt(null)} />
 
-          <button type="button" className="add-block-btn" disabled={sections.length >= schema.maxBlocks}
-            onClick={() => setPickerAt(sections.length)}>
-            <span aria-hidden="true">+</span> Adicionar bloco
-            {sections.length >= schema.maxBlocks && <span className="muted small"> (limite de {schema.maxBlocks} blocos)</span>}
-          </button>
-          <BlockPicker position={pickerAt} total={sections.length}
-            onPick={(type) => addBlock(type, pickerAt)} onClose={() => setPickerAt(null)} />
+              <ThemePicker theme={doc.theme} />
+              <SeoFields title={doc.seo_title} description={doc.seo_description} />
 
-          <ThemePicker theme={doc.theme} />
+              <div className="form-actions editor-actions">
+                <p className={`msg ${message.kind}`} role="status" aria-live="polite">{message.text}</p>
+                <div className="buttons">
+                  <a className="btn btn-outline" href={productUrl}>Voltar</a>
+                  <button type="submit" className="btn btn-outline" disabled={saving}>Salvar rascunho</button>
+                </div>
+              </div>
+            </form>
 
-          <fieldset className="seo">
-            <legend>Busca e compartilhamento</legend>
-            <div className="field">
-              <label htmlFor="seo_title">Título da página</label>
-              <input id="seo_title" maxLength={220} value={doc.seo_title} aria-describedby="seo-title-help"
-                onChange={(e) => dispatch({ type: "set", path: ["seo_title"], value: e.target.value, merge: true })} />
-              <p id="seo-title-help" className="hint">Aparece na aba do navegador, no Google e na prévia do link no WhatsApp. Vazio = título do produto.</p>
-            </div>
-            <div className="field">
-              <label htmlFor="seo_description">Descrição</label>
-              <textarea id="seo_description" rows={2} maxLength={320} value={doc.seo_description} aria-describedby="seo-desc-help"
-                onChange={(e) => dispatch({ type: "set", path: ["seo_description"], value: e.target.value, merge: true })} />
-              <p id="seo-desc-help" className="hint">Uma ou duas frases (até 320 caracteres). Vazio = resumo do produto.</p>
-            </div>
-          </fieldset>
-
-          <div className="form-actions editor-actions">
-            <p className={`msg ${message.kind}`} role="status" aria-live="polite">{message.text}</p>
-            <div className="buttons">
-              <a className="btn btn-outline" href={`produto.html?id=${encodeURIComponent(productId)}`}>Voltar</a>
-              <button type="submit" className="btn btn-outline" disabled={saving}>Salvar rascunho</button>
-            </div>
+            <aside className="preview-pane" aria-label="Pré-visualização">
+              <Preview productId={productId} payload={previewPayload} device={device}
+                selectedIndex={selectedIndex >= 0 ? selectedIndex : null}
+                scrollToSelected={selected.from === "editor"}
+                onSelectBlock={(index) => revealBlock(index, "preview")}
+                hoveredIndex={hovered} onVisibleChange={setVisible} />
+            </aside>
           </div>
-        </form>
-
-        <aside className="preview-pane" aria-label="Pré-visualização">
-          <Preview productId={productId} payload={previewPayload} device={device}
-            selectedIndex={selectedIndex >= 0 ? selectedIndex : null}
-            scrollToSelected={selected.from === "editor"}
-            onSelectBlock={(index) => revealBlock(index, "preview")}
-            hoveredIndex={hovered} onVisibleChange={setVisible} />
-        </aside>
+        </div>
       </div>
-      </div>
-     </div>
     </EditorContext.Provider>
   );
 }
