@@ -4,30 +4,37 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
-  <title>Painel administrativo</title>
+  <title>Produtos — Painel administrativo</title>
   <link rel="stylesheet" href="../css/theme.css">
   <link rel="stylesheet" href="../css/style.css">
-  <link rel="stylesheet" href="../css/admin.css">
+  <link rel="stylesheet" href="css/admin.css">
   <script src="../js/theme.js"></script>
-  <script src="../js/admin.js" defer></script>
+  <script src="js/common.js" defer></script>
+  <script src="js/produtos.js" defer></script>
 </head>
-<body data-admin="panel">
+<body>
   <div class="container">
     <div class="admin-bar">
       <strong>Painel administrativo</strong>
       <div class="who"><span id="who" class="muted"></span>
+        <button id="tema-btn" class="theme-btn" type="button" aria-pressed="false">
+          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/></svg>
+          <span>Modo noturno</span>
+        </button>
         <button id="logout" class="btn btn-outline" type="button">Sair</button></div>
     </div>
     <main class="section">
-      <h1>Produtos</h1>
+      <div class="page-head">
+        <h1>Produtos</h1>
+        <a class="btn" href="produto.html">Novo produto</a>
+      </div>
       <p id="msg" class="msg" role="status" aria-live="polite">Carregando…</p>
       <div class="table-wrap">
-        <table class="list" id="courses" hidden>
-          <thead><tr><th>Título</th><th>Endereço (slug)</th><th>Situação</th><th>Atualizado em</th></tr></thead>
+        <table class="list" id="products" hidden>
+          <thead><tr><th>Produto</th><th>Situação</th><th>Preço</th><th>Atualizado em</th><th>Ações</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
-      <p class="muted">Cadastro, edição e exclusão pela tela chegam na próxima etapa.</p>
     </main>
   </div>
 </body>

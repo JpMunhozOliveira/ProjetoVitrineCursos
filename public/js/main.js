@@ -171,18 +171,7 @@
     });
   }
 
-  // Modo noturno (a preferência inicial é aplicada por theme.js)
-  var tb = document.getElementById("tema-btn");
-  if (tb) {
-    var isDark = function () { return document.documentElement.getAttribute("data-theme") === "dark"; };
-    tb.setAttribute("aria-pressed", String(isDark()));
-    tb.addEventListener("click", function () {
-      var next = isDark() ? "light" : "dark";
-      document.documentElement.setAttribute("data-theme", next);
-      tb.setAttribute("aria-pressed", String(next === "dark"));
-      try { localStorage.setItem("tema", next); } catch (e) {}
-    });
-  }
+  // Modo noturno: o botão é ligado por theme.js (compartilhado com o painel).
 
   // Menu mobile
   var btn = document.getElementById("menu-btn"), nav = document.getElementById("nav");

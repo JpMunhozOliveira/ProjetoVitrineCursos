@@ -17,4 +17,19 @@
       }
     });
   }
+
+  // Botão "Modo noturno" (#tema-btn), usado no site e no painel. Este script roda no <head>,
+  // antes do botão existir; por isso a ligação espera o carregamento da página.
+  document.addEventListener("DOMContentLoaded", function () {
+    var tb = document.getElementById("tema-btn");
+    if (!tb) return;
+    var isDark = function () { return document.documentElement.getAttribute("data-theme") === "dark"; };
+    tb.setAttribute("aria-pressed", String(isDark()));
+    tb.addEventListener("click", function () {
+      var next = isDark() ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", next);
+      tb.setAttribute("aria-pressed", String(next === "dark"));
+      try { localStorage.setItem("tema", next); } catch (e) {}
+    });
+  });
 })();

@@ -1,0 +1,6 @@
+# Finais de linha LF no repositório e na cópia local: os arquivos rodam em Linux (Docker).
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary

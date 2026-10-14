@@ -1,0 +1,61 @@
+/* Painel administrativo. Cores vêm de ../../css/theme.css. */
+.auth{max-width:420px;margin:2rem auto 4rem;padding:0 1rem}
+.auth-top{display:flex;justify-content:flex-end;margin-bottom:2rem}
+
+/* Campos de formulário */
+.field{margin-bottom:1rem}
+.field label{display:block;font-weight:700;margin-bottom:.25rem}
+.field input,.field select,.field textarea{width:100%;min-height:44px;padding:.5rem .75rem;font:inherit;color:var(--color-text);background:var(--color-bg);border:2px solid var(--color-border);border-radius:8px}
+.field textarea{resize:vertical}
+.field.check{display:flex;align-items:center;gap:.6rem}
+.field.check input{width:1.25rem;min-height:1.25rem;margin:0}
+.field.check label{margin:0}
+.req{font-weight:400;color:var(--color-muted);font-size:.85em}
+.hint{margin:.25rem 0 0;font-size:.9rem;color:var(--color-muted)}
+.hint.warn{color:var(--color-warning);font-weight:600}
+.small{font-size:.85rem}
+
+/* Mensagens de status */
+.msg{min-height:1.5em;margin:0 0 1rem;font-weight:600}
+.msg.error{color:var(--color-danger)}
+.msg.success{color:var(--color-focus)}
+
+/* Barra superior e cabeçalho das páginas */
+.admin-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.75rem;padding:.75rem 0;border-bottom:1px solid var(--color-border)}
+.admin-bar .who{display:flex;flex-wrap:wrap;align-items:center;gap:.75rem}
+.page-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1rem}
+.page-head h1{margin:0}
+
+/* Lista de produtos */
+.table-wrap{overflow-x:auto}
+table.list{width:100%;border-collapse:collapse}
+table.list th,table.list td{text-align:left;padding:.6rem .75rem;border-bottom:1px solid var(--color-border);vertical-align:top}
+table.list th{background:var(--color-surface)}
+table.list a{font-weight:700}
+.status-published{color:var(--color-focus);font-weight:700}
+.status-archived{color:var(--color-muted)}
+.row-actions{display:flex;flex-wrap:wrap;gap:.5rem}
+
+/* Botões menores (ações da tabela) e botão de ação destrutiva */
+.btn-sm{min-height:36px;padding:.3rem .9rem;font-size:.9rem}
+.btn-danger{background:transparent;border-color:var(--color-danger);color:var(--color-danger)}
+.btn-danger:hover{background:var(--color-danger);border-color:var(--color-danger);color:var(--color-bg)}
+.confirm .btn-danger{background:var(--color-danger);color:var(--color-bg)}
+
+/* Diálogo de confirmação */
+dialog.confirm{max-width:min(28rem,calc(100% - 2rem));padding:1.5rem;color:var(--color-text);background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius)}
+dialog.confirm::backdrop{background:rgb(0 0 0 / .5)}
+dialog.confirm h2{font-size:1.25rem}
+dialog.confirm .buttons{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:.75rem;margin-top:1.5rem}
+
+/* Formulário de produto */
+.product-form{max-width:900px}
+.product-form fieldset{margin:0 0 1.5rem;padding:1rem 1.25rem .25rem;border:1px solid var(--color-border);border-radius:var(--radius)}
+.product-form legend{padding:0 .5rem;font-weight:800}
+.grid-2{display:grid;gap:0 1rem}
+@media (min-width:720px){.grid-2{grid-template-columns:1fr 1fr}}
+/* Ações fixas no rodapé da tela: o botão Salvar fica sempre visível em formulários longos. */
+.form-actions{position:sticky;bottom:0;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.75rem;padding:.75rem 0 calc(.75rem + env(safe-area-inset-bottom,0px));background:var(--color-bg);border-top:1px solid var(--color-border)}
+.form-actions .msg{margin:0;flex:1 1 16rem}
+.form-actions .buttons{display:flex;gap:.75rem}
+.btn:disabled{opacity:.6;cursor:wait}

@@ -7,12 +7,19 @@
   <title>Entrar — Painel administrativo</title>
   <link rel="stylesheet" href="../css/theme.css">
   <link rel="stylesheet" href="../css/style.css">
-  <link rel="stylesheet" href="../css/admin.css">
+  <link rel="stylesheet" href="css/admin.css">
   <script src="../js/theme.js"></script>
-  <script src="../js/admin.js" defer></script>
+  <script src="js/common.js" defer></script>
+  <script src="js/login.js" defer></script>
 </head>
-<body data-admin="login">
+<body>
   <main class="auth">
+    <div class="auth-top">
+      <button id="tema-btn" class="theme-btn" type="button" aria-pressed="false">
+        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/></svg>
+        <span>Modo noturno</span>
+      </button>
+    </div>
     <h1>Painel administrativo</h1>
     <noscript><p class="msg error">Ative o JavaScript para entrar.</p></noscript>
     <form id="login-form" novalidate>
