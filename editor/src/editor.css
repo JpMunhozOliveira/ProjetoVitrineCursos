@@ -192,3 +192,30 @@
 .list-item.inline .item-fields > .field.check { flex: none; min-height: 0; align-self: center; }
 .list-item.inline .item-fields > .field.check label { margin: 0; white-space: nowrap; }
 .list-item.inline .tools .icon-btn { width: 28px; height: 28px; }
+
+/* ---------- Cores da página ---------- */
+.theme-picker > .hint { margin: 0 0 .75rem; }
+.theme-options { display: grid; gap: .5rem; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+.theme-option {
+  position: relative; display: flex; flex-direction: column; gap: .35rem; padding: .4rem; cursor: pointer;
+  border: 2px solid var(--color-border); border-radius: 10px; background: var(--color-bg);
+}
+.theme-option input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+.theme-option:hover { border-color: var(--color-primary); }
+.theme-option:has(input:checked) { border-color: var(--color-primary); box-shadow: inset 0 0 0 1px var(--color-primary); }
+.theme-option:has(input:focus-visible) { outline: 3px solid var(--color-focus); outline-offset: 2px; }
+.swatch-hero { position: relative; display: block; height: 44px; border-radius: 6px; }
+.swatch-btn { position: absolute; right: 8px; bottom: 8px; width: 34px; height: 12px; border-radius: 4px; }
+.theme-name { font-size: .85rem; font-weight: 700; text-align: center; }
+.theme-custom { display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; margin-top: .75rem; }
+.color-field { margin: 0; }
+.color-row { display: flex; align-items: center; gap: .5rem; }
+.color-row input[type="color"] { width: 48px; min-height: 36px; padding: 2px; cursor: pointer; }
+.color-row code { font-size: .85rem; color: var(--color-muted); }
+
+/* Seletores segmentados no cabeçalho (Rascunho|Publicada, Computador|Celular): a fileira centraliza
+   os itens em vez de esticá-los, e a opção marcada preenche toda a altura da moldura. */
+.editor-head .row-actions { align-items: center; }
+.editor-head .segmented { align-items: stretch; }
+.editor-head .segmented label { display: flex; }
+.editor-head .segmented span { display: flex; align-items: center; justify-content: center; }

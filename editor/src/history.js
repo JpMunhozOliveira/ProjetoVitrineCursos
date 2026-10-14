@@ -6,7 +6,10 @@
 import { reducer } from "./state.js";
 
 const LIMIT = 100;     // passos guardados
-const MERGE_MS = 800;  // digitação contínua no mesmo campo vira UM passo (Ctrl+Z não desfaz letra por letra)
+// Digitação contínua no mesmo campo vira UM passo (Ctrl+Z não desfaz letra por letra). Só ações
+// marcadas com merge: true (digitar texto, arrastar o seletor de cor) se juntam; escolhas
+// discretas (paleta, ícone, mover bloco...) são sempre um passo próprio, mesmo se feitas rápido.
+const MERGE_MS = 800;
 
 export const initialHistory = { past: [], doc: null, future: [], saved: null, last: null };
 
@@ -27,7 +30,7 @@ export function historyReducer(state, action) {
     default: {
       const next = reducer(state.doc, action);
       if (next === state.doc) return state;
-      const key = action.type === "set" ? action.path.join(".") : null;
+      const key = action.type === "set" && action.merge ? action.path.join(".") : null;
       const merge = key && state.last && state.last.key === key && action.time - state.last.time < MERGE_MS;
       return {
         past: merge ? state.past : [...state.past, state.doc].slice(-LIMIT),

@@ -1,5 +1,6 @@
 const pool = require("../config/database");
 const { BLOCKS, ICONS, MAX_BLOCKS, defaultSections } = require("../sales/blocks");
+const { THEMES, DEFAULT_THEME } = require("../sales/theme");
 const { PageInputError, savePage, getPage, loadDraftForRender } = require("../sales/pages");
 const { renderSalesPage } = require("../sales/render");
 
@@ -14,7 +15,10 @@ async function productExists(id) {
 
 // Esquema dos blocos para o editor do painel montar os formulários (fonte única: sales/blocks.js).
 function getBlockSchema(_req, res) {
-  return res.json({ data: { blocks: BLOCKS, icons: ICONS, maxBlocks: MAX_BLOCKS, defaultSections: defaultSections() } });
+  return res.json({ data: {
+    blocks: BLOCKS, icons: ICONS, maxBlocks: MAX_BLOCKS, defaultSections: defaultSections(),
+    themes: THEMES, defaultTheme: DEFAULT_THEME,
+  } });
 }
 
 async function getAdminSalesPage(req, res) {

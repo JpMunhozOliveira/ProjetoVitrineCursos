@@ -9,6 +9,7 @@ const storage = require("./lib/storage");
 const { showPublicPage, showPreview } = require("./controllers/page-view.controller");
 const requireAdmin = require("./middleware/admin-auth");
 const { getBlockSchema } = require("./controllers/sales-page.controller");
+const { themeStylesheet, checkColors } = require("./sales/theme");
 
 const app = express();
 
@@ -34,6 +35,18 @@ app.use("/api/admin/auth", adminAuthRoutes);
 app.use("/api/admin/products", adminProductRoutes);
 app.use("/api/admin/media", adminMediaRoutes);
 app.get("/api/admin/sales-blocks", requireAdmin, getBlockSchema);
+
+// Cores da página de vendas (ver sales/theme.js). As cores vêm na URL e são validadas; como a
+// resposta depende só delas, o navegador pode guardar em cache por 1 ano.
+app.get("/page-theme.css", (req, res) => {
+  const hero = `#${String(req.query.fundo || "").toLowerCase()}`;
+  const accent = `#${String(req.query.botao || "").toLowerCase()}`;
+  const HEX = /^#[0-9a-f]{6}$/;
+  if (!HEX.test(hero) || !HEX.test(accent)) return res.status(400).type("css").send("/* cores inválidas */");
+  try { checkColors(hero, accent); } catch { return res.status(400).type("css").send("/* combinação recusada */"); }
+  res.set({ "Cache-Control": "public, max-age=31536000, immutable", "X-Content-Type-Options": "nosniff" });
+  return res.type("css").send(themeStylesheet(hero, accent));
+});
 
 // Páginas de vendas geradas no servidor. A CSP só permite recursos do próprio site: mesmo que
 // algum texto malicioso escapasse do template, o navegador não carregaria scripts de fora.

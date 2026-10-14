@@ -12,10 +12,10 @@
   --color-accent-dark: #b98d24;      /* Hover do CTA */
   --color-on-accent: #1a1405;        /* Texto sobre o dourado (8:1) */
   --color-bg: #ffffff;
-  --color-surface: #f4f6f9;          /* Faixas alternadas, cards, cabeçalho de tabela */
+  --color-surface: #eef1f5;          /* Faixas alternadas, cards, cabeçalho de tabela (distinto do branco) */
   --color-text: #172033;
   --color-muted: #4a5568;            /* Textos secundários (7,5:1) */
-  --color-border: #d5dbe3;
+  --color-border: #c9d1dc;
   --color-focus: #0f766e;            /* Contorno de foco, sucesso e "publicado" */
   --color-cover-start: #1d4e89;      /* Gradiente de capas sem imagem */
   --color-cover-end: #0f2a4a;
@@ -25,7 +25,7 @@
   --color-on-hero-muted: #b9c6d8;
   --color-footer-bg: #0f1d33;
   --color-footer-text: #e8edf4;
-  --color-skeleton-base: #e5e9f0;    /* Cards em carregamento */
+  --color-skeleton-base: #e2e7ee;    /* Cards em carregamento */
   --color-skeleton-shine: #f3f5f8;   /* Brilho que atravessa o card */
   --color-notice-bg: #fbf5e6;        /* Aviso (ex.: JavaScript desativado) */
   --color-notice-text: #6b4a0a;
@@ -41,36 +41,38 @@
 
 /* ==========================================================
    MODO NOTURNO — mesmas variáveis, valores para fundo escuro.
-   Fundo azul-ardósia (menos cansativo que preto puro) e cores
+   Fundo cinza neutro (menos cansativo que preto puro) e cores
    mais claras para manter o contraste.
    ========================================================== */
 :root[data-theme="dark"] {
-  --color-primary: #6ea8e8;
-  --color-primary-dark: #93c0f2;     /* Hover dos botões (clareia no escuro) */
+  --color-primary: #7cb3f0;
+  --color-primary-dark: #a3c9f5;     /* Hover dos botões (clareia no escuro) */
   --color-on-primary: #0b1220;
   --color-accent: #e0b44e;
   --color-accent-dark: #f0c869;
   --color-on-accent: #1a1405;
-  --color-bg: #0d1421;
-  --color-surface: #141d2e;
-  --color-text: #e6ebf2;
-  --color-muted: #9aa7b8;
-  --color-border: #263247;
-  --color-focus: #34c3a8;
+  /* Cinzas neutros em 3 níveis bem distintos: fundo, superfície (cartões/faixas) e borda.
+     O azul fica reservado para o que tem significado (links, botões, seleção). */
+  --color-bg: #1e1f22;
+  --color-surface: #2b2d31;
+  --color-text: #ececee;
+  --color-muted: #a9adb5;
+  --color-border: #45484f;
+  --color-focus: #4cc9b0;
   --color-cover-start: #1d4e89;
   --color-cover-end: #0b2340;
   --color-hero: #0a1830;
   --color-hero-2: #13294a;
   --color-on-hero: #f4f6fa;
   --color-on-hero-muted: #b9c6d8;
-  --color-footer-bg: #080d17;
-  --color-footer-text: #e6ebf2;
-  --color-skeleton-base: #1c2638;
-  --color-skeleton-shine: #273449;
-  --color-notice-bg: #2a2110;
+  --color-footer-bg: #141517;
+  --color-footer-text: #ececee;
+  --color-skeleton-base: #2f3237;
+  --color-skeleton-shine: #3b3e44;
+  --color-notice-bg: #332c1a;
   --color-notice-text: #f3d38a;
-  --color-danger: #f2877d;
-  --color-warning: #e9b949;
-  --shadow-hover: 0 8px 24px rgb(0 0 0 / .4);
+  --color-danger: #f28b82;
+  --color-warning: #efbe56;
+  --shadow-hover: 0 8px 24px rgb(0 0 0 / .45);
   color-scheme: dark;
 }

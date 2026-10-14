@@ -36,7 +36,7 @@ function TextField({ field, value, path, compact, inline }) {
         placeholder={field.placeholder || (inline ? field.label : undefined)}
         rows={field.type === "textarea" ? (compact ? 2 : 3) : undefined}
         aria-describedby={field.help ? `${id}-help` : undefined}
-        onChange={(e) => dispatch({ type: "set", path, value: e.target.value })}
+        onChange={(e) => dispatch({ type: "set", path, value: e.target.value, merge: true })}
       />
       <Help id={`${id}-help`} text={field.help} />
     </div>

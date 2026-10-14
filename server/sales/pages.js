@@ -3,10 +3,23 @@
 const pool = require("../config/database");
 const storage = require("../lib/storage");
 const { validateSections, mediaIds } = require("./blocks");
+const { normalizeTheme, ThemeError } = require("./theme");
 
-const PAGE_COLUMNS = `id, product_id, sections, seo_title, seo_description, published_at, created_at, updated_at`;
+const PAGE_COLUMNS = `id, product_id, sections, seo_title, seo_description, theme, published_at, created_at, updated_at`;
 
 class PageInputError extends Error {}
+
+// Paleta pronta: guarda só o nome (ajustes na paleta valem para todas as páginas que a usam).
+// Personalizada: guarda as duas cores. Erros de cor viram mensagem para o painel.
+function storedTheme(input) {
+  try {
+    const theme = normalizeTheme(input);
+    return theme.preset === "custom" ? theme : { preset: theme.preset };
+  } catch (error) {
+    if (error instanceof ThemeError) throw new PageInputError(error.message);
+    throw error;
+  }
+}
 
 function text(value, max, label) {
   if (value === undefined || value === null) return null;
@@ -18,7 +31,7 @@ function text(value, max, label) {
 
 function normalizeInput(body) {
   if (!body || typeof body !== "object" || Array.isArray(body)) throw new PageInputError("Envie um objeto JSON.");
-  const allowed = ["sections", "seo_title", "seo_description", "published"];
+  const allowed = ["sections", "seo_title", "seo_description", "theme", "published"];
   const unknown = Object.keys(body).filter((k) => !allowed.includes(k));
   if (unknown.length) throw new PageInputError(`Campo(s) não suportado(s): ${unknown.join(", ")}.`);
 
@@ -31,6 +44,7 @@ function normalizeInput(body) {
     sections,
     seo_title: text(body.seo_title, 220, "Título para buscadores"),
     seo_description: text(body.seo_description, 320, "Descrição para buscadores"),
+    theme: storedTheme(body.theme),
     published: body.published,
   };
 }
@@ -43,12 +57,13 @@ async function savePage(productId, body) {
   try {
     await client.query("BEGIN");
     const { rows } = await client.query(
-      `INSERT INTO sales_pages (product_id, sections, seo_title, seo_description, published_at)
-       VALUES ($1, $2::jsonb, $3, $4, CASE WHEN $5::boolean THEN CURRENT_TIMESTAMP END)
+      `INSERT INTO sales_pages (product_id, sections, seo_title, seo_description, theme, published_at)
+       VALUES ($1, $2::jsonb, $3, $4, $6::jsonb, CASE WHEN $5::boolean THEN CURRENT_TIMESTAMP END)
        ON CONFLICT (product_id) DO UPDATE SET
          sections = EXCLUDED.sections,
          seo_title = EXCLUDED.seo_title,
          seo_description = EXCLUDED.seo_description,
+         theme = EXCLUDED.theme,
          -- published ausente: mantém como está; true: mantém a data original da 1ª publicação.
          published_at = CASE
            WHEN $5::boolean IS NULL THEN sales_pages.published_at
@@ -56,7 +71,7 @@ async function savePage(productId, body) {
            ELSE NULL END,
          updated_at = CURRENT_TIMESTAMP
        RETURNING ${PAGE_COLUMNS}, (xmax = 0) AS created`,
-      [productId, JSON.stringify(input.sections), input.seo_title, input.seo_description, input.published ?? null]
+      [productId, JSON.stringify(input.sections), input.seo_title, input.seo_description, input.published ?? null, JSON.stringify(input.theme)]
     );
     const page = rows[0];
 
@@ -110,7 +125,7 @@ async function loadDraftForRender(productId, body) {
        FROM products WHERE id = $1`, [productId]);
   if (!rows.length) return null;
   return {
-    ...rows[0], sections: input.sections, seo_title: input.seo_title, seo_description: input.seo_description,
+    ...rows[0], sections: input.sections, seo_title: input.seo_title, seo_description: input.seo_description, theme: input.theme,
     published_at: null, media: await loadMedia(input.sections, rows[0].image_id),
   };
 }
@@ -122,7 +137,7 @@ async function loadForRender({ slug, productId, published }) {
   const onlyPublished = published ? "AND p.status = 'published' AND sp.published_at IS NOT NULL" : "";
   const { rows } = await pool.query(
     `SELECT p.id, p.title, p.slug, p.short_description, p.price_cents, p.checkout_url, p.image_id, p.status,
-            sp.sections, sp.seo_title, sp.seo_description, sp.published_at
+            sp.sections, sp.seo_title, sp.seo_description, sp.theme, sp.published_at
        FROM products p JOIN sales_pages sp ON sp.product_id = p.id
       WHERE ${where} ${onlyPublished}`,
     [slug || productId]

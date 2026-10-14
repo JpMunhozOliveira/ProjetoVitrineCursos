@@ -2,6 +2,7 @@
 // Manual (mesmas classes de public/css/venda.css), então o visual é o mesmo.
 const { html } = require("../lib/html");
 const { BLOCKS, ICONS, validateSections } = require("./blocks");
+const { normalizeTheme, themeHref, DEFAULT_THEME } = require("./theme");
 
 const brl = (cents) => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -182,6 +183,15 @@ function cleanBlocks(sections) {
     .filter((x) => x.block);
 }
 
+// Cores da página: só inclui a folha de estilo quando não é a paleta padrão (que já está no venda.css).
+// Tema inválido (dado antigo/estragado) cai na paleta padrão em vez de derrubar a página.
+function themeLink(stored) {
+  let theme;
+  try { theme = normalizeTheme(stored && Object.keys(stored).length ? stored : undefined); } catch { return null; }
+  if (theme.preset === DEFAULT_THEME) return null;
+  return html`<link rel="stylesheet" href="${themeHref(theme)}">`;
+}
+
 // data: resultado de loadForRender. options:
 //   preview: false (público) | true (pré-visualização salva, com faixa) | "live" (dentro do editor, sem faixa)
 function renderSalesPage(data, { baseUrl, preview = false }) {
@@ -219,6 +229,7 @@ function renderSalesPage(data, { baseUrl, preview = false }) {
   <link rel="stylesheet" href="/css/theme.css">
   <link rel="stylesheet" href="/css/style.css">
   <link rel="stylesheet" href="/css/venda.css">
+  ${themeLink(data.theme)}
   <script src="/js/theme.js"></script>
   <script src="/data/cursos.js" defer></script>
   <script src="/js/components.js" defer></script>

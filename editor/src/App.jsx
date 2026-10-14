@@ -7,6 +7,7 @@ import { historyReducer, initialHistory } from "./history.js";
 import { BlockList } from "./Blocks.jsx";
 import { Preview } from "./Preview.jsx";
 import { BlockPicker } from "./BlockPicker.jsx";
+import { ThemePicker, resolveTheme } from "./ThemePicker.jsx";
 
 const api = (...args) => window.Admin.api(...args);
 const STATUS = { draft: "Rascunho", published: "Publicado", archived: "Arquivado" };
@@ -96,6 +97,7 @@ export default function App({ productId }) {
           dispatch({ type: "load", doc: {
             sections: withKeys(saved.sections, schema), seo_title: saved.seo_title || "",
             seo_description: saved.seo_description || "", published: !!saved.published_at,
+            theme: resolveTheme(saved.theme, schema),
           } });
         }
         setBoot({ status: "ready", product, schema });
@@ -112,8 +114,8 @@ export default function App({ productId }) {
 
   // O que vai para a pré-visualização (sem _key e sem "publicada", que não muda a aparência).
   const previewPayload = useMemo(() => doc && stripKeys({
-    sections: doc.sections, seo_title: doc.seo_title, seo_description: doc.seo_description,
-  }), [doc?.sections, doc?.seo_title, doc?.seo_description]); // eslint-disable-line react-hooks/exhaustive-deps
+    sections: doc.sections, seo_title: doc.seo_title, seo_description: doc.seo_description, theme: doc.theme,
+  }), [doc?.sections, doc?.seo_title, doc?.seo_description, doc?.theme]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const context = useMemo(() => ({
     dispatch, schema, media, focusLater,
@@ -156,7 +158,7 @@ export default function App({ productId }) {
 
   function start(fromTemplate) {
     const initial = withKeys(fromTemplate ? structuredClone(schema.defaultSections) : [], schema);
-    dispatch({ type: "start", doc: { sections: initial, seo_title: "", seo_description: "", published: false } });
+    dispatch({ type: "start", doc: { sections: initial, seo_title: "", seo_description: "", published: false, theme: resolveTheme(null, schema) } });
     if (initial[0]) { setOpen(new Set([initial[0]._key])); setSelected({ key: initial[0]._key, from: "editor" }); }
     setMessage(fromTemplate
       ? { text: "Modelo padrão carregado. Substitua os textos de orientação e salve.", kind: "success" }
@@ -178,6 +180,7 @@ export default function App({ productId }) {
       dispatch({ type: "saved", doc: {
         sections: withKeys(carryKeys(saved.sections, doc.sections), schema),
         seo_title: saved.seo_title || "", seo_description: saved.seo_description || "", published: !!saved.published_at,
+        theme: resolveTheme(saved.theme, schema),
       } });
       setMessage({ text: `Página salva às ${new Date().toLocaleTimeString("pt-BR")}.`, kind: "success" });
     } catch (err) {
@@ -310,18 +313,20 @@ export default function App({ productId }) {
           <BlockPicker position={pickerAt} total={sections.length}
             onPick={(type) => addBlock(type, pickerAt)} onClose={() => setPickerAt(null)} />
 
+          <ThemePicker theme={doc.theme} />
+
           <fieldset className="seo">
             <legend>Busca e compartilhamento</legend>
             <div className="field">
               <label htmlFor="seo_title">Título da página</label>
               <input id="seo_title" maxLength={220} value={doc.seo_title} aria-describedby="seo-title-help"
-                onChange={(e) => dispatch({ type: "set", path: ["seo_title"], value: e.target.value })} />
+                onChange={(e) => dispatch({ type: "set", path: ["seo_title"], value: e.target.value, merge: true })} />
               <p id="seo-title-help" className="hint">Aparece na aba do navegador, no Google e na prévia do link no WhatsApp. Vazio = título do produto.</p>
             </div>
             <div className="field">
               <label htmlFor="seo_description">Descrição</label>
               <textarea id="seo_description" rows={2} maxLength={320} value={doc.seo_description} aria-describedby="seo-desc-help"
-                onChange={(e) => dispatch({ type: "set", path: ["seo_description"], value: e.target.value })} />
+                onChange={(e) => dispatch({ type: "set", path: ["seo_description"], value: e.target.value, merge: true })} />
               <p id="seo-desc-help" className="hint">Uma ou duas frases (até 320 caracteres). Vazio = resumo do produto.</p>
             </div>
           </fieldset>
