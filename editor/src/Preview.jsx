@@ -63,14 +63,32 @@ export function Preview({ productId, payload, selectedIndex, scrollToSelected, o
   }
   useEffect(() => { hover(frame.current?.contentDocument); }, [hoveredIndex]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Rede de segurança: se a moldura chegou a abrir outra página (endereço diferente do da
+  // pré-visualização), recriamos o iframe com o HTML atual. O "key" novo força o React a recriá-lo.
+  const [frameKey, setFrameKey] = useState(0);
+
   function handleLoad() {
     const win = frame.current.contentWindow, doc = frame.current.contentDocument;
+    if (!doc) return;
+    // Só endereço http(s) indica que um link navegou; about:srcdoc (a pré-visualização) e
+    // about:blank (moldura ainda vazia) são normais — reagir a eles recriaria o iframe sem parar.
+    if (/^https?:/.test(win.location.href)) {
+      setFrameKey((k) => k + 1);
+      return;
+    }
     win.scrollTo(0, scrollY.current);
     win.addEventListener("scroll", () => { scrollY.current = win.scrollY; }, { passive: true });
     doc.documentElement.classList.add("is-editor-preview"); // ativa o destaque ao passar o mouse
-    // Clique na pré-visualização: links não navegam; clicar numa seção abre o bloco no editor.
+
+    // A pré-visualização não navega: links (clique normal, do meio ou com Ctrl) e formulários são
+    // bloqueados na fase de CAPTURA, antes de qualquer outro código da página reagir ao clique.
+    const block = (e) => { if (e.target.closest?.("a[href], button[type=submit]")) e.preventDefault(); };
+    doc.addEventListener("click", block, true);
+    doc.addEventListener("auxclick", block, true);
+    doc.addEventListener("submit", (e) => e.preventDefault(), true);
+
+    // Clicar numa seção abre o bloco correspondente no editor.
     doc.addEventListener("click", (e) => {
-      if (e.target.closest("a, button[type=submit]")) e.preventDefault();
       const section = e.target.closest("[data-block]");
       if (section && !e.target.closest(".car-btn, .dots, summary")) onSelectRef.current(Number(section.dataset.block));
     });
@@ -102,7 +120,7 @@ export function Preview({ productId, payload, selectedIndex, scrollToSelected, o
         {scale < 1 && <span className="muted small">{logical} px, exibido a {Math.round(scale * 100)}%</span>}
       </div>
       <div ref={stage} className={`preview-stage ${device}`}>
-        <iframe ref={frame} title="Pré-visualização da página de vendas" srcDoc={html} onLoad={handleLoad} style={frameStyle} />
+        <iframe key={frameKey} ref={frame} title="Pré-visualização da página de vendas" srcDoc={html} onLoad={handleLoad} style={frameStyle} />
       </div>
     </div>
   );
