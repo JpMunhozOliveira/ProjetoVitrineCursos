@@ -2,7 +2,8 @@
 // publicar e a ligação editor <-> pré-visualização ao vivo.
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { EditorContext } from "./context.js";
-import { reducer, withKeys, stripKeys, carryKeys, newBlock } from "./state.js";
+import { withKeys, stripKeys, carryKeys, newBlock } from "./state.js";
+import { historyReducer, initialHistory } from "./history.js";
 import { BlockList } from "./Blocks.jsx";
 import { Preview } from "./Preview.jsx";
 import { BlockPicker } from "./BlockPicker.jsx";
@@ -10,14 +11,16 @@ import { BlockPicker } from "./BlockPicker.jsx";
 const api = (...args) => window.Admin.api(...args);
 const STATUS = { draft: "Rascunho", published: "Publicado", archived: "Arquivado" };
 
-// Estado = página em edição + "há alterações não salvas?". "load" (dados do servidor) zera o aviso.
-function appReducer(state, action) {
-  return { doc: reducer(state.doc, action), dirty: action.type !== "load" };
-}
-
 export default function App({ productId }) {
   const [boot, setBoot] = useState({ status: "loading" });  // loading | error | ready
-  const [{ doc, dirty }, dispatch] = useReducer(appReducer, { doc: null, dirty: false });
+  // Estado da página com histórico (desfazer/refazer). Ver history.js.
+  const [history, rawDispatch] = useReducer(historyReducer, initialHistory);
+  const doc = history.doc;
+  const dirty = history.doc !== history.saved; // compara com a versão salva no servidor
+  // Cada alteração leva o horário: o histórico junta digitação contínua num passo só.
+  const dispatch = useCallback((action) => rawDispatch({ ...action, time: Date.now() }), []);
+  const undo = useCallback(() => rawDispatch({ type: "undo" }), []);
+  const redo = useCallback(() => rawDispatch({ type: "redo" }), []);
   const [page, setPage] = useState(null);                    // página como está GRAVADA
   const [media, setMedia] = useState(() => new Map());
   const [open, setOpen] = useState(() => new Set());         // chaves dos blocos abertos
@@ -50,6 +53,20 @@ export default function App({ productId }) {
     window.addEventListener("beforeunload", onBeforeUnload);
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
   }, []);
+
+  // Atalhos: Ctrl+Z desfaz; Ctrl+Shift+Z ou Ctrl+Y refaz (Cmd no Mac). Valem também dentro dos
+  // campos de texto: o histórico do editor substitui o do navegador, que não conhece os blocos.
+  useEffect(() => {
+    function onKeyDown(e) {
+      if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+      if (document.querySelector("dialog[open]")) return; // diálogo aberto: não mexe na página por baixo
+      const key = e.key.toLowerCase();
+      if (key === "z" && !e.shiftKey) { e.preventDefault(); undo(); }
+      else if ((key === "z" && e.shiftKey) || key === "y") { e.preventDefault(); redo(); }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [undo, redo]);
 
   // Foco depois de redesenhar (ex.: ao mover um bloco, o foco volta ao botão usado).
   const focusLater = useCallback((selector) => { pendingFocus.current = selector; }, []);
@@ -139,8 +156,7 @@ export default function App({ productId }) {
 
   function start(fromTemplate) {
     const initial = withKeys(fromTemplate ? structuredClone(schema.defaultSections) : [], schema);
-    dispatch({ type: "load", doc: { sections: initial, seo_title: "", seo_description: "", published: false } });
-    dispatch({ type: "set", path: ["published"], value: false }); // marca como alterado (ainda não salvo)
+    dispatch({ type: "start", doc: { sections: initial, seo_title: "", seo_description: "", published: false } });
     if (initial[0]) { setOpen(new Set([initial[0]._key])); setSelected({ key: initial[0]._key, from: "editor" }); }
     setMessage(fromTemplate
       ? { text: "Modelo padrão carregado. Substitua os textos de orientação e salve.", kind: "success" }
@@ -158,7 +174,8 @@ export default function App({ productId }) {
       });
       setPage(saved);
       // A resposta traz os blocos como foram gravados; as chaves antigas mantêm os blocos abertos.
-      dispatch({ type: "load", doc: {
+      // "saved" (e não "load"): o histórico continua — dá para desfazer o que veio antes de salvar.
+      dispatch({ type: "saved", doc: {
         sections: withKeys(carryKeys(saved.sections, doc.sections), schema),
         seo_title: saved.seo_title || "", seo_description: saved.seo_description || "", published: !!saved.published_at,
       } });
@@ -199,17 +216,44 @@ export default function App({ productId }) {
     </div>
   );
 
+  // Rascunho / Publicada (no cabeçalho, ao lado de "Abrir versão salva"), com a explicação logo abaixo.
+  const pending = doc && (page ? doc.published !== !!page.published_at : doc.published);
+  const pubHint = doc && ((!doc.published ? "Página em rascunho: só você vê, pela pré-visualização."
+    : product.status !== "published"
+      ? `Atenção: o produto está como “${STATUS[product.status]}”. A página só aparece para o público quando o produto também estiver publicado.`
+      : `Página publicada: visível para o público em /p/${product.slug}.`) + (pending ? " Salve para aplicar." : ""));
+  const publishToggle = doc && (
+    <div className="segmented publish-toggle" role="radiogroup" aria-label="Situação da página" aria-describedby="pub-hint">
+      <label><input type="radio" name="published" value="no" checked={!doc.published}
+        onChange={() => dispatch({ type: "set", path: ["published"], value: false })} /><span>Rascunho</span></label>
+      <label><input type="radio" name="published" value="yes" checked={doc.published}
+        onChange={() => dispatch({ type: "set", path: ["published"], value: true })} /><span>Publicada</span></label>
+    </div>
+  );
+
   // Cabeçalho compacto (uma linha) para sobrar altura para o editor e a pré-visualização.
   // "Voltar ao produto" fica na barra de baixo, junto do Salvar.
   const header = (
+    <>
     <div className="page-head editor-head">
       <h1 className="editor-title">Página de vendas <span className="muted">· {product.title}</span></h1>
       <div className="row-actions">
         {live && <a className="btn btn-sm btn-outline" href={`/p/${encodeURIComponent(product.slug)}`} target="_blank" rel="noopener">Ver publicada<span className="sr-only"> (abre em nova aba)</span></a>}
         {page && <a className="btn btn-sm btn-outline" href={`/admin/preview/${encodeURIComponent(productId)}`} target="_blank" rel="noopener">Abrir versão salva<span className="sr-only"> (abre em nova aba)</span></a>}
+        {publishToggle}
+        {doc && (
+          <div className="history-buttons" role="group" aria-label="Histórico de alterações">
+            <button type="button" className="icon-btn" onClick={undo} disabled={!history.past.length}
+              title="Desfazer (Ctrl+Z)" aria-label="Desfazer" aria-keyshortcuts="Control+Z">↶</button>
+            <button type="button" className="icon-btn" onClick={redo} disabled={!history.future.length}
+              title="Refazer (Ctrl+Shift+Z)" aria-label="Refazer" aria-keyshortcuts="Control+Shift+Z">↷</button>
+          </div>
+        )}
         {doc && deviceToggle}
       </div>
     </div>
+    {doc && <p id="pub-hint" className={`hint pub-hint${pending || (doc.published && product.status !== "published") ? " warn" : ""}`}>{pubHint}</p>}
+    </>
   );
 
   // Telas pequenas: o editor lado a lado não cabe; mostramos este aviso (via CSS) no lugar dele.
@@ -243,12 +287,6 @@ export default function App({ productId }) {
       </div>
     );
   }
-
-  const pending = page ? doc.published !== !!page.published_at : doc.published;
-  const pubHint = (!doc.published ? "Só você vê, pela pré-visualização."
-    : product.status !== "published"
-      ? `Atenção: o produto está como “${STATUS[product.status]}”. A página só aparece para o público quando o produto também estiver publicado.`
-      : `Visível para o público em /p/${product.slug}.`) + (pending ? " Salve para aplicar." : "");
 
   return (
     <EditorContext.Provider value={context}>
@@ -288,22 +326,12 @@ export default function App({ productId }) {
             </div>
           </fieldset>
 
-          <div className="form-actions">
-            <div className="status-picker" role="radiogroup" aria-labelledby="pub-label" aria-describedby="pub-hint">
-              <span id="pub-label" className="status-label">Página</span>
-              <div className="segmented">
-                <label><input type="radio" name="published" value="no" checked={!doc.published}
-                  onChange={() => dispatch({ type: "set", path: ["published"], value: false })} /><span>Rascunho</span></label>
-                <label><input type="radio" name="published" value="yes" checked={doc.published}
-                  onChange={() => dispatch({ type: "set", path: ["published"], value: true })} /><span>Publicada</span></label>
-              </div>
-              <span id="pub-hint" className={`hint${pending || (doc.published && product.status !== "published") ? " warn" : ""}`}>{pubHint}</span>
-            </div>
+          <div className="form-actions editor-actions">
+            <p className={`msg ${message.kind}`} role="status" aria-live="polite">{message.text}</p>
             <div className="buttons">
               <a className="btn btn-outline" href={`produto.html?id=${encodeURIComponent(productId)}`}>Voltar</a>
               <button type="submit" className="btn" disabled={saving}>Salvar</button>
             </div>
-            <p className={`msg ${message.kind}`} role="status" aria-live="polite">{message.text}</p>
           </div>
         </form>
 

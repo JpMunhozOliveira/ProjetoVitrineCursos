@@ -4,14 +4,16 @@
 import { useId } from "react";
 import { useEditor } from "./context.js";
 import { emptyValue } from "./state.js";
+import { SortableList, useSortableItem, DragHandle } from "./dnd.jsx";
 
-export function Field({ field, value, path }) {
+// compact: dentro de itens de lista (textos longos começam com 2 linhas em vez de 3).
+export function Field({ field, value, path, compact, inline }) {
   switch (field.type) {
     case "list": return <ListField field={field} items={value || []} path={path} />;
     case "image": return <ImageField field={field} value={value} path={path} />;
     case "bool": return <BoolField field={field} value={value} path={path} />;
     case "icon": return <IconField field={field} value={value} path={path} />;
-    default: return <TextField field={field} value={value} path={path} />;
+    default: return <TextField field={field} value={value} path={path} compact={compact} inline={inline} />;
   }
 }
 
@@ -19,19 +21,20 @@ function Help({ id, text }) {
   return text ? <p id={id} className="hint">{text}</p> : null;
 }
 
-function TextField({ field, value, path }) {
+// inline: item numa linha só — o rótulo fica só para leitores de tela e vira o texto de exemplo da caixa.
+function TextField({ field, value, path, compact, inline }) {
   const { dispatch } = useEditor();
   const id = useId();
   const Tag = field.type === "textarea" ? "textarea" : "input";
   return (
     <div className="field">
-      <label htmlFor={id}>{field.label}</label>
+      <label htmlFor={id} className={inline ? "sr-only" : undefined}>{field.label}</label>
       <Tag
         id={id}
         value={value || ""}
         maxLength={field.max}
-        placeholder={field.placeholder}
-        rows={field.type === "textarea" ? 3 : undefined}
+        placeholder={field.placeholder || (inline ? field.label : undefined)}
+        rows={field.type === "textarea" ? (compact ? 2 : 3) : undefined}
         aria-describedby={field.help ? `${id}-help` : undefined}
         onChange={(e) => dispatch({ type: "set", path, value: e.target.value })}
       />
@@ -40,16 +43,27 @@ function TextField({ field, value, path }) {
   );
 }
 
+// Escolha visual do ícone: os mesmos desenhos da página (vêm do esquema do servidor).
+// São radios por baixo: setas do teclado trocam a opção e o leitor de tela lê o nome.
 function IconField({ field, value, path }) {
   const { dispatch, schema } = useEditor();
-  const id = useId();
+  const name = useId();
+  const current = value || "check";
   return (
-    <div className="field">
-      <label htmlFor={id}>{field.label}</label>
-      <select id={id} value={value || "check"} onChange={(e) => dispatch({ type: "set", path, value: e.target.value })}>
-        {Object.entries(schema.icons).map(([name, label]) => <option key={name} value={name}>{label}</option>)}
-      </select>
-    </div>
+    <fieldset className="field icon-field">
+      <legend>{field.label}</legend>
+      <div className="icon-options">
+        {Object.entries(schema.icons).map(([key, icon]) => (
+          <label key={key} className="icon-option" title={icon.label}>
+            <input type="radio" name={name} value={key} checked={current === key} aria-label={icon.label}
+              onChange={() => dispatch({ type: "set", path, value: key })} />
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d={icon.d} fill="none" stroke="currentColor" strokeWidth={icon.width || 1.8} strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </label>
+        ))}
+      </div>
+    </fieldset>
   );
 }
 
@@ -130,27 +144,71 @@ function ListField({ field, items, path }) {
     focusLater(`[data-key="${item._key}"] .field :is(input,textarea,select,button)`); // primeiro campo do item novo
   }
 
+  // Arrastar e soltar: mesma ação "move" dos botões ↑ ↓.
+  const ids = items.map((item) => item._key);
+  function moveTo(from, to) {
+    dispatch({ type: "move", path, from, to });
+    focusLater(`[data-key="${items[from]._key}"] .drag-handle`);
+  }
+
   return (
     <fieldset className="list-field" data-list={path.join(".")}>
       <legend>{field.label} ({items.length} de {field.max})</legend>
-      {items.map((item, index) => (
-        <div className="list-item" key={item._key} data-key={item._key}>
-          <div className="list-item-head">
-            <strong className="small">Item {index + 1}</strong>
-            <div className="tools">
-              <button type="button" className="icon-btn" data-action="up" disabled={index === 0}
-                aria-label={`Mover item ${index + 1} para cima`} onClick={() => move(index, -1, "up")}>↑</button>
-              <button type="button" className="icon-btn" data-action="down" disabled={index === items.length - 1}
-                aria-label={`Mover item ${index + 1} para baixo`} onClick={() => move(index, 1, "down")}>↓</button>
-              <button type="button" className="icon-btn danger" aria-label={`Remover item ${index + 1}`} onClick={() => remove(index)}>✕</button>
-            </div>
-          </div>
-          {Object.entries(field.item).map(([name, sub]) => (
-            <Field key={name} field={sub} value={item[name]} path={[...path, index, name]} />
-          ))}
-        </div>
-      ))}
+      <SortableList ids={ids} label={(key) => `Item ${ids.indexOf(key) + 1}`} onMove={moveTo}>
+        {items.map((item, index) => (
+          <ListItem key={item._key} item={item} index={index} total={items.length} field={field} path={path}
+            onMove={move} onRemove={remove} />
+        ))}
+      </SortableList>
       <button type="button" className="btn btn-sm btn-outline add-item" disabled={full} onClick={add}>+ Adicionar item</button>
     </fieldset>
+  );
+}
+
+// Um item da lista (componente próprio: hooks como useSortableItem não podem ser chamados num laço).
+function ListItem({ item, index, total, field, path, onMove, onRemove }) {
+  const { itemRef, itemStyle, isDragging, handleProps } = useSortableItem(item._key);
+  // Itens só com campos curtos (texto de uma linha / liga-desliga) ficam numa linha só:
+  // ⠿ [campos] [↑ ↓ ✕] — sem o título "Item N" ocupando uma linha a mais.
+  const inline = Object.values(field.item).every((f) => f.type === "text" || f.type === "bool");
+
+  const tools = (
+    <div className="tools">
+      <button type="button" className="icon-btn" data-action="up" disabled={index === 0}
+        aria-label={`Mover item ${index + 1} para cima`} onClick={() => onMove(index, -1, "up")}>↑</button>
+      <button type="button" className="icon-btn" data-action="down" disabled={index === total - 1}
+        aria-label={`Mover item ${index + 1} para baixo`} onClick={() => onMove(index, 1, "down")}>↓</button>
+      <button type="button" className="icon-btn danger" aria-label={`Remover item ${index + 1}`} onClick={() => onRemove(index)}>✕</button>
+    </div>
+  );
+  const fields = (
+    // Campos lado a lado (grade): curtos dividem a linha; textos longos, imagens e ícones ocupam a largura toda
+    <div className={`item-fields${inline ? " inline" : ""}`}>
+      {Object.entries(field.item).map(([name, sub]) => (
+        <Field key={name} field={sub} value={item[name]} path={[...path, index, name]} compact inline={inline} />
+      ))}
+    </div>
+  );
+
+  return (
+    <div ref={itemRef} style={itemStyle} className={`list-item${inline ? " inline" : ""}${isDragging ? " is-dragging" : ""}`}
+      data-key={item._key} role="group" aria-label={`Item ${index + 1}`}>
+      {inline ? (
+        <>
+          <DragHandle handleProps={handleProps} label={`Arrastar item ${index + 1}`} />
+          {fields}
+          {tools}
+        </>
+      ) : (
+        <>
+          <div className="list-item-head">
+            <DragHandle handleProps={handleProps} label={`Arrastar item ${index + 1}`} />
+            <strong className="small">Item {index + 1}</strong>
+            {tools}
+          </div>
+          {fields}
+        </>
+      )}
+    </div>
   );
 }

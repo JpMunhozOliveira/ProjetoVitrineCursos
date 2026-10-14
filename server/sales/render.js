@@ -1,7 +1,7 @@
 // Monta o HTML da página de vendas a partir dos blocos. A marcação segue a página original do
 // Manual (mesmas classes de public/css/venda.css), então o visual é o mesmo.
 const { html } = require("../lib/html");
-const { BLOCKS, validateSections } = require("./blocks");
+const { BLOCKS, ICONS, validateSections } = require("./blocks");
 
 const brl = (cents) => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -12,15 +12,9 @@ const paragraphs = (text, cls) => (text || "").split(/\n\s*\n/).map((p) => p.tri
 const svg = (name, cls = "ico") => html`<svg class="${cls}" aria-hidden="true"><use href="#i-${name}"/></svg>`;
 const mark = (positive) => html`<svg aria-hidden="true"><use href="#i-${positive ? "check" : "x"}"/></svg>`;
 
-const SPRITE = html`<svg class="svg-sprite" aria-hidden="true">
-  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
-  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></symbol>
-  <symbol id="i-doc" viewBox="0 0 24 24"><path d="M7 3h7l4 4v14H7zM14 3v4h4M10 12h5M10 16h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
-  <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 3L5 14h6l-1 7 8-11h-6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
-  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
-  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M4 21c0-4 3.5-6 8-6s8 2 8 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
-  <symbol id="i-calc" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8 7h8M8 12h2M12 12h2M8 16h2M12 16h2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
-</svg>`;
+// Sprite com os ícones dos blocos (desenhos definidos em blocks.js, compartilhados com o editor).
+const SPRITE = html`<svg class="svg-sprite" aria-hidden="true">${Object.entries(ICONS).map(([name, icon]) =>
+  html`<symbol id="i-${name}" viewBox="0 0 24 24"><path d="${icon.d}" fill="none" stroke="currentColor" stroke-width="${icon.width || 1.8}" stroke-linecap="round" stroke-linejoin="round"/></symbol>`)}</svg>`;
 
 // Contexto de uma renderização: produto, imagens e contadores (ids de títulos, fundo alternado).
 function createContext(data) {
@@ -174,7 +168,7 @@ const RENDERERS = {
     return html`<section class="v-final" aria-labelledby="${id}"${ctx.mark()}>
   <div class="container v-hero-grid${media ? "" : " no-media"}">
     ${media}
-    <div><h2 id="${id}">${b.title || ctx.product.title}</h2>${ctx.price(b.price_label)}${ctx.cta(b.cta_label || "Garantir agora")}</div>
+    <div><h2 id="${id}">${b.title || ctx.product.title}</h2><div class="offer">${ctx.price(b.price_label)}${ctx.cta(b.cta_label || "Garantir agora")}</div></div>
   </div>
 </section>`;
   },

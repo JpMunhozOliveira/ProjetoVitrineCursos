@@ -622,3 +622,8 @@
 .is-editor-preview [data-block].is-selected {
   outline: 3px solid var(--color-accent);
 }
+
+/* Oferta final: título, depois preço e botão (mesmo espaçamento da abertura). */
+.v-final .offer {
+  margin-top: 1.25rem;
+}

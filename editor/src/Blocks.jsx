@@ -3,6 +3,7 @@ import { Fragment, useId } from "react";
 import { useEditor } from "./context.js";
 import { Field } from "./fields.jsx";
 import { BlockIcon } from "./icons.jsx";
+import { SortableList, useSortableItem, DragHandle } from "./dnd.jsx";
 
 // Resumo exibido no cabeçalho do bloco (o primeiro texto que identifica o conteúdo).
 function summary(block) {
@@ -15,6 +16,7 @@ function BlockCard({ block, index, total, isOpen, isSelected, isHidden, onToggle
   const def = schema.blocks[block.type];
   const bodyId = useId();
   const label = def.label;
+  const { itemRef, itemStyle, isDragging, handleProps } = useSortableItem(block._key);
 
   function move(delta, action) {
     dispatch({ type: "move", path: ["sections"], from: index, to: index + delta });
@@ -22,9 +24,11 @@ function BlockCard({ block, index, total, isOpen, isSelected, isHidden, onToggle
   }
 
   return (
-    <li className={`block${isSelected ? " is-selected" : ""}${isHidden ? " is-hidden" : ""}`} data-block-key={block._key}
+    <li ref={itemRef} style={itemStyle}
+      className={`block${isSelected ? " is-selected" : ""}${isHidden ? " is-hidden" : ""}${isDragging ? " is-dragging" : ""}`} data-block-key={block._key}
       onMouseEnter={() => onHover(index)} onMouseLeave={() => onHover(null)}>
       <div className="block-head">
+        <DragHandle handleProps={handleProps} label={`Arrastar bloco ${index + 1} (${label})`} />
         <button type="button" className="block-toggle" data-action="toggle"
           aria-expanded={isOpen} aria-controls={bodyId} onClick={onToggle}
           onFocus={() => onHover(index)} onBlur={() => onHover(null)}>
@@ -86,18 +90,31 @@ export function BlockList({ sections, open, selectedKey, visible, onToggle, onHo
     focusLater(next ? `[data-block-key="${next._key}"] .block-toggle` : ".add-block-btn");
   }
 
+  // Arrastar e soltar usa a mesma ação "move" dos botões ↑ ↓ (e entra no desfazer igual).
+  const ids = sections.map((b) => b._key);
+  const labelOf = (key) => {
+    const i = ids.indexOf(key);
+    return `Bloco ${i + 1} (${schema.blocks[sections[i].type].label})`;
+  };
+  function moveTo(from, to) {
+    dispatch({ type: "move", path: ["sections"], from, to });
+    focusLater(`[data-block-key="${sections[from]._key}"] .drag-handle`);
+  }
+
   if (!sections.length) return <p className="empty muted">Nenhum bloco ainda. Use “Adicionar bloco”, abaixo.</p>;
   return (
-    <ol className="blocks">
-      {sections.map((block, index) => (
-        <Fragment key={block._key}>
-          {index > 0 && <InsertHere position={index} onInsert={onInsert} />}
-          <BlockCard block={block} index={index} total={sections.length}
-            isOpen={open.has(block._key)} isSelected={selectedKey === block._key}
-            isHidden={visible !== null && !visible.has(index)}
-            onToggle={() => onToggle(block._key)} onRemove={() => remove(block, index)} onHover={onHover} />
-        </Fragment>
-      ))}
-    </ol>
+    <SortableList ids={ids} label={labelOf} onMove={moveTo}>
+      <ol className="blocks">
+        {sections.map((block, index) => (
+          <Fragment key={block._key}>
+            {index > 0 && <InsertHere position={index} onInsert={onInsert} />}
+            <BlockCard block={block} index={index} total={sections.length}
+              isOpen={open.has(block._key)} isSelected={selectedKey === block._key}
+              isHidden={visible !== null && !visible.has(index)}
+              onToggle={() => onToggle(block._key)} onRemove={() => remove(block, index)} onHover={onHover} />
+          </Fragment>
+        ))}
+      </ol>
+    </SortableList>
   );
 }

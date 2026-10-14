@@ -8,9 +8,16 @@
 //   bool             -> true/false
 //   list             -> lista de itens; cada item tem seus próprios campos (item: {...})
 
+// Ícones disponíveis nos blocos: nome, desenho (SVG 24×24) e espessura do traço. Fonte única:
+// a página pública monta o sprite a partir daqui (render.js) e o editor mostra os mesmos desenhos.
 const ICONS = {
-  check: "Confirmação", x: "Negação", doc: "Documento", bolt: "Raio",
-  shield: "Escudo", user: "Pessoa", calc: "Calculadora",
+  check: { label: "Confirmação", d: "M5 12.5l4.5 4.5L19 7.5", width: 2.6 },
+  x: { label: "Negação", d: "M6 6l12 12M18 6L6 18", width: 2.6 },
+  doc: { label: "Documento", d: "M7 3h7l4 4v14H7zM14 3v4h4M10 12h5M10 16h5" },
+  bolt: { label: "Raio", d: "M13 3L5 14h6l-1 7 8-11h-6z" },
+  shield: { label: "Escudo", d: "M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" },
+  user: { label: "Pessoa", d: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c0-4 3.5-6 8-6s8 2 8 6" },
+  calc: { label: "Calculadora", d: "M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM8 7h8M8 12h2M12 12h2M8 16h2M12 16h2" },
 };
 
 const text = (label, max, extra = {}) => ({ type: "text", label, max, ...extra });
