@@ -43,7 +43,7 @@
         var who = await api("/auth/me");
         if (who.via !== "session") throw Object.assign(new Error(), { status: 401 });
         csrf = who.csrfToken; $("who").textContent = who.email;
-        var courses = await api("/courses"), body = document.querySelector("#courses tbody");
+        var courses = await api("/products"), body = document.querySelector("#courses tbody");
         courses.forEach(function (c) {
           var tr = document.createElement("tr");
           [c.title, c.slug, STATUS[c.status] || c.status, new Date(c.updated_at).toLocaleString("pt-BR")]

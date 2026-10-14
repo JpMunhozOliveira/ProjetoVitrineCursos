@@ -66,19 +66,19 @@
     }
 
     try {
-      var response = await fetch("/api/courses/" + encodeURIComponent(slug) + "/sales-page", {
+      var response = await fetch("/api/products/" + encodeURIComponent(slug) + "/sales-page", {
         headers: { "Accept": "application/json" }
       });
       var payload = await response.json();
       if (!response.ok) throw new Error(payload.error || "Não foi possível carregar esta página.");
 
       var course = payload.data;
-      document.title = (course.seo_title || course.headline || course.course_title) + " | Vitrine de Cursos";
+      document.title = (course.seo_title || course.headline || course.product_title) + " | Vitrine de Cursos";
       var description = document.querySelector('meta[name="description"]');
       if (description && course.seo_description) description.content = course.seo_description;
 
-      label.textContent = course.course_title || "Curso";
-      headline.textContent = course.headline || course.course_title || "Conheça este curso";
+      label.textContent = course.product_title || "Curso";
+      headline.textContent = course.headline || course.product_title || "Conheça este curso";
       subheadline.textContent = course.subheadline || course.short_description || "";
       status.textContent = "";
       status.hidden = true;

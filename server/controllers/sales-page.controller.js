@@ -64,19 +64,19 @@ function validatePageInput(body) {
 
 async function getAdminSalesPage(req, res, next) {
   if (!UUID_PATTERN.test(req.params.id)) {
-    return res.status(400).json({ error: "Invalid course ID." });
+    return res.status(400).json({ error: "ID de produto inválido." });
   }
 
   try {
-    const course = await pool.query("SELECT id FROM courses WHERE id = $1", [req.params.id]);
-    if (!course.rowCount) {
-      return res.status(404).json({ error: "Course not found." });
+    const product = await pool.query("SELECT id FROM products WHERE id = $1", [req.params.id]);
+    if (!product.rowCount) {
+      return res.status(404).json({ error: "Produto não encontrado." });
     }
 
     const result = await pool.query(
-      `SELECT id, course_id, headline, subheadline, sections, seo_title,
+      `SELECT id, product_id, headline, subheadline, sections, seo_title,
               seo_description, published_at, created_at, updated_at
-       FROM sales_pages WHERE course_id = $1`,
+       FROM sales_pages WHERE product_id = $1`,
       [req.params.id]
     );
 
@@ -88,20 +88,20 @@ async function getAdminSalesPage(req, res, next) {
 
 async function saveAdminSalesPage(req, res, next) {
   if (!UUID_PATTERN.test(req.params.id)) {
-    return res.status(400).json({ error: "Invalid course ID." });
+    return res.status(400).json({ error: "ID de produto inválido." });
   }
 
   const { values, error } = validatePageInput(req.body);
   if (error) return res.status(400).json({ error });
 
   try {
-    const course = await pool.query("SELECT id FROM courses WHERE id = $1", [req.params.id]);
-    if (!course.rowCount) {
-      return res.status(404).json({ error: "Course not found." });
+    const product = await pool.query("SELECT id FROM products WHERE id = $1", [req.params.id]);
+    if (!product.rowCount) {
+      return res.status(404).json({ error: "Produto não encontrado." });
     }
 
     const current = await pool.query(
-      "SELECT id FROM sales_pages WHERE course_id = $1",
+      "SELECT id FROM sales_pages WHERE product_id = $1",
       [req.params.id]
     );
 
@@ -114,10 +114,10 @@ async function saveAdminSalesPage(req, res, next) {
 
     const result = await pool.query(
       `INSERT INTO sales_pages
-        (course_id, headline, subheadline, sections, seo_title, seo_description, published_at)
+        (product_id, headline, subheadline, sections, seo_title, seo_description, published_at)
        VALUES ($1, $2, $3, $4::jsonb, $5, $6,
                CASE WHEN $7 THEN CURRENT_TIMESTAMP ELSE NULL END)
-       ON CONFLICT (course_id) DO UPDATE SET
+       ON CONFLICT (product_id) DO UPDATE SET
          headline = CASE WHEN $8 THEN EXCLUDED.headline ELSE sales_pages.headline END,
          subheadline = CASE WHEN $9 THEN EXCLUDED.subheadline ELSE sales_pages.subheadline END,
          sections = CASE WHEN $10 THEN EXCLUDED.sections ELSE sales_pages.sections END,
@@ -129,7 +129,7 @@ async function saveAdminSalesPage(req, res, next) {
            ELSE sales_pages.published_at
          END,
          updated_at = CURRENT_TIMESTAMP
-       RETURNING id, course_id, headline, subheadline, sections, seo_title,
+       RETURNING id, product_id, headline, subheadline, sections, seo_title,
                  seo_description, published_at, created_at, updated_at`,
       [
         req.params.id,
@@ -158,18 +158,18 @@ async function saveAdminSalesPage(req, res, next) {
 async function getPublicSalesPage(req, res, next) {
   try {
     const result = await pool.query(
-      `SELECT c.id AS course_id, c.title AS course_title, c.slug,
+      `SELECT c.id AS product_id, c.title AS product_title, c.slug,
               c.short_description, p.headline, p.subheadline, p.sections,
               p.seo_title, p.seo_description, p.published_at
-       FROM courses c
-       JOIN sales_pages p ON p.course_id = c.id
+       FROM products c
+       JOIN sales_pages p ON p.product_id = c.id
        WHERE c.slug = $1 AND c.status = 'published'
          AND p.published_at IS NOT NULL`,
       [req.params.slug]
     );
 
     if (!result.rowCount) {
-      return res.status(404).json({ error: "Published sales page not found." });
+      return res.status(404).json({ error: "Página de vendas publicada não encontrada." });
     }
 
     return res.json({ data: result.rows[0] });
