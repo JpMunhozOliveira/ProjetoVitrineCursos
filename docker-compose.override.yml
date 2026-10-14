@@ -18,3 +18,16 @@ services:
       - ./server:/app
       - /app/node_modules          # mantém as dependências instaladas na imagem
       - ./public:/frontend:ro
+
+  # Recompila o editor React (pasta editor/) a cada alteração e grava em public/admin/editor/,
+  # que o app acima já serve. Em produção isso é feito dentro do Dockerfile.
+  editor:
+    image: node:22-alpine
+    working_dir: /editor
+    command: ["sh", "-c", "npm ci --no-audit --no-fund && npm run dev"]
+    environment:
+      EDITOR_POLLING: "1"
+    volumes:
+      - ./editor:/editor
+      - /editor/node_modules       # dependências ficam no container, não no Windows/OneDrive
+      - ./public/admin/editor:/public/admin/editor

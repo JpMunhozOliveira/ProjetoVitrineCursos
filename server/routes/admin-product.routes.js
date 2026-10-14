@@ -8,7 +8,7 @@ const {
   deleteProduct,
 } = require("../controllers/product.controller");
 
-const { getAdminSalesPage, saveAdminSalesPage } = require("../controllers/sales-page.controller");
+const { getAdminSalesPage, saveAdminSalesPage, previewAdminSalesPage } = require("../controllers/sales-page.controller");
 
 const router = express.Router();
 
@@ -20,5 +20,6 @@ router.patch("/:id", updateProduct);
 router.delete("/:id", deleteProduct);
 router.get("/:id/sales-page", getAdminSalesPage);
 router.put("/:id/sales-page", saveAdminSalesPage);
+router.post("/:id/sales-page/preview", previewAdminSalesPage);
 
 module.exports = router;

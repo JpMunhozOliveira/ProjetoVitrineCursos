@@ -54,7 +54,7 @@ const RENDERERS = {
     const media = ctx.img(b.image, "v-media", { priority: true });
     const Title = ctx.firstHero() ? "h1" : "h2"; // só um <h1> por página
     const title = b.title || ctx.product.title;
-    return html`<section class="v-hero">
+    return html`<section class="v-hero"${ctx.mark()}>
   <div class="container v-hero-grid${media ? "" : " no-media"}">
     <div>
       ${ctx.img(b.logo, "v-logo", { priority: true })}
@@ -71,7 +71,7 @@ const RENDERERS = {
   benefits(b, ctx) {
     if (!b.items.length) return null;
     const id = ctx.headingId();
-    return html`<section class="${ctx.sectionClass()}" aria-labelledby="${id}"><div class="container">
+    return html`<section class="${ctx.sectionClass()}" aria-labelledby="${id}"${ctx.mark()}><div class="container">
   <h2 id="${id}" class="sr-only">${b.title || "Benefícios"}</h2>
   <div class="two">${b.items.map((x) => html`<article class="v-card">${svg(x.icon)}<h3>${x.title}</h3>${paragraphs(x.text)}${x.callout && html`<p class="callout">${x.callout}</p>`}</article>`)}</div>
 </div></section>`;
@@ -80,7 +80,7 @@ const RENDERERS = {
   topics(b, ctx) {
     if (!b.items.length) return null;
     const id = ctx.headingId();
-    return html`<section class="${ctx.sectionClass()}" aria-labelledby="${id}"><div class="container">
+    return html`<section class="${ctx.sectionClass()}" aria-labelledby="${id}"${ctx.mark()}><div class="container">
   <h2 id="${id}">${b.title}</h2>
   <ul class="grid8">${b.items.map((x) => html`<li>${svg(x.icon)}<strong>${x.title}</strong><span>${x.text}</span></li>`)}</ul>
 </div></section>`;
@@ -90,7 +90,7 @@ const RENDERERS = {
     const slides = b.images.map((x) => ctx.img(x.image, "slide-img")).filter(Boolean);
     if (!slides.length) return null;
     const id = ctx.headingId();
-    return html`<section class="${ctx.sectionClass()}" aria-labelledby="${id}"><div class="container">
+    return html`<section class="${ctx.sectionClass()}" aria-labelledby="${id}"${ctx.mark()}><div class="container">
   <h2 id="${id}">${b.title}</h2>
   <div class="carousel" role="region" aria-roledescription="carrossel" aria-labelledby="${id}">
     <button class="car-btn prev" type="button" aria-label="Slide anterior" hidden>‹</button>
@@ -104,7 +104,7 @@ const RENDERERS = {
   checklist(b, ctx) {
     if (!b.items.length) return null;
     const id = ctx.headingId();
-    return html`<section class="${ctx.sectionClass()}" aria-labelledby="${id}"><div class="container narrow">
+    return html`<section class="${ctx.sectionClass()}" aria-labelledby="${id}"${ctx.mark()}><div class="container narrow">
   <div class="v-card center">${svg(b.icon, "ico big")}<h2 id="${id}">${b.title}</h2>
     <ul class="mini">${b.items.map((x) => html`<li class="${x.positive ? "yes" : "no"}">${mark(x.positive)}${x.text}</li>`)}</ul>
   </div>
@@ -115,7 +115,7 @@ const RENDERERS = {
     const id = ctx.headingId();
     const side = (title, items, positive) => html`<article class="v-card${positive ? " dark" : ""}"><h3>${title}</h3>
       <ul class="mini">${items.map((x) => html`<li class="${positive ? "yes" : "no"}">${mark(positive)}${x.text}</li>`)}</ul></article>`;
-    return html`<section class="${ctx.sectionClass()}" aria-labelledby="${id}"><div class="container">
+    return html`<section class="${ctx.sectionClass()}" aria-labelledby="${id}"${ctx.mark()}><div class="container">
   <h2 id="${id}">${b.title}</h2>
   <div class="versus">${side(b.left_title, b.left_items, false)}<div class="vs" aria-hidden="true">VS</div>${side(b.right_title, b.right_items, true)}</div>
 </div></section>`;
@@ -125,7 +125,7 @@ const RENDERERS = {
     if (!b.name) return null;
     const id = ctx.headingId();
     const photo = ctx.img(b.photo, "author-photo");
-    return html`<section class="${ctx.sectionClass()}" aria-labelledby="${id}"><div class="container author${photo ? "" : " no-media"}">
+    return html`<section class="${ctx.sectionClass()}" aria-labelledby="${id}"${ctx.mark()}><div class="container author${photo ? "" : " no-media"}">
   ${photo}
   <div><h2 id="${id}">${b.name}</h2>${b.role && html`<p class="muted"><strong>${b.role}</strong></p>`}${paragraphs(b.bio)}</div>
 </div></section>`;
@@ -134,7 +134,7 @@ const RENDERERS = {
   audience(b, ctx) {
     if (!b.items.length) return null;
     const id = ctx.headingId();
-    return html`<section class="${ctx.sectionClass()}" aria-labelledby="${id}"><div class="container">
+    return html`<section class="${ctx.sectionClass()}" aria-labelledby="${id}"${ctx.mark()}><div class="container">
   <h2 id="${id}">${b.title}</h2>
   <ul class="who">${b.items.map((x) => html`<li>${svg(x.icon)}${x.text}</li>`)}</ul>
 </div></section>`;
@@ -142,7 +142,7 @@ const RENDERERS = {
 
   highlight(b, ctx) {
     const id = ctx.headingId();
-    return html`<section class="${ctx.sectionClass()}" aria-labelledby="${id}"><div class="container">
+    return html`<section class="${ctx.sectionClass()}" aria-labelledby="${id}"${ctx.mark()}><div class="container">
   <div class="banner">
     <div><h2 id="${id}">${b.title}</h2>${paragraphs(b.text)}</div>
     ${b.items.length > 0 && html`<ul class="mini">${b.items.map((x) => html`<li class="yes">${mark(true)}${x.text}</li>`)}</ul>`}
@@ -153,7 +153,7 @@ const RENDERERS = {
   faq(b, ctx) {
     if (!b.items.length) return null;
     const id = ctx.headingId();
-    return html`<section class="${ctx.sectionClass()}" aria-labelledby="${id}"><div class="container narrow">
+    return html`<section class="${ctx.sectionClass()}" aria-labelledby="${id}"${ctx.mark()}><div class="container narrow">
   <h2 id="${id}">${b.title}</h2>
   ${b.items.map((x) => html`<details class="faq"><summary>${x.question}</summary>${paragraphs(x.answer)}</details>`)}
 </div></section>`;
@@ -161,7 +161,7 @@ const RENDERERS = {
 
   guarantee(b, ctx) {
     const id = ctx.headingId();
-    return html`<section class="${ctx.sectionClass()}" aria-labelledby="${id}"><div class="container narrow">
+    return html`<section class="${ctx.sectionClass()}" aria-labelledby="${id}"${ctx.mark()}><div class="container narrow">
   <div class="v-card center"><h2 id="${id}">${b.title}</h2>
     ${b.items.length > 0 && html`<ul class="seals">${b.items.map((x) => html`<li>${svg(x.icon)}${x.text}</li>`)}</ul>`}
   </div>
@@ -171,7 +171,7 @@ const RENDERERS = {
   offer(b, ctx) {
     const id = ctx.headingId();
     const media = ctx.img(b.image, "v-media small");
-    return html`<section class="v-final" aria-labelledby="${id}">
+    return html`<section class="v-final" aria-labelledby="${id}"${ctx.mark()}>
   <div class="container v-hero-grid${media ? "" : " no-media"}">
     ${media}
     <div><h2 id="${id}">${b.title || ctx.product.title}</h2>${ctx.price(b.price_label)}${ctx.cta(b.cta_label || "Garantir agora")}</div>
@@ -181,16 +181,22 @@ const RENDERERS = {
 };
 
 // Blocos inválidos (ex.: dados antigos) são ignorados um a um, em vez de derrubar a página inteira.
+// Cada bloco guarda a posição ORIGINAL, para o editor saber a que bloco cada seção corresponde.
 function cleanBlocks(sections) {
   return (Array.isArray(sections) ? sections : [])
-    .map((block) => (block && BLOCKS[block.type] ? validateSections([block]).sections?.[0] : null))
-    .filter(Boolean);
+    .map((block, index) => ({ index, block: block && BLOCKS[block.type] ? validateSections([block]).sections?.[0] : null }))
+    .filter((x) => x.block);
 }
 
-// data: resultado de loadForRender. options: { baseUrl, preview }
+// data: resultado de loadForRender. options:
+//   preview: false (público) | true (pré-visualização salva, com faixa) | "live" (dentro do editor, sem faixa)
 function renderSalesPage(data, { baseUrl, preview = false }) {
   const ctx = createContext(data);
-  const body = cleanBlocks(data.sections).map((b) => RENDERERS[b.type](b, ctx)).filter(Boolean);
+  const body = cleanBlocks(data.sections).map(({ block, index }) => {
+    // Na pré-visualização, cada seção leva data-block="N" (clicar nela abre o bloco N no editor).
+    ctx.mark = () => (preview ? html` data-block="${index}"` : null);
+    return RENDERERS[block.type](block, ctx);
+  }).filter(Boolean);
 
   const title = data.seo_title || data.title;
   const description = data.seo_description || data.short_description || "";
@@ -226,7 +232,7 @@ function renderSalesPage(data, { baseUrl, preview = false }) {
   <script src="/js/venda.js" defer></script>
 </head>
 <body data-page="venda">
-  ${preview && html`<div class="preview-banner" role="status"><strong>Pré-visualização.</strong> ${data.published_at && data.status === "published" ? "Esta é a versão salva da página." : "Esta página ainda não está visível para o público."}</div>`}
+  ${preview === true && html`<div class="preview-banner" role="status"><strong>Pré-visualização.</strong> ${data.published_at && data.status === "published" ? "Esta é a versão salva da página." : "Esta página ainda não está visível para o público."}</div>`}
   ${SPRITE}
   <div id="site-header"></div>
   <main id="conteudo" class="venda">

@@ -14,3 +14,5 @@ yarn-debug.log*
 *.log
 .DS_Store
 Thumbs.db
+# Editor compilado: é gerado dentro da imagem (etapa "editor" do Dockerfile)
+public/admin/editor

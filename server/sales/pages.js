@@ -87,6 +87,34 @@ async function getPage(productId) {
   return rows[0] || null;
 }
 
+// Map id -> imagem (com URL pública) das imagens usadas nos blocos e da capa do produto.
+async function loadMedia(sections, coverId) {
+  const ids = mediaIds(sections);
+  if (coverId) ids.push(coverId);
+  const media = new Map();
+  if (ids.length) {
+    const result = await pool.query(
+      "SELECT id, storage_key, width, height, alt_text FROM media WHERE id = ANY($1::uuid[])", [ids]);
+    result.rows.forEach(({ storage_key: key, ...m }) => media.set(m.id, { ...m, url: storage.publicUrl(key) }));
+  }
+  return media;
+}
+
+// Rascunho para a pré-visualização ao vivo do editor: usa os blocos enviados (validados),
+// sem gravar nada. Devolve null se o produto não existir; lança PageInputError se inválido.
+async function loadDraftForRender(productId, body) {
+  const { published, ...rest } = body || {}; // publicar não se aplica a um rascunho
+  const input = normalizeInput(rest);
+  const { rows } = await pool.query(
+    `SELECT id, title, slug, short_description, price_cents, checkout_url, image_id, status
+       FROM products WHERE id = $1`, [productId]);
+  if (!rows.length) return null;
+  return {
+    ...rows[0], sections: input.sections, seo_title: input.seo_title, seo_description: input.seo_description,
+    published_at: null, media: await loadMedia(input.sections, rows[0].image_id),
+  };
+}
+
 // Tudo o que o template precisa: produto, página e um Map id -> imagem (com URL pública).
 // published = true exige produto publicado E página publicada (rota pública).
 async function loadForRender({ slug, productId, published }) {
@@ -101,16 +129,8 @@ async function loadForRender({ slug, productId, published }) {
   );
   if (!rows.length) return null;
   const data = rows[0];
-
-  const ids = mediaIds(validateSections(data.sections).sections || []);
-  if (data.image_id) ids.push(data.image_id);
-  const media = new Map();
-  if (ids.length) {
-    const result = await pool.query(
-      "SELECT id, storage_key, width, height, alt_text FROM media WHERE id = ANY($1::uuid[])", [ids]);
-    result.rows.forEach(({ storage_key: key, ...m }) => media.set(m.id, { ...m, url: storage.publicUrl(key) }));
-  }
+  const media = await loadMedia(validateSections(data.sections).sections || [], data.image_id);
   return { ...data, media };
 }
 
-module.exports = { PageInputError, savePage, getPage, loadForRender };
+module.exports = { PageInputError, savePage, getPage, loadForRender, loadDraftForRender };
