@@ -14,6 +14,7 @@ app.use("/api/courses", courseRoutes);
 app.use("/api/admin/courses", adminCourseRoutes);
 
 // Mantém API e frontend na mesma origem no ambiente local, evitando CORS.
-app.use(express.static(path.join(__dirname, "public")));
+const publicDir = process.env.PUBLIC_DIR || path.join(__dirname, "public");
+app.use(express.static(publicDir));
 
 module.exports = app;

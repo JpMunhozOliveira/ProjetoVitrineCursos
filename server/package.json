@@ -8,11 +8,15 @@
     "start": "node index.js",
     "dev": "node --watch index.js",
     "db:migrate": "node-pg-migrate up -m migrations",
-    "db:rollback": "node-pg-migrate down -m migrations"
+    "db:rollback": "node-pg-migrate down -m migrations",
+    "db:new": "node-pg-migrate create -m migrations"
   },
   "dependencies": {
     "express": "^5.1.0",
     "pg": "^8.16.3",
     "node-pg-migrate": "^8.0.3"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }

@@ -10,7 +10,7 @@ desktop.ini
 *.swo
 *~
 
-# Dependências e builds (caso o projeto evolua para Node/React)
+# Dependências e builds
 node_modules/
 dist/
 build/

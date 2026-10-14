@@ -1,0 +1,20 @@
+# Modo desenvolvimento (carregado automaticamente por `docker compose up`).
+# Edite arquivos e veja o resultado sem reconstruir a imagem:
+#  - frontend (public/): vale ao recarregar a página;
+#  - API (server/): o Node reinicia sozinho (`node --watch`).
+#    Se o reinício automático não disparar (comum com pastas do Windows em alguns
+#    setups do Docker Desktop), use: docker compose restart app
+services:
+  migrate:
+    volumes:
+      - ./server/migrations:/app/migrations:ro   # novas migrations sem rebuild
+
+  app:
+    command: ["npm", "run", "dev"]
+    environment:
+      NODE_ENV: development
+      PUBLIC_DIR: /frontend
+    volumes:
+      - ./server:/app
+      - /app/node_modules          # mantém as dependências instaladas na imagem
+      - ./public:/frontend:ro
