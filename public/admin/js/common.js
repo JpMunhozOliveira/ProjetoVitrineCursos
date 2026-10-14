@@ -35,7 +35,17 @@
     csrf = who.csrfToken;
     document.getElementById("who").textContent = who.email;
     document.getElementById("logout").addEventListener("click", async function () {
+      var ok = await confirmAction({
+        title: "Sair do painel?",
+        text: Admin.hasUnsavedChanges()
+          ? "Há alterações não salvas nesta página. Se sair agora, elas serão perdidas."
+          : "Para voltar, será preciso entrar de novo com e-mail e senha.",
+        action: "Sair",
+        danger: Admin.hasUnsavedChanges()
+      });
+      if (!ok) return;
       try { await api("/auth/logout", { method: "POST" }); } catch (e) { /* sai mesmo assim */ }
+      Admin.leaving = true; // já confirmado: a página não pergunta de novo sobre alterações não salvas
       location.replace("login.html");
     });
     return who;
@@ -79,8 +89,21 @@
     });
   }
 
+  // Mensagem que sobrevive a um redirecionamento (ex.: excluir na edição e voltar para a lista).
+  function setFlash(text) { try { sessionStorage.setItem("admin-flash", text); } catch (e) {} }
+  function takeFlash() {
+    try {
+      var text = sessionStorage.getItem("admin-flash");
+      sessionStorage.removeItem("admin-flash");
+      return text;
+    } catch (e) { return null; }
+  }
+
   window.Admin = {
     api: api, requireSession: requireSession, formatPrice: formatPrice,
-    showMessage: showMessage, confirm: confirmAction, STATUS: STATUS
+    showMessage: showMessage, confirm: confirmAction, setFlash: setFlash, takeFlash: takeFlash,
+    STATUS: STATUS,
+    hasUnsavedChanges: function () { return false; }, // páginas com formulário substituem esta função
+    leaving: false
   };
 })();

@@ -14,15 +14,16 @@
 </head>
 <body>
   <div class="container">
-    <div class="admin-bar">
-      <strong>Painel administrativo</strong>
-      <div class="who"><span id="who" class="muted"></span>
-        <button id="tema-btn" class="theme-btn" type="button" aria-pressed="false">
-          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/></svg>
-          <span>Modo noturno</span>
-        </button>
-        <button id="logout" class="btn btn-outline" type="button">Sair</button></div>
-    </div>
+    <header class="admin-bar">
+      <div class="admin-id">
+        <strong>Painel administrativo</strong>
+        <span id="who" class="muted small"></span>
+      </div>
+      <div class="admin-actions">
+        <button id="tema-btn" class="theme-btn" type="button" aria-label="Modo noturno" title="Modo noturno" aria-pressed="false"></button>
+        <button id="logout" class="btn btn-outline btn-sm" type="button">Sair</button>
+      </div>
+    </header>
     <main class="section">
       <a class="crumb" href="./">← Produtos</a>
       <h1 id="heading">Produto</h1>
@@ -43,20 +44,10 @@
             <p id="slug-help" class="hint">Parte final do link da página. Gerado a partir do título; pode ser ajustado.</p>
             <p id="slug-hint" class="hint warn" hidden>Mudar o endereço de um produto publicado quebra os links já divulgados.</p>
           </div>
-          <div class="grid-2">
-            <div class="field">
-              <label for="status">Situação</label>
-              <select id="status" name="status">
-                <option value="draft">Rascunho (não aparece no site)</option>
-                <option value="published">Publicado</option>
-                <option value="archived">Arquivado (oculto do site)</option>
-              </select>
-            </div>
-            <div class="field">
-              <label for="category">Categoria</label>
-              <input id="category" name="category" maxlength="80" aria-describedby="category-help">
-              <p id="category-help" class="hint">Usada no filtro do catálogo.</p>
-            </div>
+          <div class="field">
+            <label for="category">Categoria</label>
+            <input id="category" name="category" maxlength="80" aria-describedby="category-help">
+            <p id="category-help" class="hint">Usada no filtro do catálogo.</p>
           </div>
           <div class="field check">
             <input id="featured" name="featured" type="checkbox">
@@ -119,13 +110,30 @@
         </fieldset>
 
         <div class="form-actions">
-          <p id="msg" class="msg" role="status" aria-live="polite"></p>
+          <!-- Situação ao lado do Salvar: fica sempre visível e deixa claro o que será publicado. -->
+          <div class="status-picker" role="radiogroup" aria-labelledby="status-label" aria-describedby="status-hint">
+            <span id="status-label" class="status-label">Situação</span>
+            <div class="segmented">
+              <label><input type="radio" name="status" value="draft" checked><span>Rascunho</span></label>
+              <label><input type="radio" name="status" value="published"><span>Publicado</span></label>
+              <label><input type="radio" name="status" value="archived"><span>Arquivado</span></label>
+            </div>
+            <span id="status-hint" class="hint"></span>
+          </div>
           <div class="buttons">
             <a class="btn btn-outline" href="./">Voltar</a>
             <button id="save" class="btn" type="submit">Salvar</button>
           </div>
+          <p id="msg" class="msg" role="status" aria-live="polite"></p>
         </div>
       </form>
+
+      <section id="danger" class="danger-zone" aria-labelledby="danger-title" hidden>
+        <h2 id="danger-title">Remover produto</h2>
+        <p id="danger-text"></p>
+        <p id="danger-msg" class="msg" role="status" aria-live="polite"></p>
+        <button id="delete" class="btn btn-danger" type="button">Excluir produto</button>
+      </section>
     </main>
   </div>
 </body>

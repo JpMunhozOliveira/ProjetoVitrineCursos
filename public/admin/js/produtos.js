@@ -4,34 +4,43 @@
   var $ = function (id) { return document.getElementById(id); };
   var msg = $("msg"), table = $("products"), body = table.querySelector("tbody");
 
-  function cell(row, content) {
+  // data-label: nome da coluna, exibido pelo CSS quando a tabela vira cartões no celular.
+  function cell(row, label, content) {
     var td = document.createElement("td");
+    td.dataset.label = label;
     if (content instanceof Node) td.append(content); else td.textContent = content;
     row.append(td);
     return td;
   }
 
-  function button(label, className, onClick) {
-    var b = document.createElement("button");
-    b.type = "button";
-    b.className = "btn btn-sm " + className;
-    b.textContent = label;
-    b.addEventListener("click", onClick);
-    return b;
-  }
-
-  // Publicado: só pode ser arquivado. Rascunho/arquivado: pode ser excluído (regra da API).
-  async function archive(p) {
-    var ok = await Admin.confirm({
-      title: "Arquivar “" + p.title + "”?",
-      text: "O produto sai do site, mas continua no painel e pode ser publicado de novo.",
-      action: "Arquivar"
+  // Seletor de situação que grava na hora (PATCH só com o status).
+  function statusSelect(p) {
+    var select = document.createElement("select");
+    select.className = "status-select status-" + p.status;
+    select.dataset.id = p.id;
+    select.setAttribute("aria-label", "Situação de " + p.title);
+    Object.keys(Admin.STATUS).forEach(function (value) {
+      select.append(new Option(Admin.STATUS[value], value, false, value === p.status));
     });
-    if (!ok) return;
-    await run(function () { return Admin.api("/products/" + p.id, { method: "PATCH", body: { status: "archived" } }); },
-      "“" + p.title + "” foi arquivado.");
+    select.addEventListener("change", async function () {
+      var next = select.value;
+      select.disabled = true;
+      try {
+        await Admin.api("/products/" + p.id, { method: "PATCH", body: { status: next } });
+        await load(); // recarrega: o botão Excluir depende da nova situação
+        var again = body.querySelector('select[data-id="' + p.id + '"]'); // devolve o foco ao teclado
+        if (again) again.focus();
+        Admin.showMessage(msg, "“" + p.title + "” agora está como " + Admin.STATUS[next].toLowerCase() + ".", "success");
+      } catch (err) {
+        select.value = p.status; // volta ao valor gravado
+        select.disabled = false;
+        Admin.showMessage(msg, err.message, "error");
+      }
+    });
+    return select;
   }
 
+  // Exclusão só para rascunho/arquivado (regra da API); publicado precisa ser arquivado antes.
   async function remove(p) {
     var ok = await Admin.confirm({
       title: "Excluir “" + p.title + "”?",
@@ -40,18 +49,40 @@
       danger: true
     });
     if (!ok) return;
-    await run(function () { return Admin.api("/products/" + p.id, { method: "DELETE" }); },
-      "“" + p.title + "” foi excluído.");
-  }
-
-  async function run(request, successText) {
     try {
-      await request();
+      await Admin.api("/products/" + p.id, { method: "DELETE" });
       await load();
-      Admin.showMessage(msg, successText, "success");
+      Admin.showMessage(msg, "“" + p.title + "” foi excluído.", "success");
     } catch (err) {
       Admin.showMessage(msg, err.message, "error");
     }
+  }
+
+  var all = [];          // lista completa vinda da API
+  var search = $("q"), count = $("count");
+
+  // Busca sem diferenciar maiúsculas nem acentos: "tributaria" encontra "Tributária".
+  function normalize(text) {
+    return (text || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  }
+
+  function matches(p, terms) {
+    var haystack = normalize([p.title, p.category, p.slug].join(" "));
+    return terms.every(function (t) { return haystack.indexOf(t) >= 0; }); // todas as palavras precisam aparecer
+  }
+
+  // Aplica a busca atual sobre a lista completa e redesenha.
+  function applyFilter() {
+    var terms = normalize(search.value).split(/\s+/).filter(Boolean);
+    var shown = terms.length ? all.filter(function (p) { return matches(p, terms); }) : all;
+    render(shown);
+
+    $("search").hidden = !all.length;
+    count.textContent = terms.length ? shown.length + " de " + all.length + " produto(s)" : "";
+    var empty = !all.length ? "Nenhum produto cadastrado ainda."
+      : !shown.length ? "Nenhum produto encontrado para “" + search.value.trim() + "”." : "";
+    $("empty").textContent = empty;
+    $("empty").hidden = !empty;
   }
 
   function render(products) {
@@ -61,14 +92,14 @@
       var link = document.createElement("a");
       link.href = "produto.html?id=" + encodeURIComponent(p.id);
       link.textContent = p.title;
-      var slug = document.createElement("div");
-      slug.className = "muted small";
-      slug.textContent = "/" + p.slug;
+      var details = document.createElement("div");
+      details.className = "muted small";
+      details.textContent = "/" + p.slug + (p.category ? " · " + p.category : "");
 
-      cell(tr, link).append(slug);
-      cell(tr, Admin.STATUS[p.status] || p.status).className = "status-" + p.status;
-      cell(tr, Admin.formatPrice(p.price_cents));
-      cell(tr, new Date(p.updated_at).toLocaleString("pt-BR"));
+      cell(tr, "Produto", link).append(details);
+      cell(tr, "Situação", statusSelect(p));
+      cell(tr, "Preço", Admin.formatPrice(p.price_cents));
+      cell(tr, "Atualizado em", new Date(p.updated_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }));
 
       var actions = document.createElement("div");
       actions.className = "row-actions";
@@ -79,28 +110,38 @@
       edit.setAttribute("aria-label", "Editar " + p.title);
       actions.append(edit);
 
-      var extra = p.status === "published"
-        ? button("Arquivar", "btn-outline", function () { archive(p); })
-        : button("Excluir", "btn-danger", function () { remove(p); });
-      extra.setAttribute("aria-label", extra.textContent + " " + p.title);
-      actions.append(extra);
-      cell(tr, actions);
+      if (p.status !== "published") {
+        var del = document.createElement("button");
+        del.type = "button";
+        del.className = "btn btn-sm btn-danger";
+        del.textContent = "Excluir";
+        del.setAttribute("aria-label", "Excluir " + p.title);
+        del.addEventListener("click", function () { remove(p); });
+        actions.append(del);
+      }
+      cell(tr, "Ações", actions);
 
       body.append(tr);
     });
 
     table.hidden = !products.length;
-    Admin.showMessage(msg, products.length ? "" : "Nenhum produto cadastrado ainda.");
   }
 
+  // Recarrega da API mantendo o que está digitado na busca.
   async function load() {
-    render(await Admin.api("/products"));
+    all = await Admin.api("/products");
+    applyFilter();
   }
+
+  search.addEventListener("input", applyFilter);
 
   (async function () {
     try {
       await Admin.requireSession();
       await load();
+      Admin.showMessage(msg, "");
+      var flash = Admin.takeFlash();
+      if (flash) Admin.showMessage(msg, flash, "success");
     } catch (err) {
       Admin.showMessage(msg, err.message, "error");
     }

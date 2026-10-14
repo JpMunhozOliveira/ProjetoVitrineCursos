@@ -21,10 +21,21 @@
 .msg.success{color:var(--color-focus)}
 
 /* Barra superior e cabeçalho das páginas */
-.admin-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.75rem;padding:.75rem 0;border-bottom:1px solid var(--color-border)}
-.admin-bar .who{display:flex;flex-wrap:wrap;align-items:center;gap:.75rem}
+/* Nunca quebra em duas linhas: a identificação encolhe (e-mail com "…") e as ações ficam à direita. */
+.admin-bar{display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:.75rem 0;border-bottom:1px solid var(--color-border)}
+.admin-id{display:flex;flex-direction:column;min-width:0;line-height:1.3}
+.admin-id strong,.admin-id #who{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.admin-actions{display:flex;flex:none;align-items:center;gap:.5rem}
 .page-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1rem}
 .page-head h1{margin:0}
+
+/* Busca na lista */
+.search{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem 1rem;margin-bottom:1rem}
+.search label{font-weight:700}
+.search input{flex:1 1 18rem;min-height:44px;padding:.5rem .75rem;font:inherit;color:var(--color-text);background:var(--color-bg);border:2px solid var(--color-border);border-radius:8px}
+.search .hint{margin:0}
+main > .msg:empty{display:none}
+.empty{padding:2rem 1rem;text-align:center;border:1px dashed var(--color-border);border-radius:var(--radius)}
 
 /* Lista de produtos */
 .table-wrap{overflow-x:auto}
@@ -32,15 +43,38 @@ table.list{width:100%;border-collapse:collapse}
 table.list th,table.list td{text-align:left;padding:.6rem .75rem;border-bottom:1px solid var(--color-border);vertical-align:top}
 table.list th{background:var(--color-surface)}
 table.list a{font-weight:700}
-.status-published{color:var(--color-focus);font-weight:700}
-.status-archived{color:var(--color-muted)}
+table.list td{overflow-wrap:anywhere}
+/* Seletor de situação em cada linha (grava na hora) */
+.status-select{min-height:36px;padding:.25rem .5rem;font:inherit;font-size:.9rem;font-weight:700;color:var(--color-primary);background:var(--color-bg);border:2px solid currentColor;border-radius:8px;cursor:pointer}
+.status-select option{color:var(--color-text);font-weight:400}
+.status-select.status-published{color:var(--color-focus)}
+.status-select.status-archived{color:var(--color-muted)}
+.status-select:disabled{opacity:.6;cursor:wait}
 .row-actions{display:flex;flex-wrap:wrap;gap:.5rem}
+
+/* Celular: cada linha vira um cartão e o nome da coluna aparece ao lado do valor (data-label). */
+@media (max-width:719px){
+  table.list thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)} /* some da tela, segue para leitores */
+  table.list,table.list tbody,table.list tr,table.list td{display:block}
+  table.list tr{margin-bottom:1rem;padding:.25rem 1rem;border:1px solid var(--color-border);border-radius:var(--radius)}
+  table.list td{display:grid;grid-template-columns:7.5rem 1fr;gap:.75rem;align-items:center;padding:.6rem 0}
+  table.list td:last-child{border-bottom:0}
+  table.list td::before{content:attr(data-label);font-weight:700;font-size:.85rem;color:var(--color-muted)}
+  table.list td[data-label="Produto"]{display:block}               /* título ocupa a largura toda */
+  table.list td[data-label="Produto"]::before{content:none}
+  table.list td[data-label="Produto"] a{font-size:1.1rem}
+}
 
 /* Botões menores (ações da tabela) e botão de ação destrutiva */
 .btn-sm{min-height:36px;padding:.3rem .9rem;font-size:.9rem}
 .btn-danger{background:transparent;border-color:var(--color-danger);color:var(--color-danger)}
 .btn-danger:hover{background:var(--color-danger);border-color:var(--color-danger);color:var(--color-bg)}
 .confirm .btn-danger{background:var(--color-danger);color:var(--color-bg)}
+
+/* Área de exclusão na página de edição */
+.danger-zone{max-width:900px;margin-top:2.5rem;padding:1rem 1.25rem;border:1px solid var(--color-danger);border-radius:var(--radius)}
+.danger-zone h2{font-size:1.15rem;color:var(--color-danger)}
+.danger-zone .msg:empty{display:none}
 
 /* Diálogo de confirmação */
 dialog.confirm{max-width:min(28rem,calc(100% - 2rem));padding:1.5rem;color:var(--color-text);background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius)}
@@ -54,8 +88,36 @@ dialog.confirm .buttons{display:flex;flex-wrap:wrap;justify-content:flex-end;gap
 .product-form legend{padding:0 .5rem;font-weight:800}
 .grid-2{display:grid;gap:0 1rem}
 @media (min-width:720px){.grid-2{grid-template-columns:1fr 1fr}}
-/* Ações fixas no rodapé da tela: o botão Salvar fica sempre visível em formulários longos. */
-.form-actions{position:sticky;bottom:0;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.75rem;padding:.75rem 0 calc(.75rem + env(safe-area-inset-bottom,0px));background:var(--color-bg);border-top:1px solid var(--color-border)}
-.form-actions .msg{margin:0;flex:1 1 16rem}
-.form-actions .buttons{display:flex;gap:.75rem}
+/* Ações fixas no rodapé da tela: o botão Salvar fica sempre visível em formulários longos.
+   A barra cresce para cima (aviso da situação, mensagens); os botões ficam encostados na BASE
+   da grade, então não se movem quando o conteúdo ao lado muda de tamanho. */
+.form-actions{position:sticky;bottom:0;display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"picker buttons" "msg buttons";gap:.5rem 1.5rem;padding:.75rem 0 calc(.75rem + env(safe-area-inset-bottom,0px));background:var(--color-bg);border-top:1px solid var(--color-border)}
+.form-actions .status-picker{grid-area:picker}
+.form-actions .msg{grid-area:msg;margin:0;min-height:0}
+.form-actions .msg:empty{display:none}
+.form-actions .buttons{grid-area:buttons;align-self:end;display:flex;gap:.75rem}
+@media (max-width:719px){
+  .form-actions{grid-template-columns:minmax(0,1fr);grid-template-areas:"picker" "msg" "buttons"}
+  .form-actions .buttons > *{flex:1}                                  /* botões dividem a largura */
+}
 .btn:disabled{opacity:.6;cursor:wait}
+
+/* Situação no formulário: botões segmentados (são radios por baixo: teclado e leitores de tela funcionam). */
+.status-picker{display:flex;flex-wrap:wrap;align-items:center;gap:.4rem .75rem}
+.status-label{font-weight:700}
+.status-picker .hint{flex:1 1 100%;margin:0}
+.segmented{display:inline-flex;border:2px solid var(--color-border);border-radius:999px;overflow:hidden}
+.segmented label{position:relative;cursor:pointer}
+.segmented label + label{border-left:2px solid var(--color-border)}
+.segmented input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}
+.segmented span{display:block;padding:.45rem .9rem;font-weight:600;transition:background-color .2s,color .2s}
+.segmented label:hover span{background:var(--color-surface)}
+.segmented input:checked + span{color:var(--color-on-primary);background:var(--color-primary)}
+.segmented input[value="published"]:checked + span{background:var(--color-focus)}
+.segmented input[value="archived"]:checked + span{color:var(--color-bg);background:var(--color-muted)}
+.segmented input:focus-visible + span{outline:3px solid var(--color-focus);outline-offset:-5px}
+@media (max-width:719px){
+  .segmented{display:flex;width:100%}
+  .segmented label{flex:1;text-align:center}
+  .segmented span{padding:.45rem .5rem}
+}

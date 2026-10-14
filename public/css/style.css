@@ -78,10 +78,14 @@ h2{font-size:clamp(1.4rem,3.5vw,2rem)}
 .more{margin-top:1.5rem;text-align:center}
 
 .header-actions{display:flex;align-items:center;gap:.5rem}
-.theme-btn{display:none;align-items:center;gap:.5rem;min-height:44px;padding:0 .9rem;border:2px solid var(--color-border);background:none;color:var(--color-text);border-radius:8px;font:inherit;font-weight:600;cursor:pointer}
+/* Botão de tema: só o ícone (o nome vem do aria-label). Sol e lua se revezam girando. */
+.theme-btn{display:none;align-items:center;justify-content:center;flex:none;width:44px;height:44px;padding:0;border:2px solid var(--color-border);background:none;color:var(--color-text);border-radius:50%;cursor:pointer}
 .js .theme-btn{display:inline-flex}
 .theme-btn:hover{background:var(--color-surface)}
-@media (max-width:479px){.theme-btn span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}.theme-btn{padding:0 .7rem}}
+.theme-icon{overflow:visible}
+.theme-icon .sun,.theme-icon .moon{transform-origin:12px 12px;transition:transform .5s cubic-bezier(.34,1.56,.64,1),opacity .3s ease}
+:root:not([data-theme="dark"]) .theme-icon .moon,
+:root[data-theme="dark"] .theme-icon .sun{opacity:0;transform:rotate(-120deg) scale(.4)}
 
 .nav a[aria-current="page"]{color:var(--color-primary);background:var(--color-surface)}
 

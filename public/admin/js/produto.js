@@ -6,6 +6,15 @@
   var id = new URLSearchParams(location.search).get("id");
   var dirty = false;      // há alterações não salvas?
   var slugTouched = !!id; // na criação, o slug acompanha o título até ser editado à mão
+  var savedStatus = null; // situação como está gravada no banco (null = produto ainda não criado)
+
+  var STATUS_HINTS = {
+    draft: "Não aparece no site.",
+    published: "Visível no site para os visitantes.",
+    archived: "Oculto do site; pode ser publicado de novo."
+  };
+
+  Admin.hasUnsavedChanges = function () { return dirty; };
 
   // Campos de texto enviados como estão; a API apara espaços e transforma vazio em null.
   var TEXT_FIELDS = ["title", "slug", "status", "category", "short_description", "description",
@@ -49,12 +58,43 @@
     return data;
   }
 
+  // Ajusta a tela ao produto como está GRAVADO (não ao que foi alterado e ainda não salvo).
   function setMode(product) {
     var title = product ? "Editar produto" : "Novo produto";
     $("heading").textContent = title;
     document.title = title + " — Painel administrativo";
     $("slug-hint").hidden = !product;
+    savedStatus = product ? product.status : null;
+    updateStatusHint();
+
+    // Mesma regra da API: publicado precisa ser arquivado antes de poder ser excluído.
+    $("danger").hidden = !product;
+    if (!product) return;
+    var published = product.status === "published";
+    $("danger-text").textContent = published
+      ? "Produtos publicados não podem ser excluídos. Para tirá-lo do site, escolha “Arquivado” na barra de situação, ao lado do Salvar, e salve."
+      : "A exclusão é permanente: o produto e a página de vendas dele serão apagados.";
+    $("delete").hidden = published;
   }
+
+  $("delete").addEventListener("click", async function () {
+    var name = form.elements.title.value || "este produto";
+    var ok = await Admin.confirm({
+      title: "Excluir “" + name + "”?",
+      text: "Esta ação é permanente: o produto e a página de vendas dele serão apagados.",
+      action: "Excluir definitivamente",
+      danger: true
+    });
+    if (!ok) return;
+    try {
+      await Admin.api("/products/" + encodeURIComponent(id), { method: "DELETE" });
+      dirty = false; // não pergunta sobre "alterações não salvas" de um produto que não existe mais
+      Admin.setFlash("“" + name + "” foi excluído.");
+      location.replace("./");
+    } catch (err) {
+      Admin.showMessage($("danger-msg"), err.message, "error");
+    }
+  });
 
   form.elements.title.addEventListener("input", function () {
     if (!slugTouched) form.elements.slug.value = slugify(form.elements.title.value);
@@ -63,10 +103,21 @@
     slugTouched = form.elements.slug.value !== ""; // apagou tudo? volta a acompanhar o título
   });
   form.elements.price.addEventListener("input", function () { form.elements.price.setCustomValidity(""); });
+  // Explica a situação escolhida e avisa quando ela ainda não foi gravada.
+  function updateStatusHint() {
+    var chosen = form.elements.status.value;
+    var pending = savedStatus && chosen !== savedStatus;
+    var hint = $("status-hint");
+    hint.textContent = STATUS_HINTS[chosen] +
+      (pending ? " Hoje está como “" + Admin.STATUS[savedStatus] + "”: salve para aplicar." : "");
+    hint.classList.toggle("warn", !!pending);
+  }
+
   form.addEventListener("input", function () { dirty = true; });
+  form.addEventListener("change", function (e) { if (e.target.name === "status") updateStatusHint(); });
 
   window.addEventListener("beforeunload", function (e) {
-    if (dirty) { e.preventDefault(); e.returnValue = ""; }
+    if (dirty && !Admin.leaving) { e.preventDefault(); e.returnValue = ""; }
   });
 
   form.addEventListener("submit", async function (e) {

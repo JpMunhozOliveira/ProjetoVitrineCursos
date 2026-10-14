@@ -21,10 +21,7 @@
           <li><a href="index.html#contato">Contato</a></li>
         </ul>
       </nav>
-      <button id="tema-btn" class="theme-btn" type="button" aria-pressed="false">
-        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/></svg>
-        <span>Modo noturno</span>
-      </button>
+      <button id="tema-btn" class="theme-btn" type="button" aria-label="Modo noturno" title="Modo noturno" aria-pressed="false"></button>
       <button id="menu-btn" class="menu-btn" aria-expanded="false" aria-controls="nav">Menu</button>
     </div>
   </div>
