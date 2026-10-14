@@ -165,10 +165,13 @@
       edit.hidden = false;
       edit.href = "pagina.html?id=" + encodeURIComponent(product.id);
       edit.textContent = page ? "Editar página de vendas" : "Criar página de vendas";
-      status.textContent = !page ? "Este produto ainda não tem página de vendas. Use “Criar página de vendas”, no topo."
-        : live ? "Publicada em /p/" + product.slug + "."
+      // A página tem rascunho e versão publicada; o produto publicado é o que a coloca no ar.
+      var pending = page && page.published_at && page.has_unpublished_changes
+        ? " Há alterações no rascunho que ainda não foram publicadas." : "";
+      status.textContent = (!page ? "Este produto ainda não tem página de vendas. Use “Criar página de vendas”, no topo."
+        : live ? "No ar em /p/" + product.slug + "."
         : page.published_at ? "A página está publicada, mas o produto não: ela só aparece para o público quando o produto também estiver publicado."
-        : "Criada, ainda não publicada. Use a pré-visualização para conferir.";
+        : "Página em rascunho, ainda não publicada. Publique pelo editor quando estiver pronta.") + pending;
     } catch (err) {
       status.textContent = err.message;
     }

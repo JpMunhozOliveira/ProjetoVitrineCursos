@@ -1,11 +1,20 @@
 // Gravação e leitura das páginas de vendas (usado pela API do painel, pela rota pública
 // /p/:slug, pela pré-visualização e pelo script de importação).
+//
+// Duas versões por página:
+//   RASCUNHO  (sections, seo_title, seo_description, theme)  -> o que o editor salva
+//   PUBLICADA (published_*)                                   -> o que o público vê
+// "Publicar" copia o rascunho para a versão publicada. Salvar nunca muda o site.
 const pool = require("../config/database");
 const storage = require("../lib/storage");
 const { validateSections, mediaIds } = require("./blocks");
 const { normalizeTheme, ThemeError } = require("./theme");
 
-const PAGE_COLUMNS = `id, product_id, sections, seo_title, seo_description, theme, published_at, created_at, updated_at`;
+// has_unpublished_changes: o rascunho difere do que está publicado (ou nunca foi publicado).
+const PAGE_COLUMNS = `id, product_id, sections, seo_title, seo_description, theme, published_at, created_at, updated_at,
+  (published_sections IS DISTINCT FROM sections OR published_seo_title IS DISTINCT FROM seo_title
+    OR published_seo_description IS DISTINCT FROM seo_description OR published_theme IS DISTINCT FROM theme
+  ) AS has_unpublished_changes`;
 
 class PageInputError extends Error {}
 
@@ -31,61 +40,40 @@ function text(value, max, label) {
 
 function normalizeInput(body) {
   if (!body || typeof body !== "object" || Array.isArray(body)) throw new PageInputError("Envie um objeto JSON.");
-  const allowed = ["sections", "seo_title", "seo_description", "theme", "published"];
+  const allowed = ["sections", "seo_title", "seo_description", "theme"];
   const unknown = Object.keys(body).filter((k) => !allowed.includes(k));
   if (unknown.length) throw new PageInputError(`Campo(s) não suportado(s): ${unknown.join(", ")}.`);
 
   const { sections, error } = validateSections(body.sections ?? []);
   if (error) throw new PageInputError(error);
-  if (body.published !== undefined && typeof body.published !== "boolean") {
-    throw new PageInputError("published deve ser verdadeiro ou falso.");
-  }
   return {
     sections,
     seo_title: text(body.seo_title, 220, "Título para buscadores"),
     seo_description: text(body.seo_description, 320, "Descrição para buscadores"),
     theme: storedTheme(body.theme),
-    published: body.published,
   };
 }
 
-// Cria ou substitui a página do produto. Transação: a página e o registro das imagens usadas
-// são gravados juntos (ou nada é gravado). Devolve { page, created }.
-async function savePage(productId, body) {
-  const input = normalizeInput(body);
+// Imagens usadas na página = as do rascunho + as da versão publicada (ambas precisam existir:
+// uma é editada, a outra está no ar). O banco recusa excluir qualquer uma delas.
+async function syncPageMedia(client, pageId) {
+  const { rows } = await client.query("SELECT sections, published_sections FROM sales_pages WHERE id = $1", [pageId]);
+  const ids = new Set(mediaIds(rows[0].sections));
+  mediaIds(validateSections(rows[0].published_sections || []).sections || []).forEach((id) => ids.add(id));
+  await client.query("DELETE FROM sales_page_media WHERE sales_page_id = $1", [pageId]);
+  if (ids.size) {
+    await client.query("INSERT INTO sales_page_media (sales_page_id, media_id) SELECT $1, unnest($2::uuid[])", [pageId, [...ids]]);
+  }
+}
+
+// Executa fn(client) numa transação; traduz "imagem não existe mais" para mensagem do painel.
+async function inTransaction(fn) {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
-    const { rows } = await client.query(
-      `INSERT INTO sales_pages (product_id, sections, seo_title, seo_description, theme, published_at)
-       VALUES ($1, $2::jsonb, $3, $4, $6::jsonb, CASE WHEN $5::boolean THEN CURRENT_TIMESTAMP END)
-       ON CONFLICT (product_id) DO UPDATE SET
-         sections = EXCLUDED.sections,
-         seo_title = EXCLUDED.seo_title,
-         seo_description = EXCLUDED.seo_description,
-         theme = EXCLUDED.theme,
-         -- published ausente: mantém como está; true: mantém a data original da 1ª publicação.
-         published_at = CASE
-           WHEN $5::boolean IS NULL THEN sales_pages.published_at
-           WHEN $5::boolean THEN COALESCE(sales_pages.published_at, CURRENT_TIMESTAMP)
-           ELSE NULL END,
-         updated_at = CURRENT_TIMESTAMP
-       RETURNING ${PAGE_COLUMNS}, (xmax = 0) AS created`,
-      [productId, JSON.stringify(input.sections), input.seo_title, input.seo_description, input.published ?? null, JSON.stringify(input.theme)]
-    );
-    const page = rows[0];
-
-    await client.query("DELETE FROM sales_page_media WHERE sales_page_id = $1", [page.id]);
-    const ids = mediaIds(input.sections);
-    if (ids.length) {
-      await client.query(
-        `INSERT INTO sales_page_media (sales_page_id, media_id) SELECT $1, unnest($2::uuid[])`,
-        [page.id, ids]
-      );
-    }
+    const result = await fn(client);
     await client.query("COMMIT");
-    const { created, ...rest } = page;
-    return { page: rest, created };
+    return result;
   } catch (error) {
     await client.query("ROLLBACK");
     if (error.code === "23503" && error.constraint === "sales_page_media_media_fkey") {
@@ -95,6 +83,44 @@ async function savePage(productId, body) {
   } finally {
     client.release();
   }
+}
+
+// Salva o RASCUNHO (cria a página se ainda não existir). Nunca altera a versão publicada.
+// Devolve { page, created }.
+async function savePage(productId, body) {
+  const input = normalizeInput(body);
+  return inTransaction(async (client) => {
+    const { rows } = await client.query(
+      `INSERT INTO sales_pages (product_id, sections, seo_title, seo_description, theme)
+       VALUES ($1, $2::jsonb, $3, $4, $5::jsonb)
+       ON CONFLICT (product_id) DO UPDATE SET
+         sections = EXCLUDED.sections, seo_title = EXCLUDED.seo_title,
+         seo_description = EXCLUDED.seo_description, theme = EXCLUDED.theme,
+         updated_at = CURRENT_TIMESTAMP
+       RETURNING id, (xmax = 0) AS created`,
+      [productId, JSON.stringify(input.sections), input.seo_title, input.seo_description, JSON.stringify(input.theme)]
+    );
+    await syncPageMedia(client, rows[0].id);
+    const page = (await client.query(`SELECT ${PAGE_COLUMNS} FROM sales_pages WHERE id = $1`, [rows[0].id])).rows[0];
+    return { page, created: rows[0].created };
+  });
+}
+
+// PUBLICA: a versão publicada passa a ser uma cópia do rascunho salvo. null se não houver página.
+async function publishPage(productId) {
+  return inTransaction(async (client) => {
+    const { rows } = await client.query(
+      `UPDATE sales_pages SET
+         published_sections = sections, published_seo_title = seo_title,
+         published_seo_description = seo_description, published_theme = theme,
+         published_at = CURRENT_TIMESTAMP
+       WHERE product_id = $1 RETURNING id`,
+      [productId]
+    );
+    if (!rows.length) return null;
+    await syncPageMedia(client, rows[0].id);
+    return (await client.query(`SELECT ${PAGE_COLUMNS} FROM sales_pages WHERE id = $1`, [rows[0].id])).rows[0];
+  });
 }
 
 async function getPage(productId) {
@@ -118,8 +144,7 @@ async function loadMedia(sections, coverId) {
 // Rascunho para a pré-visualização ao vivo do editor: usa os blocos enviados (validados),
 // sem gravar nada. Devolve null se o produto não existir; lança PageInputError se inválido.
 async function loadDraftForRender(productId, body) {
-  const { published, ...rest } = body || {}; // publicar não se aplica a um rascunho
-  const input = normalizeInput(rest);
+  const input = normalizeInput(body);
   const { rows } = await pool.query(
     `SELECT id, title, slug, short_description, price_cents, checkout_url, image_id, status
        FROM products WHERE id = $1`, [productId]);
@@ -131,15 +156,19 @@ async function loadDraftForRender(productId, body) {
 }
 
 // Tudo o que o template precisa: produto, página e um Map id -> imagem (com URL pública).
-// published = true exige produto publicado E página publicada (rota pública).
-async function loadForRender({ slug, productId, published }) {
+//   version "published": versão PUBLICADA, e só se o produto estiver publicado (rota pública).
+//   version "draft":     RASCUNHO salvo, em qualquer situação (pré-visualização do painel).
+async function loadForRender({ slug, productId, version }) {
   const where = slug ? "p.slug = $1" : "p.id = $1";
-  const onlyPublished = published ? "AND p.status = 'published' AND sp.published_at IS NOT NULL" : "";
+  const published = version === "published";
+  const columns = published
+    ? "sp.published_sections AS sections, sp.published_seo_title AS seo_title, sp.published_seo_description AS seo_description, sp.published_theme AS theme"
+    : "sp.sections, sp.seo_title, sp.seo_description, sp.theme";
   const { rows } = await pool.query(
     `SELECT p.id, p.title, p.slug, p.short_description, p.price_cents, p.checkout_url, p.image_id, p.status,
-            sp.sections, sp.seo_title, sp.seo_description, sp.theme, sp.published_at
+            ${columns}, sp.published_at
        FROM products p JOIN sales_pages sp ON sp.product_id = p.id
-      WHERE ${where} ${onlyPublished}`,
+      WHERE ${where} ${published ? "AND p.status = 'published' AND sp.published_sections IS NOT NULL" : ""}`,
     [slug || productId]
   );
   if (!rows.length) return null;
@@ -148,4 +177,4 @@ async function loadForRender({ slug, productId, published }) {
   return { ...data, media };
 }
 
-module.exports = { PageInputError, savePage, getPage, loadForRender, loadDraftForRender };
+module.exports = { PageInputError, savePage, publishPage, getPage, loadForRender, loadDraftForRender };

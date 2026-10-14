@@ -237,7 +237,7 @@ function renderSalesPage(data, { baseUrl, preview = false }) {
   <script src="/js/venda.js" defer></script>
 </head>
 <body data-page="venda">
-  ${preview === true && html`<div class="preview-banner" role="status"><strong>Pré-visualização.</strong> ${data.published_at && data.status === "published" ? "Esta é a versão salva da página." : "Esta página ainda não está visível para o público."}</div>`}
+  ${preview === true && html`<div class="preview-banner" role="status"><strong>Pré-visualização do rascunho salvo.</strong> ${data.published_at && data.status === "published" ? "O público vê a última versão publicada; publique no editor para levar estas alterações ao ar." : "Esta página ainda não está visível para o público."}</div>`}
   ${SPRITE}
   <div id="site-header"></div>
   <main id="conteudo" class="venda">

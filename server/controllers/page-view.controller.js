@@ -22,17 +22,17 @@ function notFound(res, message = "A página que você procurou não existe ou n�
 
 async function showPublicPage(req, res) {
   if (!SLUG.test(req.params.slug)) return notFound(res);
-  const data = await loadForRender({ slug: req.params.slug, published: true });
+  const data = await loadForRender({ slug: req.params.slug, version: "published" });
   if (!data) return notFound(res);
   res.set("Cache-Control", "no-cache"); // o navegador revalida: mudanças publicadas aparecem na hora
   return res.type("html").send(renderSalesPage(data, { baseUrl: baseUrl(req) }));
 }
 
-// Pré-visualização para quem está logado no painel: mostra a página mesmo sem publicar.
+// Pré-visualização para quem está logado no painel: mostra o RASCUNHO salvo (mesmo sem publicar).
 async function showPreview(req, res) {
   if (!(await findSession(req))) return res.redirect(302, "/admin/login.html");
   if (!UUID.test(req.params.id)) return notFound(res);
-  const data = await loadForRender({ productId: req.params.id, published: false });
+  const data = await loadForRender({ productId: req.params.id, version: "draft" });
   if (!data) return notFound(res, "Este produto ainda não tem página de vendas. Crie a página no painel e salve.");
   return res.type("html").send(renderSalesPage(data, { baseUrl: baseUrl(req), preview: true }));
 }

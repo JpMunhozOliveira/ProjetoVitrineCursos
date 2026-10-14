@@ -1,7 +1,7 @@
 const pool = require("../config/database");
 const { BLOCKS, ICONS, MAX_BLOCKS, defaultSections } = require("../sales/blocks");
 const { THEMES, DEFAULT_THEME } = require("../sales/theme");
-const { PageInputError, savePage, getPage, loadDraftForRender } = require("../sales/pages");
+const { PageInputError, savePage, publishPage, getPage, loadDraftForRender } = require("../sales/pages");
 const { renderSalesPage } = require("../sales/render");
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -39,6 +39,15 @@ async function saveAdminSalesPage(req, res) {
   }
 }
 
+// Publica: a versão pública passa a ser o rascunho SALVO (o editor salva antes, se preciso).
+async function publishAdminSalesPage(req, res) {
+  if (!UUID_PATTERN.test(req.params.id)) return res.status(400).json(INVALID_ID);
+  if (!(await productExists(req.params.id))) return res.status(404).json(NOT_FOUND);
+  const page = await publishPage(req.params.id);
+  if (!page) return res.status(409).json({ error: "Salve a página antes de publicá-la." });
+  return res.json({ data: page });
+}
+
 // Pré-visualização ao vivo do editor: devolve o HTML da página com os blocos ENVIADOS, sem salvar.
 async function previewAdminSalesPage(req, res) {
   if (!UUID_PATTERN.test(req.params.id)) return res.status(400).json(INVALID_ID);
@@ -57,16 +66,16 @@ async function previewAdminSalesPage(req, res) {
 async function getPublicSalesPage(req, res) {
   const result = await pool.query(
     `SELECT c.id AS product_id, c.title AS product_title, c.slug,
-            c.short_description, p.headline, p.subheadline, p.sections,
-            p.seo_title, p.seo_description, p.published_at
+            c.short_description, p.headline, p.subheadline, p.published_sections AS sections,
+            p.published_seo_title AS seo_title, p.published_seo_description AS seo_description, p.published_at
      FROM products c
      JOIN sales_pages p ON p.product_id = c.id
      WHERE c.slug = $1 AND c.status = 'published'
-       AND p.published_at IS NOT NULL`,
+       AND p.published_sections IS NOT NULL`, // só a versão PUBLICADA (rascunhos nunca saem daqui)
     [req.params.slug]
   );
   if (!result.rowCount) return res.status(404).json({ error: "Página de vendas publicada não encontrada." });
   return res.json({ data: result.rows[0] });
 }
 
-module.exports = { getBlockSchema, getAdminSalesPage, saveAdminSalesPage, previewAdminSalesPage, getPublicSalesPage };
+module.exports = { getBlockSchema, getAdminSalesPage, saveAdminSalesPage, publishAdminSalesPage, previewAdminSalesPage, getPublicSalesPage };

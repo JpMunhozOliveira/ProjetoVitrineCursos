@@ -8,7 +8,7 @@ const {
   deleteProduct,
 } = require("../controllers/product.controller");
 
-const { getAdminSalesPage, saveAdminSalesPage, previewAdminSalesPage } = require("../controllers/sales-page.controller");
+const { getAdminSalesPage, saveAdminSalesPage, publishAdminSalesPage, previewAdminSalesPage } = require("../controllers/sales-page.controller");
 
 const router = express.Router();
 
@@ -21,5 +21,6 @@ router.delete("/:id", deleteProduct);
 router.get("/:id/sales-page", getAdminSalesPage);
 router.put("/:id/sales-page", saveAdminSalesPage);
 router.post("/:id/sales-page/preview", previewAdminSalesPage);
+router.post("/:id/sales-page/publish", publishAdminSalesPage);
 
 module.exports = router;

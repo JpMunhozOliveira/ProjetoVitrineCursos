@@ -115,12 +115,13 @@ export function Preview({ productId, payload, selectedIndex, scrollToSelected, o
 
   return (
     <div className="preview">
+      <div ref={stage} className={`preview-stage ${device}`}>
+        <iframe key={frameKey} ref={frame} title="Pré-visualização da página de vendas" srcDoc={html} onLoad={handleLoad} style={frameStyle} />
+      </div>
+      {/* Barra de status embaixo da pré-visualização: situação e escala de exibição. */}
       <div className="preview-bar">
         <span className={`preview-status ${status.kind}`} role="status" aria-live="polite">{status.text}</span>
         {scale < 1 && <span className="muted small">{logical} px, exibido a {Math.round(scale * 100)}%</span>}
-      </div>
-      <div ref={stage} className={`preview-stage ${device}`}>
-        <iframe key={frameKey} ref={frame} title="Pré-visualização da página de vendas" srcDoc={html} onLoad={handleLoad} style={frameStyle} />
       </div>
     </div>
   );

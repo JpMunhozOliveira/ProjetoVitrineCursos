@@ -96,7 +96,7 @@ export default function App({ productId }) {
         if (saved) {
           dispatch({ type: "load", doc: {
             sections: withKeys(saved.sections, schema), seo_title: saved.seo_title || "",
-            seo_description: saved.seo_description || "", published: !!saved.published_at,
+            seo_description: saved.seo_description || "",
             theme: resolveTheme(saved.theme, schema),
           } });
         }
@@ -158,18 +158,27 @@ export default function App({ productId }) {
 
   function start(fromTemplate) {
     const initial = withKeys(fromTemplate ? structuredClone(schema.defaultSections) : [], schema);
-    dispatch({ type: "start", doc: { sections: initial, seo_title: "", seo_description: "", published: false, theme: resolveTheme(null, schema) } });
+    dispatch({ type: "start", doc: { sections: initial, seo_title: "", seo_description: "", theme: resolveTheme(null, schema) } });
     if (initial[0]) { setOpen(new Set([initial[0]._key])); setSelected({ key: initial[0]._key, from: "editor" }); }
     setMessage(fromTemplate
       ? { text: "Modelo padrão carregado. Substitua os textos de orientação e salve.", kind: "success" }
       : { text: "", kind: "" });
   }
 
-  /* ---------- Salvar ---------- */
-  async function save(e) {
-    e.preventDefault();
-    setSaving(true);
-    setMessage({ text: "Salvando…", kind: "" });
+  /* ---------- Salvar rascunho e publicar ---------- */
+  function showError(err) {
+    setMessage({
+      text: err.status === 401
+        ? "Sua sessão expirou. Entre novamente em outra aba e tente de novo (os dados desta tela foram mantidos)."
+        : err.message,
+      kind: "error",
+    });
+    const where = /^Bloco (\d+)/.exec(err.message || ""); // "Bloco 3 (FAQ) › ..." -> abre o bloco 3
+    if (where) revealBlock(Number(where[1]) - 1, "error");
+  }
+
+  // Salva o RASCUNHO (nunca muda o site). Devolve a página salva, ou null se deu erro.
+  async function saveDraft() {
     try {
       const saved = await api(`/products/${encodeURIComponent(productId)}/sales-page`, {
         method: "PUT", body: stripKeys(doc),
@@ -179,19 +188,52 @@ export default function App({ productId }) {
       // "saved" (e não "load"): o histórico continua — dá para desfazer o que veio antes de salvar.
       dispatch({ type: "saved", doc: {
         sections: withKeys(carryKeys(saved.sections, doc.sections), schema),
-        seo_title: saved.seo_title || "", seo_description: saved.seo_description || "", published: !!saved.published_at,
+        seo_title: saved.seo_title || "", seo_description: saved.seo_description || "",
         theme: resolveTheme(saved.theme, schema),
       } });
-      setMessage({ text: `Página salva às ${new Date().toLocaleTimeString("pt-BR")}.`, kind: "success" });
+      return saved;
     } catch (err) {
+      showError(err);
+      return null;
+    }
+  }
+
+  async function save(e) {
+    e.preventDefault();
+    setSaving(true);
+    setMessage({ text: "Salvando rascunho…", kind: "" });
+    if (await saveDraft()) {
+      setMessage({ text: `Rascunho salvo às ${new Date().toLocaleTimeString("pt-BR")}. O site só muda quando você publicar.`, kind: "success" });
+    }
+    setSaving(false);
+  }
+
+  // Publica: salva o rascunho (se houver algo não salvo) e leva essa versão ao ar.
+  async function publish() {
+    const visible = product.status === "published";
+    const ok = await window.Admin.confirm({
+      title: page?.published_at ? "Publicar as alterações?" : "Publicar a página?",
+      text: visible
+        ? `A versão atual do editor ficará visível para o público em /p/${product.slug}.`
+        : `A versão atual ficará pronta para o público, mas só aparece no site quando o produto “${product.title}” estiver como Publicado (hoje: ${STATUS[product.status]}).`,
+      action: page?.published_at ? "Publicar alterações" : "Publicar",
+      cancel: "Continuar editando",
+    });
+    if (!ok) return;
+    setSaving(true);
+    setMessage({ text: "Publicando…", kind: "" });
+    if (dirty || !page) {
+      if (!(await saveDraft())) { setSaving(false); return; }
+    }
+    try {
+      const published = await api(`/products/${encodeURIComponent(productId)}/sales-page/publish`, { method: "POST" });
+      setPage(published);
       setMessage({
-        text: err.status === 401
-          ? "Sua sessão expirou. Entre novamente em outra aba e clique em Salvar de novo (os dados desta tela foram mantidos)."
-          : err.message,
-        kind: "error",
+        text: visible ? `Publicada às ${new Date().toLocaleTimeString("pt-BR")}: já está no ar.` : "Publicada. Aparece no site quando o produto for publicado.",
+        kind: "success",
       });
-      const where = /^Bloco (\d+)/.exec(err.message || ""); // "Bloco 3 (FAQ) › ..." -> abre o bloco 3
-      if (where) revealBlock(Number(where[1]) - 1, "error");
+    } catch (err) {
+      showError(err);
     } finally {
       setSaving(false);
     }
@@ -219,18 +261,28 @@ export default function App({ productId }) {
     </div>
   );
 
-  // Rascunho / Publicada (no cabeçalho, ao lado de "Abrir versão salva"), com a explicação logo abaixo.
-  const pending = doc && (page ? doc.published !== !!page.published_at : doc.published);
-  const pubHint = doc && ((!doc.published ? "Página em rascunho: só você vê, pela pré-visualização."
-    : product.status !== "published"
-      ? `Atenção: o produto está como “${STATUS[product.status]}”. A página só aparece para o público quando o produto também estiver publicado.`
-      : `Página publicada: visível para o público em /p/${product.slug}.`) + (pending ? " Salve para aplicar." : ""));
-  const publishToggle = doc && (
-    <div className="segmented publish-toggle" role="radiogroup" aria-label="Situação da página" aria-describedby="pub-hint">
-      <label><input type="radio" name="published" value="no" checked={!doc.published}
-        onChange={() => dispatch({ type: "set", path: ["published"], value: false })} /><span>Rascunho</span></label>
-      <label><input type="radio" name="published" value="yes" checked={doc.published}
-        onChange={() => dispatch({ type: "set", path: ["published"], value: true })} /><span>Publicada</span></label>
+  // Versões: selo com a situação + botão Publicar (no cabeçalho), explicação logo abaixo.
+  //   nunca publicada | publicada e em dia | alterações não publicadas (salvas ou não)
+  const everPublished = !!page?.published_at;
+  const changes = !page || page.has_unpublished_changes || dirty;
+  const pubState = !everPublished ? "never" : changes ? "changes" : "live";
+  const when = everPublished ? new Date(page.published_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "";
+  const productNote = product.status !== "published"
+    ? ` O produto está como “${STATUS[product.status]}”: a página só aparece no site quando o produto for publicado.` : "";
+  const pubHint = {
+    never: "Ainda não publicada. “Salvar rascunho” guarda seu trabalho sem mostrar ao público; “Publicar” leva a página ao ar.",
+    changes: `Há alterações que o público ainda não vê (a versão no ar é de ${when}). Publique para levá-las ao ar.`,
+    live: `Publicada em ${when}. O que você vê aqui é o que está no ar.`,
+  }[pubState] + productNote;
+  const publishControls = doc && (
+    <div className="publish-controls">
+      <span className={`pub-badge ${pubState}`}>
+        {{ never: "Nunca publicada", changes: "Alterações não publicadas", live: "Publicada · em dia" }[pubState]}
+      </span>
+      <button type="button" className="btn btn-sm btn-publish" disabled={saving || pubState === "live"}
+        onClick={publish} aria-describedby="pub-hint">
+        {everPublished ? "Publicar alterações" : "Publicar"}
+      </button>
     </div>
   );
 
@@ -239,23 +291,29 @@ export default function App({ productId }) {
   const header = (
     <>
     <div className="page-head editor-head">
-      <h1 className="editor-title">Página de vendas <span className="muted">· {product.title}</span></h1>
-      <div className="row-actions">
-        {live && <a className="btn btn-sm btn-outline" href={`/p/${encodeURIComponent(product.slug)}`} target="_blank" rel="noopener">Ver publicada<span className="sr-only"> (abre em nova aba)</span></a>}
-        {page && <a className="btn btn-sm btn-outline" href={`/admin/preview/${encodeURIComponent(productId)}`} target="_blank" rel="noopener">Abrir versão salva<span className="sr-only"> (abre em nova aba)</span></a>}
-        {publishToggle}
+      {/* Título longo é cortado com "…" (nome completo ao passar o mouse); os botões nunca descem. */}
+      <h1 className="editor-title" title={product.title}>Página de vendas <span className="muted">· {product.title}</span></h1>
+      {/* Grupos, da esquerda para a direita: histórico | visualização | links | publicação (ação principal) */}
+      <div className="editor-toolbar">
         {doc && (
-          <div className="history-buttons" role="group" aria-label="Histórico de alterações">
+          <div className="toolbar-group history-buttons" role="group" aria-label="Histórico de alterações">
             <button type="button" className="icon-btn" onClick={undo} disabled={!history.past.length}
               title="Desfazer (Ctrl+Z)" aria-label="Desfazer" aria-keyshortcuts="Control+Z">↶</button>
             <button type="button" className="icon-btn" onClick={redo} disabled={!history.future.length}
               title="Refazer (Ctrl+Shift+Z)" aria-label="Refazer" aria-keyshortcuts="Control+Shift+Z">↷</button>
           </div>
         )}
-        {doc && deviceToggle}
+        {doc && <div className="toolbar-group">{deviceToggle}</div>}
+        {(page || live) && (
+          <div className="toolbar-group" role="group" aria-label="Abrir em nova aba">
+            {page && <a className="btn btn-sm btn-outline" href={`/admin/preview/${encodeURIComponent(productId)}`} target="_blank" rel="noopener">Abrir versão salva<span className="sr-only"> (abre em nova aba)</span></a>}
+            {live && <a className="btn btn-sm btn-outline" href={`/p/${encodeURIComponent(product.slug)}`} target="_blank" rel="noopener">Ver publicada<span className="sr-only"> (abre em nova aba)</span></a>}
+          </div>
+        )}
+        {publishControls && <div className="toolbar-group">{publishControls}</div>}
       </div>
     </div>
-    {doc && <p id="pub-hint" className={`hint pub-hint${pending || (doc.published && product.status !== "published") ? " warn" : ""}`}>{pubHint}</p>}
+    {doc && <p id="pub-hint" className={`hint pub-hint${pubState === "changes" || productNote ? " warn" : ""}`}>{pubHint}</p>}
     </>
   );
 
@@ -300,7 +358,6 @@ export default function App({ productId }) {
 
       <div className="editor-layout">
         <form className="page-editor" noValidate onSubmit={save}>
-          <p className="hint">Clique numa seção da pré-visualização (ou no nome de um bloco) para editar. Preço e link de compra vêm do cadastro do produto.</p>
           <BlockList sections={sections} open={open} selectedKey={selected.key} visible={visible}
             onToggle={toggle} onHover={setHovered}
             onInsert={(position) => sections.length < schema.maxBlocks && setPickerAt(position)} />
@@ -335,7 +392,7 @@ export default function App({ productId }) {
             <p className={`msg ${message.kind}`} role="status" aria-live="polite">{message.text}</p>
             <div className="buttons">
               <a className="btn btn-outline" href={`produto.html?id=${encodeURIComponent(productId)}`}>Voltar</a>
-              <button type="submit" className="btn" disabled={saving}>Salvar</button>
+              <button type="submit" className="btn btn-outline" disabled={saving}>Salvar rascunho</button>
             </div>
           </div>
         </form>
