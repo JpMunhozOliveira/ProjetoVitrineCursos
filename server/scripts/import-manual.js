@@ -1,4 +1,4 @@
-// Importa a página estática do Manual (public/curso-reforma-tributaria.html) para o banco:
+// Importa o conteúdo do Manual (que era a página estática public/curso-reforma-tributaria.html) para o banco:
 // cria o produto (se ainda não existir), envia a capa para a biblioteca e monta a página de
 // vendas em blocos com os mesmos textos. Pode ser executado mais de uma vez: a página é regravada.
 //
@@ -14,8 +14,8 @@ const { processImage } = require("../lib/images");
 const { savePage } = require("../sales/pages");
 
 const SLUG = "manual-reforma-tributaria";
-const PUBLIC_DIR = process.env.PUBLIC_DIR || path.join(__dirname, "..", "public");
-const COVER_FILE = path.join(PUBLIC_DIR, "assets", "images", "cover-reforma.png");
+// Capa original do Manual (fica junto do script: só ele a usa).
+const COVER_FILE = path.join(__dirname, "data", "cover-reforma.png");
 
 const PRODUCT = {
   title: "Manual Prático da Reforma Tributária do Consumo",
@@ -123,6 +123,12 @@ async function main() {
   console.log(`Pré-visualização (logado no painel): /admin/preview/${product.id}`);
 }
 
-main()
-  .catch((error) => { console.error("Falha na importação:", error.message); process.exitCode = 1; })
-  .finally(() => pool.end());
+// Executado direto (node scripts/import-manual.js): importa. Carregado com require() (ex.: em
+// testes): só fornece o conteúdo original, sem tocar no banco.
+if (require.main === module) {
+  main()
+    .catch((error) => { console.error("Falha na importação:", error.message); process.exitCode = 1; })
+    .finally(() => pool.end());
+}
+
+module.exports = { MANUAL_SECTIONS: sections, MANUAL_PRODUCT: PRODUCT };

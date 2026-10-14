@@ -46,49 +46,6 @@
   color: var(--v-on-navy-muted);
 }
 
-/* Placeholders de imagem: troque a <div class="ph"> por <img> */
-.ph {
-  display: grid;
-  place-items: center;
-  text-align: center;
-  padding: 1rem;
-  border: 2px dashed var(--color-border);
-  border-radius: var(--radius);
-  background: var(--color-surface);
-  color: var(--color-muted);
-  font-weight: 600;
-}
-.ph small {
-  font-weight: 400;
-}
-.ph-logo {
-  display: inline-grid;
-  width: 120px;
-  height: 44px;
-  padding: 0;
-  margin-bottom: 1.5rem;
-  font-size: 0.8rem;
-  background: transparent;
-  border-color: var(--v-on-navy-muted);
-  color: var(--v-on-navy-muted);
-}
-.ph-mock {
-  aspect-ratio: 8/7;
-  background: rgba(255, 255, 255, 0.06);
-  border-color: var(--v-on-navy-muted);
-  color: var(--v-on-navy-muted);
-}
-.ph-mock.small {
-  max-width: 420px;
-}
-.ph-slide {
-  aspect-ratio: 3/2;
-}
-.ph-author {
-  aspect-ratio: 6/7;
-  border-radius: 24px;
-}
-
 /* Hero e oferta final */
 .v-hero,
 .v-final {

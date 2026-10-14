@@ -231,7 +231,7 @@ function renderSalesPage(data, { baseUrl, preview = false }) {
   <link rel="stylesheet" href="/css/venda.css">
   ${themeLink(data.theme)}
   <script src="/js/theme.js"></script>
-  <script src="/data/cursos.js" defer></script>
+  <script src="/data/site.js" defer></script>
   <script src="/js/components.js" defer></script>
   <script src="/js/main.js" defer></script>
   <script src="/js/venda.js" defer></script>

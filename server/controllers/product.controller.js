@@ -10,7 +10,11 @@ const COLUMNS = `p.id, p.title, p.slug, p.short_description, p.status, p.categor
     'width', m.width, 'height', m.height) END AS image`;
 
 // "source" é a tabela products ou um CTE com o resultado de um INSERT/UPDATE.
-const selectFrom = (source) => `SELECT ${COLUMNS} FROM ${source} p LEFT JOIN media m ON m.id = p.image_id`;
+const selectFrom = (source, extra = "") => `SELECT ${COLUMNS}${extra} FROM ${source} p LEFT JOIN media m ON m.id = p.image_id`;
+
+// Site público: o produto tem página de vendas PUBLICADA? (o catálogo leva direto para /p/endereco)
+const HAS_SALES_PAGE = `,
+  EXISTS (SELECT 1 FROM sales_pages sp WHERE sp.product_id = p.id AND sp.published_sections IS NOT NULL) AS has_sales_page`;
 
 // Troca a chave interna do arquivo pela URL pública.
 function toResponse(row) {
@@ -155,14 +159,14 @@ const NOT_FOUND = { error: "Produto não encontrado." };
 
 async function listPublicProducts(_req, res) {
   const result = await pool.query(
-    `${selectFrom("products")} WHERE p.status = 'published' ORDER BY p.created_at DESC`
+    `${selectFrom("products", HAS_SALES_PAGE)} WHERE p.status = 'published' ORDER BY p.created_at DESC`
   );
   return res.json({ data: result.rows.map(toResponse) });
 }
 
 async function getPublicProduct(req, res) {
   const result = await pool.query(
-    `${selectFrom("products")} WHERE p.slug = $1 AND p.status = 'published'`,
+    `${selectFrom("products", HAS_SALES_PAGE)} WHERE p.slug = $1 AND p.status = 'published'`,
     [req.params.slug]
   );
   if (!result.rowCount) return res.status(404).json(NOT_FOUND);

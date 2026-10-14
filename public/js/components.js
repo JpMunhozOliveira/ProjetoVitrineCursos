@@ -3,7 +3,7 @@
    Edite aqui UMA vez e todas as páginas são atualizadas.
    Cada página só tem <div id="site-header"></div> e
    <div id="site-footer"></div> no lugar.
-   Os textos com data-site (nome da marca) vêm de data/cursos.js.
+   Os textos com data-site (nome da marca) vêm de data/site.js.
    ========================================================== */
 (function () {
   "use strict";
@@ -42,7 +42,7 @@
   mount("site-footer", FOOTER);
 
   // Marca no menu a página atual (acessibilidade + destaque visual)
-  var current = { home: "/index.html", catalogo: "/catalogo.html", curso: "/catalogo.html" }[document.body.dataset.page];
+  var current = { home: "/index.html", catalogo: "/catalogo.html", produto: "/catalogo.html" }[document.body.dataset.page];
   document.querySelectorAll("#nav a").forEach(function (a) {
     if (a.getAttribute("href") === current) a.setAttribute("aria-current", "page");
   });

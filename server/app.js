@@ -48,6 +48,14 @@ app.get("/page-theme.css", (req, res) => {
   return res.type("css").send(themeStylesheet(hero, accent));
 });
 
+// Endereços antigos -> novos (301 = mudança permanente: o Google atualiza o endereço e links
+// já divulgados continuam funcionando).
+app.get("/curso-reforma-tributaria.html", (_req, res) => res.redirect(301, "/p/manual-reforma-tributaria"));
+app.get("/curso.html", (req, res) => {
+  const id = typeof req.query.id === "string" ? req.query.id : "";
+  res.redirect(301, id ? `/produto.html?id=${encodeURIComponent(id)}` : "/catalogo.html");
+});
+
 // Páginas de vendas geradas no servidor. A CSP só permite recursos do próprio site: mesmo que
 // algum texto malicioso escapasse do template, o navegador não carregaria scripts de fora.
 app.get("/p/:slug", (_req, res, next) => {

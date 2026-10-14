@@ -1,7 +1,7 @@
 (function () {
   "use strict";
   document.documentElement.classList.add("js");
-  var S = window.SITE || {}, C = window.CURSOS || [];
+  var S = window.SITE || {};
 
   // Cria elementos usando textContent (nunca innerHTML com dados)
   function el(tag, attrs, kids) {
@@ -16,6 +16,40 @@
   var brl = function (p) {
     return typeof p === "number" ? p.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : null;
   };
+
+  // Produtos vêm da API (cadastrados no painel). Esta função converte o formato da API para o
+  // formato que o restante deste arquivo já usava — assim os cartões, filtros e detalhes não mudam.
+  function fromApi(p) {
+    return {
+      id: p.slug,
+      titulo: p.title,
+      resumo: p.short_description || "",
+      descricao: p.description || "",
+      categoria: p.category || "",
+      destaque: !!p.featured,
+      imagem: p.image ? p.image.url : null,
+      imagemAlt: p.image ? p.image.alt_text || "" : "",
+      publico: p.audience || "",
+      preRequisitos: p.prerequisites || "",
+      conteudo: p.modules || [],
+      formato: p.format || "",
+      cargaHoraria: p.workload || "",
+      preco: p.price_cents === null || p.price_cents === undefined ? null : p.price_cents / 100,
+      checkoutUrl: p.checkout_url || "",
+      // Com página de vendas publicada, o cartão leva direto para ela.
+      pagina: p.has_sales_page ? "/p/" + encodeURIComponent(p.slug) : null,
+    };
+  }
+  async function getJson(url) {
+    var res = await fetch(url, { headers: { Accept: "application/json" } });
+    if (!res.ok) { var err = new Error("HTTP " + res.status); err.status = res.status; throw err; }
+    return (await res.json()).data;
+  }
+  function loadError(target) {
+    target.removeAttribute("aria-busy");
+    target.textContent = "";
+    target.append(el("p", { "class": "muted", text: "Não foi possível carregar os produtos agora. Recarregue a página para tentar de novo." }));
+  }
 
   // Textos globais: <span data-site="nome"> ou "professor.bio"
   document.querySelectorAll("[data-site]").forEach(function (n) {
@@ -65,7 +99,7 @@
     target.removeAttribute("aria-busy");
     target.textContent = "";
     if (!list.length) {
-      target.append(el("p", { "class": "muted", text: "Nenhum curso encontrado. Tente outra busca ou categoria." }));
+      target.append(el("p", { "class": "muted", text: "Nenhum produto encontrado. Tente outra busca ou categoria." }));
       return;
     }
     list.forEach(function (c) {
@@ -75,28 +109,42 @@
         el("p", { text: c.resumo }),
         c.publico ? el("p", { "class": "muted", text: c.publico }) : "",
         brl(c.preco) ? el("p", { "class": "price", text: brl(c.preco) }) : "",
-        el("a", { "class": "btn btn-outline", href: c.pagina || ("/curso.html?id=" + encodeURIComponent(c.id)),
+        el("a", { "class": "btn btn-outline", href: c.pagina || ("/produto.html?id=" + encodeURIComponent(c.id)),
                   "aria-label": "Ver detalhes: " + c.titulo, text: "Ver detalhes" })
       ]);
       target.append(el("article", { "class": "card" }, [cover(c), body]));
     });
   }
   
+  // Home (destaques) e catálogo (busca + categorias). Os esqueletos do HTML ficam na tela
+  // enquanto a lista chega da API.
   var catalog = document.getElementById("catalogo");
-  if (catalog && page === "home") {
-    var feat = C.filter(function (c) { return c.destaque; });
-    var shown = (feat.length ? feat : C).slice(0, 6);
-    renderCards(catalog, shown);
-    var all = document.getElementById("ver-todos");
-    if (all && C.length <= shown.length) all.hidden = true;
-  } else if (catalog) {
+  async function initCatalog() {
+    var C;
+    try { C = (await getJson("/api/products")).map(fromApi); } catch (e) { loadError(catalog); return; }
+
+    if (page === "home") {
+      var feat = C.filter(function (c) { return c.destaque; });
+      var shown = (feat.length ? feat : C).slice(0, 6);
+      if (!shown.length) {
+        catalog.removeAttribute("aria-busy");
+        catalog.textContent = "";
+        catalog.append(el("p", { "class": "muted", text: "Novos produtos em breve." }));
+      } else {
+        renderCards(catalog, shown);
+      }
+      var all = document.getElementById("ver-todos");
+      if (all && C.length <= shown.length) all.hidden = true;
+      return;
+    }
+
     var q = document.getElementById("busca"), sel = document.getElementById("categoria"),
         out = document.getElementById("resultado"), cats = [];
     C.forEach(function (c) { if (c.categoria && cats.indexOf(c.categoria) < 0) cats.push(c.categoria); });
     if (cats.length > 1) cats.forEach(function (t) { sel.append(el("option", { value: t, text: t })); });
     else document.getElementById("filtro-categoria").hidden = true;
-    if (C.length < 4) document.getElementById("filtros").hidden = true; // poucos cursos: sem filtros
-    var norm = function (t) { return (t || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); };
+    if (C.length < 4) document.getElementById("filtros").hidden = true; // poucos produtos: sem filtros
+    var norm = function (t) { return (t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, ""); };
     var apply = function () {
       var term = norm(q.value), cat = sel.value;
       var list = C.filter(function (c) {
@@ -104,7 +152,7 @@
           (!term || norm([c.titulo, c.resumo, c.publico, c.categoria].join(" ")).indexOf(term) >= 0);
       });
       renderCards(catalog, list);
-      out.textContent = list.length + (list.length === 1 ? " curso encontrado" : " cursos encontrados");
+      out.textContent = list.length + (list.length === 1 ? " produto encontrado" : " produtos encontrados");
     };
     var timer, reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
     var onChange = function () {
@@ -118,43 +166,52 @@
     sel.addEventListener("change", onChange);
     apply();
   }
+  if (catalog) initCatalog();
 
-  // Página de detalhes
-  var box = document.getElementById("curso");
-  if (box) {
-    box.textContent = ""; // remove o esqueleto de carregamento
-    var id = new URLSearchParams(location.search).get("id");
-    var c = C.filter(function (x) { return x.id === id; })[0];
-    if (!c) {
-      document.title = "Curso não encontrado — " + S.nome;
-      box.append(el("h1", { text: "Curso não encontrado" }),
-        el("p", {}, [el("a", { href: "/catalogo.html", text: "Voltar ao catálogo" })]));
-    } else {
-      document.title = c.titulo + " — " + S.nome;
-      var m = document.querySelector('meta[name="description"]');
-      if (m) m.setAttribute("content", c.resumo || "");
-      var facts = [["Formato", c.formato], ["Carga horária", c.cargaHoraria], ["Pré-requisitos", c.preRequisitos]]
-        .filter(function (f) { return f[1]; })
-        .map(function (f) { return el("li", {}, [el("strong", { text: f[0] + ": " }), f[1]]); });
-      var main = el("div", {}, [
-        el("a", { "class": "crumb", href: "/catalogo.html", text: "← Todos os cursos" }),
-        el("h1", { text: c.titulo }),
-        el("p", { "class": "muted", text: c.resumo }),
-        el("h2", { text: "Sobre o curso" }), el("p", { text: c.descricao }),
-        c.publico ? el("div", {}, [el("h2", { text: "Para quem é" }), el("p", { text: c.publico })]) : "",
-        (c.conteudo || []).length ? el("div", {}, [el("h2", { text: "Conteúdo" }),
-          el("ul", {}, c.conteudo.map(function (t) { return el("li", { text: t }); }))]) : "",
-        facts.length ? el("div", {}, [el("h2", { text: "Informações" }), el("ul", {}, facts)]) : ""
-      ]);
-      var aside = el("aside", { "class": "buy-box", "aria-label": "Compra" }, [
-        cover(c),
-        brl(c.preco) ? el("p", { "class": "price", text: brl(c.preco) }) : "",
-        buyButton(c),
-        el("p", { "class": "muted", text: "O pagamento e o acesso são feitos pela Kiwify." })
-      ]);
-      box.append(main, aside);
+  // Página de detalhes (produtos sem página de vendas publicada): /produto.html?id=endereco
+  var box = document.getElementById("produto");
+  async function initDetail() {
+    var id = new URLSearchParams(location.search).get("id") || "";
+    var c = null;
+    try {
+      if (/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id)) c = fromApi(await getJson("/api/products/" + encodeURIComponent(id)));
+    } catch (e) {
+      if (e.status !== 404) { loadError(box); return; }
     }
+    box.textContent = ""; // remove o esqueleto de carregamento
+    if (!c) {
+      document.title = "Produto não encontrado — " + S.nome;
+      box.append(el("h1", { text: "Produto não encontrado" }),
+        el("p", {}, [el("a", { href: "/catalogo.html", text: "Voltar ao catálogo" })]));
+      return;
+    }
+    // Tem página de vendas publicada? Ela é a página "oficial" do produto.
+    if (c.pagina) { location.replace(c.pagina); return; }
+    document.title = c.titulo + " — " + S.nome;
+    var m = document.querySelector('meta[name="description"]');
+    if (m) m.setAttribute("content", c.resumo || "");
+    var facts = [["Formato", c.formato], ["Carga horária", c.cargaHoraria], ["Pré-requisitos", c.preRequisitos]]
+      .filter(function (f) { return f[1]; })
+      .map(function (f) { return el("li", {}, [el("strong", { text: f[0] + ": " }), f[1]]); });
+    var main = el("div", {}, [
+      el("a", { "class": "crumb", href: "/catalogo.html", text: "← Todos os produtos" }),
+      el("h1", { text: c.titulo }),
+      el("p", { "class": "muted", text: c.resumo }),
+      c.descricao ? el("div", {}, [el("h2", { text: "Sobre" }), el("p", { text: c.descricao })]) : "",
+      c.publico ? el("div", {}, [el("h2", { text: "Para quem é" }), el("p", { text: c.publico })]) : "",
+      (c.conteudo || []).length ? el("div", {}, [el("h2", { text: "Conteúdo" }),
+        el("ul", {}, c.conteudo.map(function (t) { return el("li", { text: t }); }))]) : "",
+      facts.length ? el("div", {}, [el("h2", { text: "Informações" }), el("ul", {}, facts)]) : ""
+    ]);
+    var aside = el("aside", { "class": "buy-box", "aria-label": "Compra" }, [
+      cover(c),
+      brl(c.preco) ? el("p", { "class": "price", text: brl(c.preco) }) : "",
+      buyButton(c),
+      el("p", { "class": "muted", text: "O pagamento e o acesso são feitos pela Kiwify." })
+    ]);
+    box.append(main, aside);
   }
+  if (box) initDetail();
 
   // Contato
   var list = document.getElementById("contato-links");

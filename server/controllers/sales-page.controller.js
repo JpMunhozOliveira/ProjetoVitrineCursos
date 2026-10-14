@@ -62,20 +62,4 @@ async function previewAdminSalesPage(req, res) {
   }
 }
 
-// JSON público usado pelo protótipo pagina-vendas.html (a ser removido na limpeza da etapa 7).
-async function getPublicSalesPage(req, res) {
-  const result = await pool.query(
-    `SELECT c.id AS product_id, c.title AS product_title, c.slug,
-            c.short_description, p.headline, p.subheadline, p.published_sections AS sections,
-            p.published_seo_title AS seo_title, p.published_seo_description AS seo_description, p.published_at
-     FROM products c
-     JOIN sales_pages p ON p.product_id = c.id
-     WHERE c.slug = $1 AND c.status = 'published'
-       AND p.published_sections IS NOT NULL`, // só a versão PUBLICADA (rascunhos nunca saem daqui)
-    [req.params.slug]
-  );
-  if (!result.rowCount) return res.status(404).json({ error: "Página de vendas publicada não encontrada." });
-  return res.json({ data: result.rows[0] });
-}
-
-module.exports = { getBlockSchema, getAdminSalesPage, saveAdminSalesPage, publishAdminSalesPage, previewAdminSalesPage, getPublicSalesPage };
+module.exports = { getBlockSchema, getAdminSalesPage, saveAdminSalesPage, publishAdminSalesPage, previewAdminSalesPage };
