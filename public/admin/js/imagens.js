@@ -27,12 +27,14 @@
 
     // Onde a imagem é usada (links para os produtos) ou aviso de "sem uso".
     var usage = el("p", "media-usage small");
+    var KIND = { cover: "capa de ", page: "página de vendas de " };
     if (m.usage.length) {
-      usage.append("Capa de: ");
-      m.usage.forEach(function (p, i) {
-        if (i) usage.append(", ");
-        var a = el("a", "", p.title);
-        a.href = "produto.html?id=" + encodeURIComponent(p.id);
+      usage.append("Usada em: ");
+      m.usage.forEach(function (u, i) {
+        if (i) usage.append("; ");
+        usage.append(KIND[u.kind] || "");
+        var a = el("a", "", u.title);
+        a.href = "produto.html?id=" + encodeURIComponent(u.id);
         usage.append(a);
       });
     } else {

@@ -75,7 +75,7 @@
         el("p", { text: c.resumo }),
         c.publico ? el("p", { "class": "muted", text: c.publico }) : "",
         brl(c.preco) ? el("p", { "class": "price", text: brl(c.preco) }) : "",
-        el("a", { "class": "btn btn-outline", href: c.pagina || ("curso.html?id=" + encodeURIComponent(c.id)),
+        el("a", { "class": "btn btn-outline", href: c.pagina || ("/curso.html?id=" + encodeURIComponent(c.id)),
                   "aria-label": "Ver detalhes: " + c.titulo, text: "Ver detalhes" })
       ]);
       target.append(el("article", { "class": "card" }, [cover(c), body]));
@@ -128,7 +128,7 @@
     if (!c) {
       document.title = "Curso não encontrado — " + S.nome;
       box.append(el("h1", { text: "Curso não encontrado" }),
-        el("p", {}, [el("a", { href: "catalogo.html", text: "Voltar ao catálogo" })]));
+        el("p", {}, [el("a", { href: "/catalogo.html", text: "Voltar ao catálogo" })]));
     } else {
       document.title = c.titulo + " — " + S.nome;
       var m = document.querySelector('meta[name="description"]');
@@ -137,7 +137,7 @@
         .filter(function (f) { return f[1]; })
         .map(function (f) { return el("li", {}, [el("strong", { text: f[0] + ": " }), f[1]]); });
       var main = el("div", {}, [
-        el("a", { "class": "crumb", href: "catalogo.html", text: "← Todos os cursos" }),
+        el("a", { "class": "crumb", href: "/catalogo.html", text: "← Todos os cursos" }),
         el("h1", { text: c.titulo }),
         el("p", { "class": "muted", text: c.resumo }),
         el("h2", { text: "Sobre o curso" }), el("p", { text: c.descricao }),

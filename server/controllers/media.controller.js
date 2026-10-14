@@ -2,14 +2,23 @@ const pool = require("../config/database");
 const storage = require("../lib/storage");
 const { detectType, processImage } = require("../lib/images");
 
-// "usage": produtos que usam a imagem como capa (o painel mostra e a exclusão é bloqueada).
+// "usage": onde a imagem é usada — como capa de produto ("cover") ou dentro de uma página de
+// vendas ("page"). O painel mostra essa lista e a exclusão de imagem em uso é bloqueada.
 const SELECT_MEDIA = `
   SELECT m.id, m.storage_key, m.mime_type, m.size_bytes, m.width, m.height,
          m.original_name, m.alt_text, m.created_at,
-         COALESCE(json_agg(json_build_object('id', p.id, 'title', p.title))
-                  FILTER (WHERE p.id IS NOT NULL), '[]') AS usage
-    FROM media m
-    LEFT JOIN products p ON p.image_id = m.id`;
+         COALESCE((SELECT json_agg(u ORDER BY u.title) FROM (
+             SELECT p.id, p.title, 'cover' AS kind FROM products p WHERE p.image_id = m.id
+             UNION ALL
+             SELECT p.id, p.title, 'page' AS kind
+               FROM sales_page_media spm
+               JOIN sales_pages sp ON sp.id = spm.sales_page_id
+               JOIN products p ON p.id = sp.product_id
+              WHERE spm.media_id = m.id
+           ) u), '[]') AS usage
+    FROM media m`;
+
+const USAGE_LABEL = { cover: "capa de", page: "página de vendas de" };
 
 // Troca a chave interna pela URL pública; o caminho no disco não sai do servidor.
 function toResponse({ storage_key, ...media }) {
@@ -74,7 +83,7 @@ async function uploadMedia(req, res) {
 }
 
 async function listMedia(_req, res) {
-  const { rows } = await pool.query(`${SELECT_MEDIA} GROUP BY m.id ORDER BY m.created_at DESC`);
+  const { rows } = await pool.query(`${SELECT_MEDIA} ORDER BY m.created_at DESC`);
   return res.json({ data: rows.map(toResponse) });
 }
 
@@ -91,17 +100,20 @@ async function updateMedia(req, res) {
   const updated = await pool.query("UPDATE media SET alt_text = $2 WHERE id = $1", [req.params.id, alt]);
   if (!updated.rowCount) return res.status(404).json(NOT_FOUND);
 
-  const { rows } = await pool.query(`${SELECT_MEDIA} WHERE m.id = $1 GROUP BY m.id`, [req.params.id]);
+  const { rows } = await pool.query(`${SELECT_MEDIA} WHERE m.id = $1`, [req.params.id]);
   return res.json({ data: toResponse(rows[0]) });
 }
 
-// Exclusão bloqueada se a imagem estiver em uso: apagar em silêncio deixaria o produto sem capa.
+// Exclusão bloqueada se a imagem estiver em uso: apagar em silêncio deixaria o produto sem capa
+// ou a página de vendas com um buraco. (O banco também recusa, via ON DELETE RESTRICT.)
 async function deleteMedia(req, res) {
   if (!isValidId(req.params.id)) return res.status(404).json(NOT_FOUND);
 
   const { rows } = await pool.query(
     `DELETE FROM media m
-      WHERE m.id = $1 AND NOT EXISTS (SELECT 1 FROM products p WHERE p.image_id = m.id)
+      WHERE m.id = $1
+        AND NOT EXISTS (SELECT 1 FROM products p WHERE p.image_id = m.id)
+        AND NOT EXISTS (SELECT 1 FROM sales_page_media spm WHERE spm.media_id = m.id)
       RETURNING m.storage_key`,
     [req.params.id]
   );
@@ -110,10 +122,10 @@ async function deleteMedia(req, res) {
     return res.status(204).end();
   }
 
-  const found = await pool.query(`${SELECT_MEDIA} WHERE m.id = $1 GROUP BY m.id`, [req.params.id]);
+  const found = await pool.query(`${SELECT_MEDIA} WHERE m.id = $1`, [req.params.id]);
   if (!found.rowCount) return res.status(404).json(NOT_FOUND);
-  const titles = found.rows[0].usage.map((p) => `“${p.title}”`).join(", ");
-  return res.status(409).json({ error: `Esta imagem está em uso por ${titles}. Troque a imagem desses produtos antes de excluí-la.` });
+  const where = found.rows[0].usage.map((u) => `${USAGE_LABEL[u.kind]} “${u.title}”`).join(", ");
+  return res.status(409).json({ error: `Esta imagem está em uso (${where}). Troque-a nesses lugares antes de excluí-la.` });
 }
 
 module.exports = { uploadMedia, listMedia, updateMedia, deleteMedia };

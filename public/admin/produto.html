@@ -32,7 +32,14 @@
     </div>
     <main class="section">
       <a class="crumb" href="./">← Produtos</a>
-      <h1 id="heading">Produto</h1>
+      <div class="page-head">
+        <h1 id="heading">Produto</h1>
+        <!-- Ações da página de vendas: aparecem só depois que o produto existe (ver produto.js). -->
+        <div class="row-actions">
+          <a id="sales-public" class="btn btn-sm btn-outline" target="_blank" rel="noopener" hidden>Ver publicada<span class="sr-only"> (abre em nova aba)</span></a>
+          <a id="sales-preview" class="btn btn-sm btn-outline" target="_blank" rel="noopener" hidden>Pré-visualizar<span class="sr-only"> (abre em nova aba)</span></a>
+        </div>
+      </div>
       <p id="load-msg" class="msg" role="status" aria-live="polite">Carregando…</p>
 
       <form id="product-form" class="product-form" hidden>
@@ -162,6 +169,11 @@
           <p id="msg" class="msg" role="status" aria-live="polite"></p>
         </div>
       </form>
+
+      <section id="sales" class="sales-zone" aria-labelledby="sales-title" hidden>
+        <h2 id="sales-title">Página de vendas</h2>
+        <p id="sales-status"></p>
+      </section>
 
       <section id="danger" class="danger-zone" aria-labelledby="danger-title" hidden>
         <h2 id="danger-title">Remover produto</h2>

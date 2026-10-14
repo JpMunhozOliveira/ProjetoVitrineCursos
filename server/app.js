@@ -6,11 +6,14 @@ const adminProductRoutes = require("./routes/admin-product.routes");
 const adminAuthRoutes = require("./routes/admin-auth.routes");
 const adminMediaRoutes = require("./routes/admin-media.routes");
 const storage = require("./lib/storage");
+const { showPublicPage, showPreview } = require("./controllers/page-view.controller");
+const requireAdmin = require("./middleware/admin-auth");
+const { getBlockSchema } = require("./controllers/sales-page.controller");
 
 const app = express();
 
 app.disable("x-powered-by");
-app.use(express.json({ limit: "100kb" }));
+app.use(express.json({ limit: "300kb" })); // páginas de vendas com muitos blocos passam de 100 KB
 
 // Cabeçalhos de segurança do painel e da API administrativa.
 app.use(["/admin", "/api/admin"], (_req, res, next) => {
@@ -30,6 +33,19 @@ app.use("/api/products", productRoutes);
 app.use("/api/admin/auth", adminAuthRoutes);
 app.use("/api/admin/products", adminProductRoutes);
 app.use("/api/admin/media", adminMediaRoutes);
+app.get("/api/admin/sales-blocks", requireAdmin, getBlockSchema);
+
+// Páginas de vendas geradas no servidor. A CSP só permite recursos do próprio site: mesmo que
+// algum texto malicioso escapasse do template, o navegador não carregaria scripts de fora.
+app.get("/p/:slug", (_req, res, next) => {
+  res.set({
+    "X-Content-Type-Options": "nosniff",
+    "Content-Security-Policy":
+      "default-src 'self'; img-src 'self' data:; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
+  });
+  next();
+}, showPublicPage);
+app.get("/admin/preview/:id", showPreview); // cabeçalhos do /admin (no-store, CSP, noindex) já se aplicam
 
 // Rota de API inexistente responde em JSON, e não com a página HTML padrão do Express.
 app.use("/api", (_req, res) => res.status(404).json({ error: "Rota não encontrada." }));

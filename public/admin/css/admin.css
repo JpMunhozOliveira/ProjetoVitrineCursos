@@ -194,3 +194,10 @@ dialog.viewer::backdrop{background:rgb(0 0 0 / .75)}
 /* "contain": a imagem cabe inteira na tela, sem cortes nem distorção. */
 dialog.viewer img{display:block;width:auto;height:auto;max-width:100%;max-height:calc(100vh - 10rem);margin:0 auto;object-fit:contain;border-radius:6px}
 .viewer-info{margin:.75rem 0 0;text-align:center}
+
+/* Texto só para leitores de tela (ex.: "(abre em nova aba)") */
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* Área "Página de vendas" na edição do produto */
+.sales-zone{max-width:900px;margin-top:2.5rem;padding:1rem 1.25rem;border:1px solid var(--color-border);border-radius:var(--radius);background:var(--color-surface)}
+.sales-zone h2{font-size:1.15rem}

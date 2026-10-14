@@ -172,6 +172,29 @@
       ? "Produtos publicados não podem ser excluídos. Para tirá-lo do site, escolha “Arquivado” na barra de situação, ao lado do Salvar, e salve."
       : "A exclusão é permanente: o produto e a página de vendas dele serão apagados.";
     $("delete").hidden = published;
+    refreshSalesZone(product);
+  }
+
+  // Área "Página de vendas": situação da página e links para pré-visualizar / ver publicada.
+  // A página só é pública com o produto publicado E a página publicada.
+  async function refreshSalesZone(product) {
+    var zone = $("sales"), status = $("sales-status"), preview = $("sales-preview"), pub = $("sales-public");
+    zone.hidden = !product;
+    if (!product) return;
+    try {
+      var page = await Admin.api("/products/" + encodeURIComponent(product.id) + "/sales-page");
+      preview.hidden = !page;
+      preview.href = "/admin/preview/" + encodeURIComponent(product.id);
+      var live = !!(page && page.published_at && product.status === "published");
+      pub.hidden = !live;
+      pub.href = "/p/" + encodeURIComponent(product.slug);
+      status.textContent = !page ? "Este produto ainda não tem página de vendas. O editor de páginas chega na próxima etapa."
+        : live ? "Publicada em /p/" + product.slug + "."
+        : page.published_at ? "A página está publicada, mas o produto não: ela só aparece para o público quando o produto também estiver publicado."
+        : "Criada, ainda não publicada. Use a pré-visualização para conferir.";
+    } catch (err) {
+      status.textContent = err.message;
+    }
   }
 
   $("delete").addEventListener("click", async function () {

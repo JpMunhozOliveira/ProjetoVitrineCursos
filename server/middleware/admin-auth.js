@@ -4,6 +4,20 @@ const { sha256, safeEqual, parseCookies } = require("../lib/security");
 const COOKIE = "vitrine_admin";
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
+// Sessão válida do painel a partir do cookie, ou null. Usado também por páginas HTML
+// (pré-visualização), que redirecionam para o login em vez de responder JSON 401.
+async function findSession(req) {
+  const token = parseCookies(req.headers.cookie)[COOKIE];
+  if (!token) return null;
+  const { rows } = await pool.query(
+    `SELECT s.id, s.csrf_token, u.id AS user_id, u.email
+       FROM admin_sessions s JOIN admin_users u ON u.id = s.user_id
+      WHERE s.token_hash = $1 AND s.expires_at > now()`,
+    [sha256(token)]
+  );
+  return rows[0] || null;
+}
+
 // Aceita (1) sessão por cookie do painel ou (2) chave de API (scripts/automações).
 async function requireAdmin(req, res, next) {
   const apiKey = req.get("x-admin-api-key");
@@ -15,17 +29,9 @@ async function requireAdmin(req, res, next) {
     return next();
   }
 
-  const token = parseCookies(req.headers.cookie)[COOKIE];
-  if (!token) return res.status(401).json({ error: "Autenticação necessária." });
-
-  const { rows } = await pool.query(
-    `SELECT s.id, s.csrf_token, u.id AS user_id, u.email
-       FROM admin_sessions s JOIN admin_users u ON u.id = s.user_id
-      WHERE s.token_hash = $1 AND s.expires_at > now()`,
-    [sha256(token)]
-  );
-  if (!rows.length) return res.status(401).json({ error: "Sessão expirada. Entre novamente." });
-  const s = rows[0];
+  if (!parseCookies(req.headers.cookie)[COOKIE]) return res.status(401).json({ error: "Autenticação necessária." });
+  const s = await findSession(req);
+  if (!s) return res.status(401).json({ error: "Sessão expirada. Entre novamente." });
 
   // Proteção CSRF: em requisições que alteram dados, exige origem igual e o token do cabeçalho.
   if (!SAFE_METHODS.has(req.method)) {
@@ -46,3 +52,4 @@ async function requireAdmin(req, res, next) {
 
 module.exports = requireAdmin;
 module.exports.COOKIE = COOKIE;
+module.exports.findSession = findSession;

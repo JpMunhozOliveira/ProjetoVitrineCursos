@@ -529,3 +529,82 @@
     transform: none;
   }
 }
+
+/* ==========================================================
+   Páginas geradas pelo painel (/p/nome-do-produto)
+   ========================================================== */
+/* Sprite de ícones fora da tela (substitui o style="" inline, que a CSP bloquearia). */
+.svg-sprite {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+.v-logo {
+  display: block;
+  width: auto;
+  max-width: 200px;
+  max-height: 56px;
+  margin-bottom: 1.5rem;
+  object-fit: contain;
+}
+.v-media {
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius);
+}
+.v-media.small {
+  max-width: 420px;
+  margin-inline: auto;
+}
+/* Sem imagem: o texto ocupa a largura toda (em vez de deixar uma coluna vazia). */
+@media (min-width: 860px) {
+  .v-hero-grid.no-media,
+  .v-final .v-hero-grid.no-media {
+    grid-template-columns: minmax(0, 820px);
+  }
+}
+.track > li.slide {
+  aspect-ratio: 3/2;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--color-surface);
+}
+/* "contain": páginas do material aparecem inteiras, sem cortes. */
+.slide-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.author-photo {
+  width: 100%;
+  aspect-ratio: 6/7;
+  object-fit: cover;
+  border-radius: 24px;
+}
+@media (min-width: 760px) {
+  .author.no-media {
+    grid-template-columns: minmax(0, 760px);
+  }
+}
+/* Produto sem link de checkout cadastrado. */
+.btn-cta.is-disabled,
+.btn-cta.is-disabled:hover {
+  background: var(--color-surface);
+  color: var(--color-muted);
+  box-shadow: none;
+  transform: none;
+  cursor: not-allowed;
+}
+/* Faixa da pré-visualização (só aparece para quem está logado no painel). */
+.preview-banner {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  padding: 0.6rem 1rem;
+  text-align: center;
+  font-weight: 600;
+  color: var(--color-notice-text);
+  background: var(--color-notice-bg);
+  border-bottom: 2px solid var(--color-accent);
+}
