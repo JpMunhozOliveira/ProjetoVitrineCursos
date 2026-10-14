@@ -123,6 +123,63 @@
     viewer.showModal();
   }
 
+  // Seletor de imagens da biblioteca (com envio de imagem nova no próprio diálogo).
+  // Uso: var media = await Admin.pickImage({ currentId }); // null = fechou sem escolher
+  var picker = null, pickerResolve = null;
+  function pickImage(opts) {
+    opts = opts || {};
+    if (!picker) {
+      picker = document.createElement("dialog");
+      picker.className = "picker";
+      picker.setAttribute("aria-labelledby", "picker-title");
+      picker.innerHTML = '<div class="picker-head"><h2 id="picker-title">Escolher imagem</h2><div class="row-actions">' +
+        '<label class="btn btn-sm file-btn">Enviar nova<input type="file" accept="image/png,image/jpeg,image/webp"></label>' +
+        '<button class="btn btn-sm btn-outline picker-close" type="button">Fechar</button></div></div>' +
+        '<p class="msg picker-msg" role="status" aria-live="polite"></p><div class="media-grid"></div>';
+      document.body.append(picker);
+      picker.querySelector(".picker-close").addEventListener("click", function () { picker.close(); });
+      picker.addEventListener("close", function () { if (pickerResolve) { pickerResolve(null); pickerResolve = null; } });
+      picker.querySelector("input[type=file]").addEventListener("change", async function () {
+        var file = this.files[0];
+        this.value = "";
+        if (!file) return;
+        var msg = picker.querySelector(".picker-msg");
+        showMessage(msg, "Enviando “" + file.name + "”…");
+        try { choose(await uploadImage(file)); } catch (err) { showMessage(msg, err.message, "error"); }
+      });
+    }
+    function choose(media) {
+      var resolve = pickerResolve;
+      pickerResolve = null;
+      picker.close();
+      resolve(media);
+    }
+
+    var grid = picker.querySelector(".media-grid"), msg = picker.querySelector(".picker-msg");
+    grid.replaceChildren();
+    showMessage(msg, "Carregando…");
+    picker.showModal();
+    api("/media").then(function (items) {
+      showMessage(msg, items.length ? "" : "A biblioteca está vazia. Use “Enviar nova”.");
+      items.forEach(function (m) {
+        var b = document.createElement("button");
+        b.type = "button";
+        b.className = "media-option";
+        if (opts.currentId === m.id) b.setAttribute("aria-current", "true");
+        var img = document.createElement("img");
+        img.src = m.url; img.alt = ""; img.loading = "lazy"; img.width = m.width; img.height = m.height;
+        var name = document.createElement("span");
+        name.textContent = m.original_name || "Imagem sem nome";
+        b.append(img, name);
+        b.setAttribute("aria-label", "Usar " + name.textContent + (m.alt_text ? " — " + m.alt_text : ""));
+        b.addEventListener("click", function () { choose(m); });
+        grid.append(b);
+      });
+    }).catch(function (err) { showMessage(msg, err.message, "error"); });
+
+    return new Promise(function (resolve) { pickerResolve = resolve; });
+  }
+
   // Upload de imagem com conferência prévia no navegador (só para avisar rápido;
   // quem decide de verdade é o servidor, que confere a assinatura do arquivo).
   var IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp"];
@@ -176,7 +233,7 @@
   window.Admin = {
     api: api, requireSession: requireSession, formatPrice: formatPrice,
     showMessage: showMessage, confirm: confirmAction, setFlash: setFlash, takeFlash: takeFlash,
-    uploadImage: uploadImage, formatBytes: formatBytes, viewImage: viewImage, IMAGE_TYPES: IMAGE_TYPES, STATUS: STATUS,
+    uploadImage: uploadImage, formatBytes: formatBytes, viewImage: viewImage, pickImage: pickImage, IMAGE_TYPES: IMAGE_TYPES, STATUS: STATUS,
     hasUnsavedChanges: function () { return false; }, // páginas com formulário substituem esta função
     leaving: false
   };

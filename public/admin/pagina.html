@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Página de vendas — Painel administrativo</title>
+  <link rel="stylesheet" href="../css/theme.css">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="css/admin.css">
+  <script src="../js/theme.js"></script>
+  <script src="js/common.js" defer></script>
+  <script src="js/pagina.js" defer></script>
+</head>
+<body>
+  <div class="container">
+    <div class="admin-top">
+      <header class="admin-bar">
+        <div class="admin-id">
+          <strong>Painel administrativo</strong>
+          <span id="who" class="muted small"></span>
+        </div>
+        <div class="admin-actions">
+          <button id="tema-btn" class="theme-btn" type="button" aria-label="Modo noturno" title="Modo noturno" aria-pressed="false"></button>
+          <button id="logout" class="btn btn-outline btn-sm" type="button">Sair</button>
+        </div>
+      </header>
+      <nav class="admin-nav" aria-label="Seções do painel">
+        <a href="./" aria-current="page">Produtos</a>
+        <a href="imagens.html">Imagens</a>
+      </nav>
+    </div>
+    <main class="section">
+      <a id="back" class="crumb" href="./">← Voltar ao produto</a>
+      <div class="page-head">
+        <div>
+          <h1>Página de vendas</h1>
+          <p id="product-name" class="muted"></p>
+        </div>
+        <div class="row-actions">
+          <a id="public-link" class="btn btn-sm btn-outline" target="_blank" rel="noopener" hidden>Ver publicada<span class="sr-only"> (abre em nova aba)</span></a>
+          <a id="preview-link" class="btn btn-sm btn-outline" target="_blank" rel="noopener" hidden>Pré-visualizar<span class="sr-only"> (abre em nova aba)</span></a>
+        </div>
+      </div>
+      <p id="load-msg" class="msg" role="status" aria-live="polite">Carregando…</p>
+
+      <!-- Produto ainda sem página: escolher como começar -->
+      <section id="start" class="start-box" hidden aria-labelledby="start-title">
+        <h2 id="start-title">Este produto ainda não tem página de vendas</h2>
+        <p>Comece pelo modelo padrão — a mesma estrutura da página do Manual, com textos de orientação para você substituir — ou monte do zero.</p>
+        <div class="row-actions">
+          <button id="start-default" class="btn" type="button">Usar o modelo padrão</button>
+          <button id="start-blank" class="btn btn-outline" type="button">Começar em branco</button>
+        </div>
+      </section>
+
+      <form id="editor" class="page-editor" hidden novalidate>
+        <p class="hint">Clique no nome de um bloco para abrir e editar. Preço e link de compra vêm do cadastro do produto. A pré-visualização mostra a versão <strong>salva</strong>.</p>
+        <ol id="blocks" class="blocks"></ol>
+
+        <div class="add-block">
+          <label for="new-type">Adicionar bloco</label>
+          <select id="new-type"></select>
+          <button id="add-block" class="btn btn-sm btn-outline" type="button">Adicionar no final</button>
+        </div>
+
+        <fieldset class="seo">
+          <legend>Busca e compartilhamento</legend>
+          <div class="field">
+            <label for="seo_title">Título da página</label>
+            <input id="seo_title" maxlength="220" aria-describedby="seo-title-help">
+            <p id="seo-title-help" class="hint">Aparece na aba do navegador, no Google e na prévia do link no WhatsApp. Vazio = título do produto.</p>
+          </div>
+          <div class="field">
+            <label for="seo_description">Descrição</label>
+            <textarea id="seo_description" rows="2" maxlength="320" aria-describedby="seo-desc-help"></textarea>
+            <p id="seo-desc-help" class="hint">Uma ou duas frases (até 320 caracteres). Vazio = resumo do produto.</p>
+          </div>
+        </fieldset>
+
+        <div class="form-actions">
+          <div class="status-picker" role="radiogroup" aria-labelledby="pub-label" aria-describedby="pub-hint">
+            <span id="pub-label" class="status-label">Página</span>
+            <div class="segmented">
+              <label><input type="radio" name="published" value="no" checked><span>Rascunho</span></label>
+              <label><input type="radio" name="published" value="yes"><span>Publicada</span></label>
+            </div>
+            <span id="pub-hint" class="hint"></span>
+          </div>
+          <div class="buttons">
+            <a id="cancel" class="btn btn-outline" href="./">Voltar</a>
+            <button id="save" class="btn" type="submit">Salvar</button>
+          </div>
+          <p id="msg" class="msg" role="status" aria-live="polite"></p>
+        </div>
+      </form>
+    </main>
+  </div>
+</body>
+</html>

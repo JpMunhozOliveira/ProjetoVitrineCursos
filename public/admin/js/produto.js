@@ -113,37 +113,10 @@
     chooseCover(null, "Capa removida. Clique em Salvar para aplicar (a imagem continua na biblioteca).");
   });
 
-  // Seletor de imagens já enviadas (diálogo com a biblioteca).
-  var picker = $("picker");
-  $("picker-close").addEventListener("click", function () { picker.close(); });
+  // Seletor de imagens da biblioteca (compartilhado: Admin.pickImage, em common.js).
   $("cover-pick").addEventListener("click", async function () {
-    var grid = $("picker-grid"), pickerMsg = $("picker-msg");
-    grid.replaceChildren();
-    Admin.showMessage(pickerMsg, "Carregando…");
-    picker.showModal();
-    try {
-      var items = await Admin.api("/media");
-      Admin.showMessage(pickerMsg, items.length ? "" : "A biblioteca está vazia. Use “Enviar imagem”.");
-      items.forEach(function (m) {
-        var b = document.createElement("button");
-        b.type = "button";
-        b.className = "media-option";
-        if (cover && cover.id === m.id) b.setAttribute("aria-current", "true");
-        var img = document.createElement("img");
-        img.src = m.url; img.alt = ""; img.loading = "lazy"; img.width = m.width; img.height = m.height;
-        var name = document.createElement("span");
-        name.textContent = m.original_name || "Imagem sem nome";
-        b.append(img, name);
-        b.setAttribute("aria-label", "Usar " + name.textContent + (m.alt_text ? " — " + m.alt_text : ""));
-        b.addEventListener("click", function () {
-          picker.close();
-          chooseCover(m, "Imagem escolhida. Clique em Salvar para aplicá-la ao produto.");
-        });
-        grid.append(b);
-      });
-    } catch (err) {
-      Admin.showMessage(pickerMsg, err.message, "error");
-    }
+    var m = await Admin.pickImage({ currentId: cover && cover.id });
+    if (m) chooseCover(m, "Imagem escolhida. Clique em Salvar para aplicá-la ao produto.");
   });
 
   // O texto alternativo pertence à imagem (fica na biblioteca); é gravado junto com o produto.
@@ -188,7 +161,11 @@
       var live = !!(page && page.published_at && product.status === "published");
       pub.hidden = !live;
       pub.href = "/p/" + encodeURIComponent(product.slug);
-      status.textContent = !page ? "Este produto ainda não tem página de vendas. O editor de páginas chega na próxima etapa."
+      var edit = $("sales-edit");
+      edit.hidden = false;
+      edit.href = "pagina.html?id=" + encodeURIComponent(product.id);
+      edit.textContent = page ? "Editar página de vendas" : "Criar página de vendas";
+      status.textContent = !page ? "Este produto ainda não tem página de vendas. Use “Criar página de vendas”, no topo."
         : live ? "Publicada em /p/" + product.slug + "."
         : page.published_at ? "A página está publicada, mas o produto não: ela só aparece para o público quando o produto também estiver publicado."
         : "Criada, ainda não publicada. Use a pré-visualização para conferir.";
