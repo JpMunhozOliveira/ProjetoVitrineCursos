@@ -1,28 +1,37 @@
 /* ==========================================================
    TEMA — único arquivo a editar para trocar cores e fontes.
-   Valores otimizados para plataforma de cursos profissionais.
+   Paleta: azul-marinho (confiança, autoridade) + dourado (destaque
+   e compra), com neutros levemente azulados. Contrastes de texto
+   seguem o WCAG AA (mínimo 4,5:1).
    ========================================================== */
 :root {
-  --color-primary: #1d4ed8;          /* Azul profissional forte: autoridade e foco */
-  --color-primary-dark: #1e40af;     /* Hover e rodapé */
+  --color-primary: #1d4e89;          /* Azul-marinho: links, botões, destaques (8,4:1 com branco) */
+  --color-primary-dark: #163d6b;     /* Hover dos botões */
   --color-on-primary: #ffffff;       /* Texto sobre a cor primária */
-  --color-accent: #059669;           /* Verde conversão (CTAs, destaques, garantia) */
+  --color-accent: #d4a73a;           /* Dourado: botões de compra (CTA) */
+  --color-accent-dark: #b98d24;      /* Hover do CTA */
+  --color-on-accent: #1a1405;        /* Texto sobre o dourado (8:1) */
   --color-bg: #ffffff;
-  --color-surface: #f8fafc;          /* Faixas e cards limpos */
-  --color-text: #0f172a;
-  --color-muted: #475569;
-  --color-border: #cbd5e1;
-  --color-focus: #047857;
-  --color-cover-start: #1e3a8a;      /* Gradiente de capas sem imagem */
-  --color-cover-end: #0f766e;
-  --color-footer-bg: #0f172a;
-  --color-footer-text: #f8fafc;
-  --color-skeleton-base: #e2e8f0;    /* Cards em carregamento */
-  --color-skeleton-shine: #f1f5f9;   /* Brilho que atravessa o card */
-  --color-notice-bg: #ecfdf5;        /* Aviso / Alerta positivo */
-  --color-notice-text: #065f46;
-  --color-danger: #b91c1c;           /* Mensagens de erro */
-  --color-warning: #92400e;          /* Avisos (ex.: ação com efeito colateral) */
+  --color-surface: #f4f6f9;          /* Faixas alternadas, cards, cabeçalho de tabela */
+  --color-text: #172033;
+  --color-muted: #4a5568;            /* Textos secundários (7,5:1) */
+  --color-border: #d5dbe3;
+  --color-focus: #0f766e;            /* Contorno de foco, sucesso e "publicado" */
+  --color-cover-start: #1d4e89;      /* Gradiente de capas sem imagem */
+  --color-cover-end: #0f2a4a;
+  --color-hero: #0f2440;             /* Faixas escuras das páginas de venda */
+  --color-hero-2: #183a63;
+  --color-on-hero: #f4f6fa;
+  --color-on-hero-muted: #b9c6d8;
+  --color-footer-bg: #0f1d33;
+  --color-footer-text: #e8edf4;
+  --color-skeleton-base: #e5e9f0;    /* Cards em carregamento */
+  --color-skeleton-shine: #f3f5f8;   /* Brilho que atravessa o card */
+  --color-notice-bg: #fbf5e6;        /* Aviso (ex.: JavaScript desativado) */
+  --color-notice-text: #6b4a0a;
+  --color-danger: #b42318;           /* Mensagens de erro e ações destrutivas */
+  --color-warning: #9a5b00;          /* Avisos (ex.: ação com efeito colateral) */
+  --shadow-hover: 0 8px 24px rgb(15 36 64 / .12);
   color-scheme: light;
 
   --font-base: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
@@ -32,27 +41,36 @@
 
 /* ==========================================================
    MODO NOTURNO — mesmas variáveis, valores para fundo escuro.
+   Fundo azul-ardósia (menos cansativo que preto puro) e cores
+   mais claras para manter o contraste.
    ========================================================== */
 :root[data-theme="dark"] {
-  --color-primary: #3b82f6;
-  --color-primary-dark: #60a5fa;     /* Hover dos botões */
-  --color-on-primary: #0f172a;
-  --color-accent: #10b981;
-  --color-bg: #0b0f19;
-  --color-surface: #111827;
-  --color-text: #f3f4f6;
-  --color-muted: #9ca3af;
-  --color-border: #1f2937;
-  --color-focus: #34d399;
-  --color-cover-start: #1e3a8a;
-  --color-cover-end: #047857;
-  --color-footer-bg: #030712;
-  --color-footer-text: #f3f4f6;
-  --color-skeleton-base: #1f2937;
-  --color-skeleton-shine: #374151;
-  --color-notice-bg: #064e3b;
-  --color-notice-text: #a7f3d0;
-  --color-danger: #f87171;
-  --color-warning: #fbbf24;
+  --color-primary: #6ea8e8;
+  --color-primary-dark: #93c0f2;     /* Hover dos botões (clareia no escuro) */
+  --color-on-primary: #0b1220;
+  --color-accent: #e0b44e;
+  --color-accent-dark: #f0c869;
+  --color-on-accent: #1a1405;
+  --color-bg: #0d1421;
+  --color-surface: #141d2e;
+  --color-text: #e6ebf2;
+  --color-muted: #9aa7b8;
+  --color-border: #263247;
+  --color-focus: #34c3a8;
+  --color-cover-start: #1d4e89;
+  --color-cover-end: #0b2340;
+  --color-hero: #0a1830;
+  --color-hero-2: #13294a;
+  --color-on-hero: #f4f6fa;
+  --color-on-hero-muted: #b9c6d8;
+  --color-footer-bg: #080d17;
+  --color-footer-text: #e6ebf2;
+  --color-skeleton-base: #1c2638;
+  --color-skeleton-shine: #273449;
+  --color-notice-bg: #2a2110;
+  --color-notice-text: #f3d38a;
+  --color-danger: #f2877d;
+  --color-warning: #e9b949;
+  --shadow-hover: 0 8px 24px rgb(0 0 0 / .4);
   color-scheme: dark;
 }

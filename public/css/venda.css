@@ -1,12 +1,12 @@
-/* Páginas de venda. Cores fixas da marca (podem ser movidas para theme.css). */
+/* Páginas de venda. As cores vêm de theme.css; os apelidos abaixo mantêm o restante do arquivo legível. */
 :root {
-  --v-navy: #0b192c;
-  --v-navy-2: #13294a;
-  --v-cta: #22c55e;
-  --v-cta-hover: #16a34a;
-  --v-cta-text: #052e16;
-  --v-on-navy: #f8fafc;
-  --v-on-navy-muted: #b6c3d6;
+  --v-navy: var(--color-hero);
+  --v-navy-2: var(--color-hero-2);
+  --v-cta: var(--color-accent);
+  --v-cta-hover: var(--color-accent-dark);
+  --v-cta-text: var(--color-on-accent);
+  --v-on-navy: var(--color-on-hero);
+  --v-on-navy-muted: var(--color-on-hero-muted);
 }
 .sr-only {
   position: absolute;
@@ -107,7 +107,7 @@
 }
 .v-hero h1,
 .v-final h2 {
-  color: #fff;
+  color: var(--v-on-navy);
 }
 .v-hero-grid {
   display: grid;
@@ -142,7 +142,7 @@
 }
 .badges strong {
   font-size: 1.2rem;
-  color: #fff;
+  color: var(--v-on-navy);
 }
 .offer {
   display: flex;
@@ -155,7 +155,7 @@
   font-size: clamp(2.2rem, 6vw, 3.2rem);
   font-weight: 800;
   line-height: 1.1;
-  color: #fff;
+  color: var(--v-on-navy);
 }
 .btn-cta {
   display: inline-flex;
@@ -176,9 +176,9 @@
 }
 .btn-cta:hover {
   background: var(--v-cta-hover);
-  color: #fff;
+  color: var(--v-cta-text);
   transform: scale(1.04);
-  box-shadow: 0 0 24px rgba(34, 197, 94, 0.45);
+  box-shadow: 0 0 24px rgb(212 167 58 / .45);
 }
 
 /* Cards */
@@ -202,7 +202,7 @@
 }
 .v-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shadow-hover);
 }
 .v-card.center {
   text-align: center;
@@ -213,7 +213,7 @@
   color: var(--v-on-navy);
 }
 .v-card.dark h3 {
-  color: #fff;
+  color: var(--v-on-navy);
 }
 .callout {
   margin: 1rem 0 0;
@@ -246,7 +246,7 @@
 }
 .grid8 li:hover {
   transform: translateY(-3px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shadow-hover);
 }
 .grid8 span {
   color: var(--color-muted);
@@ -279,10 +279,10 @@
   margin-top: 1px;
 }
 .mini .yes svg {
-  color: var(--v-cta);
+  color: var(--color-focus);
 }
 .mini .no svg {
-  color: #ef4444;
+  color: var(--color-danger);
 }
 .v-card.center .mini {
   max-width: 420px;
@@ -348,7 +348,7 @@
 }
 .who li:hover {
   transform: translateY(-3px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shadow-hover);
 }
 
 /* Banner aprofundar */
@@ -362,7 +362,7 @@
   color: var(--v-on-navy);
 }
 .banner h2 {
-  color: #fff;
+  color: var(--v-on-navy);
 }
 @media (min-width: 760px) {
   .banner {
@@ -468,7 +468,7 @@
   border: 0;
   border-radius: 50%;
   background: var(--v-navy);
-  color: #fff;
+  color: var(--v-on-navy);
   font-size: 1.6rem;
   cursor: pointer;
   transition: background 0.15s;
