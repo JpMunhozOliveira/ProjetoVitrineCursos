@@ -1,5 +1,6 @@
-// Cabeçalho do editor: título (cortado com "…" se for longo) e barra de ferramentas em grupos,
-// da esquerda para a direita — histórico | visualização | links | publicação (ação principal).
+// Cabeçalho do editor em duas linhas:
+//   1) Voltar · título (cortado com "…") · situação · Salvar rascunho · Publicar (ações principais)
+//   2) desfazer/refazer | computador/celular | painéis Estrutura e Página | abrir em nova aba · mensagem
 // Logo abaixo, a explicação da situação da página.
 import { PRODUCT_STATUS } from "../labels.js";
 
@@ -40,46 +41,57 @@ function DeviceToggle({ device, onChange }) {
 }
 
 // editing = false: tela inicial (sem página ainda) — mostra só título e links.
-export function EditorHeader({ product, productId, page, dirty, editing, canUndo, canRedo, onUndo, onRedo,
-  device, onDevice, saving, onPublish }) {
+export function EditorHeader({ product, productId, productUrl, page, dirty, editing, canUndo, canRedo, onUndo, onRedo,
+  device, onDevice, saving, onSave, onPublish, panel, onPanel, message }) {
   const live = !!(page?.published_at && product.status === "published");
   const pub = publishState({ page, dirty, product });
+  const togglePanel = (mode) => onPanel(panel === mode ? null : mode);
 
   return (
     <>
       <div className="page-head editor-head">
+        <a className="btn btn-sm btn-outline back-link" href={productUrl}><span aria-hidden="true">←</span> Voltar</a>
         <h1 className="editor-title" title={product.title}>Página de vendas <span className="muted">· {product.title}</span></h1>
+        {editing && (
+          <div className="publish-controls">
+            <span className={`pub-badge ${pub.state}`}>
+              {{ never: "Nunca publicada", changes: "Alterações não publicadas", live: "Publicada · em dia" }[pub.state]}
+            </span>
+            <button type="button" className="btn btn-sm btn-outline save-btn" disabled={saving} onClick={onSave}
+              aria-keyshortcuts="Control+S" title="Salvar rascunho (Ctrl+S) — não muda o site">
+              {dirty && <span className="dirty-dot" aria-hidden="true" />}Salvar rascunho
+              {dirty && <span className="sr-only"> (há alterações não salvas)</span>}
+            </button>
+            <button type="button" className="btn btn-sm btn-publish" disabled={saving || pub.state === "live"}
+              onClick={onPublish} aria-describedby="pub-hint">
+              {pub.everPublished ? "Publicar alterações" : "Publicar"}
+            </button>
+          </div>
+        )}
+      </div>
+      {editing && (
         <div className="editor-toolbar">
-          {editing && (
-            <div className="toolbar-group history-buttons" role="group" aria-label="Histórico de alterações">
-              <button type="button" className="icon-btn" onClick={onUndo} disabled={!canUndo}
-                title="Desfazer (Ctrl+Z)" aria-label="Desfazer" aria-keyshortcuts="Control+Z">↶</button>
-              <button type="button" className="icon-btn" onClick={onRedo} disabled={!canRedo}
-                title="Refazer (Ctrl+Shift+Z)" aria-label="Refazer" aria-keyshortcuts="Control+Shift+Z">↷</button>
-            </div>
-          )}
-          {editing && <div className="toolbar-group"><DeviceToggle device={device} onChange={onDevice} /></div>}
+          <div className="toolbar-group history-buttons" role="group" aria-label="Histórico de alterações">
+            <button type="button" className="icon-btn" onClick={onUndo} disabled={!canUndo}
+              title="Desfazer (Ctrl+Z)" aria-label="Desfazer" aria-keyshortcuts="Control+Z">↶</button>
+            <button type="button" className="icon-btn" onClick={onRedo} disabled={!canRedo}
+              title="Refazer (Ctrl+Shift+Z)" aria-label="Refazer" aria-keyshortcuts="Control+Shift+Z">↷</button>
+          </div>
+          <div className="toolbar-group"><DeviceToggle device={device} onChange={onDevice} /></div>
+          <div className="toolbar-group" role="group" aria-label="Painéis">
+            <button type="button" className="btn btn-sm btn-outline" aria-pressed={panel === "structure"} onClick={() => togglePanel("structure")}>Estrutura</button>
+            <button type="button" className="btn btn-sm btn-outline" aria-pressed={panel === "page"} onClick={() => togglePanel("page")}
+              title="Cores da página, título e descrição para busca e compartilhamento">Cores e SEO</button>
+          </div>
           {(page || live) && (
             <div className="toolbar-group" role="group" aria-label="Abrir em nova aba">
-              {page && <a className="btn btn-sm btn-outline" href={`/admin/preview/${encodeURIComponent(productId)}`} target="_blank" rel="noopener">Abrir versão salva<span className="sr-only"> (abre em nova aba)</span></a>}
+              {page && <a className="btn btn-sm btn-outline" href={`/admin/preview/${encodeURIComponent(productId)}`} target="_blank" rel="noopener">Versão salva<span className="sr-only"> (abre em nova aba)</span></a>}
               {live && <a className="btn btn-sm btn-outline" href={`/p/${encodeURIComponent(product.slug)}`} target="_blank" rel="noopener">Ver publicada<span className="sr-only"> (abre em nova aba)</span></a>}
             </div>
           )}
-          {editing && (
-            <div className="toolbar-group">
-              <div className="publish-controls">
-                <span className={`pub-badge ${pub.state}`}>
-                  {{ never: "Nunca publicada", changes: "Alterações não publicadas", live: "Publicada · em dia" }[pub.state]}
-                </span>
-                <button type="button" className="btn btn-sm btn-publish" disabled={saving || pub.state === "live"}
-                  onClick={onPublish} aria-describedby="pub-hint">
-                  {pub.everPublished ? "Publicar alterações" : "Publicar"}
-                </button>
-              </div>
-            </div>
-          )}
+          <p className={`msg toolbar-msg ${message.kind}`} role="status" aria-live="polite">{message.text}</p>
         </div>
-      </div>
+      )}
       {editing && <p id="pub-hint" className={`hint pub-hint${pub.warn ? " warn" : ""}`}>{pub.hint}</p>}
     </>
   );

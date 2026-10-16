@@ -34,6 +34,9 @@ export function focusField(doc, at) {
   if (!doc || !at) return false;
   const el = doc.querySelector(`[data-block="${at.block}"] [data-field="${CSS.escape(at.field)}"]`);
   if (!el) return false;
+  // Se o foco está no painel (ex.: acabou de escolher um bloco no menu), focar só o elemento não
+  // basta: a moldura precisa receber o foco da janela primeiro.
+  doc.defaultView.frameElement?.focus({ preventScroll: true });
   el.focus({ preventScroll: true });
   const range = doc.createRange();
   range.selectNodeContents(el);
@@ -123,6 +126,7 @@ export function attachCanvas(doc, apiRef) {
       const key = e.key.toLowerCase();
       if (key === "z" && !e.shiftKey) { e.preventDefault(); api().undo(); }
       else if ((key === "z" && e.shiftKey) || key === "y") { e.preventDefault(); api().redo(); }
+      else if (key === "s") { e.preventDefault(); api().save(); }
       return;
     }
     if (e.key === "Escape") {

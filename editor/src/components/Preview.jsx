@@ -6,6 +6,7 @@
 // muda a chave em toda alteração, EXCETO as digitadas na própria página.
 import { useEffect, useRef, useState } from "react";
 import { attachCanvas, activeField, focusField, lockFields, unlockFields } from "./CanvasEditing.js";
+import { CanvasOverlay } from "./CanvasOverlay.jsx";
 
 const DEBOUNCE_MS = 500; // espera uma pausa na digitação antes de pedir nova renderização
 
@@ -21,6 +22,7 @@ export function Preview({ productId, payload, renderKey, canvas, selectedIndex, 
   canvasRef.current = canvas;
   const restoreFocus = useRef(null);  // campo em edição quando a atualização começou
   const typedInFrame = useRef(false); // a moldura atual tem texto digitado (difere do HTML desenhado)?
+  const [frameDoc, setFrameDoc] = useState(null); // documento da moldura carregada (para os controles sobre a página)
   const [status, setStatus] = useState({ kind: "loading", text: "Carregando pré-visualização…" });
   // O ouvinte de clique vive dentro do iframe; a ref garante que ele chame sempre a versão
   // atual da função (sem ela, ficaria "congelada" na versão do momento em que foi registrado).
@@ -130,10 +132,20 @@ export function Preview({ productId, payload, renderKey, canvas, selectedIndex, 
     attachCanvas(doc, canvasRef);
     typedInFrame.current = false;
     doc.addEventListener("input", () => { typedInFrame.current = true; });
-    if (restoreFocus.current) focusField(doc, restoreFocus.current);
-    restoreFocus.current = null;
+    // Destaque ANTES do foco: campos vazios só aparecem (e só aceitam foco) no bloco selecionado.
     highlight(doc, false);
     hover(doc);
+    if (restoreFocus.current) focusField(doc, restoreFocus.current);
+    restoreFocus.current = null;
+    // Depois de inserir, mover ou duplicar: mostra o bloco e, se pedido, começa a editar o 1º texto dele.
+    const reveal = canvasRef.current.takeReveal?.();
+    if (reveal) {
+      const section = doc.querySelector(`[data-block="${reveal.index}"]`);
+      section?.scrollIntoView({ block: "nearest" });
+      const first = reveal.edit && section?.querySelector("[data-field]");
+      if (first) focusField(doc, { block: reveal.index, field: first.dataset.field });
+    }
+    setFrameDoc(doc);
   }
 
   // Escala: a página é desenhada na largura real do dispositivo (1280 px ou 390 px) e reduzida
@@ -151,12 +163,25 @@ export function Preview({ productId, payload, renderKey, canvas, selectedIndex, 
     width: `${logical}px`,
     height: `${box.height / scale}px`,
     transform: `scale(${scale})`,
+    // Tela mais larga que a página: centraliza (no celular o CSS já centraliza).
+    left: device === "desktop" && box.width > logical ? `${(box.width - logical) / 2}px` : undefined,
   };
+
+  // Retângulo medido dentro da moldura (em escala) -> coordenadas da janela do painel.
+  function toWindow(r) {
+    const f = frame.current.getBoundingClientRect();
+    const s = f.width / logical;
+    return { left: f.left + r.left * s, top: f.top + r.top * s, bottom: f.top + r.bottom * s, width: r.width * s, height: r.height * s };
+  }
 
   return (
     <div className="preview">
       <div ref={stage} className={`preview-stage ${device}`}>
         <iframe key={frameKey} ref={frame} title="Pré-visualização da página de vendas" srcDoc={html} onLoad={handleLoad} style={frameStyle} />
+        {frameDoc && frameDoc === frame.current?.contentDocument && (
+          <CanvasOverlay doc={frameDoc} scale={scale} selectedIndex={selectedIndex}
+            canvas={{ ...canvas, insert: (position, rect) => canvas.insert(position, toWindow(rect)) }} />
+        )}
       </div>
       {/* Barra de status embaixo da pré-visualização: situação e escala de exibição. */}
       <div className="preview-bar">

@@ -4,6 +4,7 @@ import { useEditor } from "../state/context.js";
 import { duplicateBlock } from "../state/document.js";
 import { Field } from "./Fields.jsx";
 import { BlockIcon } from "../ui/BlockIcon.jsx";
+import { Icon } from "./CanvasOverlay.jsx";
 import { SortableList, useSortableItem, DragHandle } from "../ui/dnd.jsx";
 
 // Resumo exibido no cabeçalho do bloco (o primeiro texto que identifica o conteúdo).
@@ -46,7 +47,7 @@ function BlockCard({ block, index, total, isOpen, isSelected, isHidden, onToggle
           <button type="button" className="icon-btn" data-action="down" disabled={index === total - 1}
             aria-label={`Mover bloco ${index + 1} (${label}) para baixo`} onClick={() => move(1, "down")}>↓</button>
           <button type="button" className="icon-btn" data-action="duplicate" disabled={total >= schema.maxBlocks}
-            aria-label={`Duplicar bloco ${index + 1} (${label})`} title="Duplicar" onClick={onDuplicate}>⧉</button>
+            aria-label={`Duplicar bloco ${index + 1} (${label})`} title="Duplicar" onClick={onDuplicate}><Icon name="duplicate" /></button>
           <button type="button" className="icon-btn danger"
             aria-label={`Remover bloco ${index + 1} (${label})`} onClick={onRemove}>✕</button>
         </div>
