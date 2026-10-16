@@ -16,3 +16,5 @@ yarn-debug.log*
 Thumbs.db
 # Editor compilado: é gerado dentro da imagem (etapa "editor" do Dockerfile)
 public/admin/editor
+# Imagens enviadas com a API rodando fora do Docker: não entram na imagem
+server/uploads

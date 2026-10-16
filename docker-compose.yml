@@ -48,6 +48,8 @@ services:
       PORT: 3000
       ADMIN_API_KEY: ${ADMIN_API_KEY:-}
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      PUBLIC_URL: ${PUBLIC_URL:-}
+      TRUST_PROXY: ${TRUST_PROXY:-}
       DATABASE_URL: *database-url
       UPLOAD_DIR: /data/uploads
       KIWIFY_CLIENT_ID: ${KIWIFY_CLIENT_ID:-}
