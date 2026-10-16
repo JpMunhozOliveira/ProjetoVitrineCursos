@@ -63,6 +63,12 @@ export function newBlock(type, schema) {
   return block;
 }
 
+// Cópia de um bloco: objetos novos e chaves novas em todos os níveis (blocos e itens de lista),
+// então editar a cópia nunca altera o original.
+export function duplicateBlock(block, schema) {
+  return withKeys([stripKeys(block)], schema)[0];
+}
+
 /* ---------- Alterações por "caminho" (ex.: ["sections", 2, "items", 0, "question"]) ---------- */
 export function getIn(obj, path) {
   return path.reduce((value, key) => (value == null ? value : value[key]), obj);

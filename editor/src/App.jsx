@@ -183,15 +183,16 @@ export default function App({ productId }) {
 
   // Salva o RASCUNHO (nunca muda o site). Devolve a página salva, ou null se deu erro.
   async function saveDraft() {
+    const sent = doc; // o que foi enviado (a pessoa pode continuar editando durante o salvamento)
     try {
       const saved = await api(`/products/${encodeURIComponent(productId)}/sales-page`, {
-        method: "PUT", body: stripKeys(doc),
+        method: "PUT", body: stripKeys(sent),
       });
       setPage(saved);
       // A resposta traz os blocos como foram gravados; as chaves antigas mantêm os blocos abertos.
       // "saved" (e não "load"): o histórico continua — dá para desfazer o que veio antes de salvar.
-      dispatch({ type: "saved", doc: {
-        sections: withKeys(carryKeys(saved.sections, doc.sections), schema),
+      dispatch({ type: "saved", sent, doc: {
+        sections: withKeys(carryKeys(saved.sections, sent.sections), schema),
         seo_title: saved.seo_title || "", seo_description: saved.seo_description || "",
         theme: resolveTheme(saved.theme, schema),
       } });
@@ -277,6 +278,10 @@ export default function App({ productId }) {
             <form className="page-editor" noValidate onSubmit={save}>
               <BlockList sections={sections} open={open} selectedKey={selected.key} visible={visible}
                 onToggle={toggle} onHover={setHovered}
+                onDuplicated={(key, wasOpen) => {
+                  if (wasOpen) setOpen((prev) => new Set(prev).add(key));
+                  setSelected({ key, from: "editor" });
+                }}
                 onInsert={(position) => sections.length < schema.maxBlocks && setPickerAt(position)} />
 
               <button type="button" className="add-block-btn" disabled={sections.length >= schema.maxBlocks}

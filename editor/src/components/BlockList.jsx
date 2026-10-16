@@ -1,6 +1,7 @@
 // Lista de blocos da página: cada bloco é um cartão recolhível com o formulário do seu tipo.
 import { Fragment, useId } from "react";
 import { useEditor } from "../state/context.js";
+import { duplicateBlock } from "../state/document.js";
 import { Field } from "./Fields.jsx";
 import { BlockIcon } from "../ui/BlockIcon.jsx";
 import { SortableList, useSortableItem, DragHandle } from "../ui/dnd.jsx";
@@ -11,7 +12,7 @@ function summary(block) {
   return block.title || block.name || first.title || first.question || first.text || "";
 }
 
-function BlockCard({ block, index, total, isOpen, isSelected, isHidden, onToggle, onRemove, onHover }) {
+function BlockCard({ block, index, total, isOpen, isSelected, isHidden, onToggle, onRemove, onDuplicate, onHover }) {
   const { schema, dispatch, focusLater } = useEditor();
   const def = schema.blocks[block.type];
   const bodyId = useId();
@@ -44,6 +45,8 @@ function BlockCard({ block, index, total, isOpen, isSelected, isHidden, onToggle
             aria-label={`Mover bloco ${index + 1} (${label}) para cima`} onClick={() => move(-1, "up")}>↑</button>
           <button type="button" className="icon-btn" data-action="down" disabled={index === total - 1}
             aria-label={`Mover bloco ${index + 1} (${label}) para baixo`} onClick={() => move(1, "down")}>↓</button>
+          <button type="button" className="icon-btn" data-action="duplicate" disabled={total >= schema.maxBlocks}
+            aria-label={`Duplicar bloco ${index + 1} (${label})`} title="Duplicar" onClick={onDuplicate}>⧉</button>
           <button type="button" className="icon-btn danger"
             aria-label={`Remover bloco ${index + 1} (${label})`} onClick={onRemove}>✕</button>
         </div>
@@ -73,7 +76,7 @@ function InsertHere({ position, onInsert }) {
   );
 }
 
-export function BlockList({ sections, open, selectedKey, visible, onToggle, onHover, onInsert }) {
+export function BlockList({ sections, open, selectedKey, visible, onToggle, onHover, onInsert, onDuplicated }) {
   const { schema, dispatch, focusLater } = useEditor();
 
   async function remove(block, index) {
@@ -88,6 +91,15 @@ export function BlockList({ sections, open, selectedKey, visible, onToggle, onHo
     onHover(null);
     const next = sections[index + 1] || sections[index - 1];
     focusLater(next ? `[data-block-key="${next._key}"] .block-toggle` : ".add-block-btn");
+  }
+
+  // A cópia entra logo abaixo do original, já aberta e com o foco.
+  function duplicate(block, index) {
+    if (sections.length >= schema.maxBlocks) return;
+    const copy = duplicateBlock(block, schema);
+    dispatch({ type: "insert", path: ["sections"], index: index + 1, value: copy });
+    onDuplicated(copy._key, open.has(block._key));
+    focusLater(`[data-block-key="${copy._key}"] .block-toggle`);
   }
 
   // Arrastar e soltar usa a mesma ação "move" dos botões ↑ ↓ (e entra no desfazer igual).
@@ -111,7 +123,8 @@ export function BlockList({ sections, open, selectedKey, visible, onToggle, onHo
             <BlockCard block={block} index={index} total={sections.length}
               isOpen={open.has(block._key)} isSelected={selectedKey === block._key}
               isHidden={visible !== null && !visible.has(index)}
-              onToggle={() => onToggle(block._key)} onRemove={() => remove(block, index)} onHover={onHover} />
+              onToggle={() => onToggle(block._key)} onRemove={() => remove(block, index)}
+              onDuplicate={() => duplicate(block, index)} onHover={onHover} />
           </Fragment>
         ))}
       </ol>

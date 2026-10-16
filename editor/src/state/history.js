@@ -20,6 +20,9 @@ export function historyReducer(state, action) {
     case "start":  // página nova (modelo padrão ou em branco): ainda não existe versão salva
       return { past: [], doc: action.doc, future: [], saved: null, last: null };
     case "saved":  // salvou: a resposta do servidor vira a versão atual e a salva; o histórico continua
+      // Houve edição durante o salvamento: a resposta é mais antiga que a tela. Mantém o que foi
+      // digitado; a versão salva passa a ser a que foi enviada (o aviso "não salvo" continua).
+      if (action.sent && state.doc !== action.sent) return { ...state, saved: action.sent };
       return { ...state, doc: action.doc, saved: action.doc, last: null };
     case "undo":
       if (!state.past.length) return state;
