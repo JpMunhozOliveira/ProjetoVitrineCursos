@@ -121,6 +121,34 @@ export default function App({ productId }) {
     sections: doc.sections, seo_title: doc.seo_title, seo_description: doc.seo_description, theme: doc.theme,
   }), [doc?.sections, doc?.seo_title, doc?.seo_description, doc?.theme]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  /* ---------- Edição direta na página (pré-visualização) ----------
+     Texto digitado na página já está na tela: não redesenha a moldura a cada letra (o cursor
+     pularia). renderKey muda em todas as outras alterações e quando se sai da edição de texto. */
+  const [renderKey, setRenderKey] = useState(0);
+  const fromCanvas = useRef(false);   // a última alteração veio da digitação na página?
+  const canvasPending = useRef(false); // há texto digitado na página ainda não redesenhado?
+  useEffect(() => {
+    if (!previewPayload) return;
+    if (fromCanvas.current) { fromCanvas.current = false; canvasPending.current = true; return; }
+    canvasPending.current = false;
+    setRenderKey((k) => k + 1);
+  }, [previewPayload]);
+
+  const canvas = {
+    schema, sections, undo, redo,
+    edit(path, value) {
+      fromCanvas.current = true;
+      dispatch({ type: "set", path, value, merge: true });
+    },
+    select: (index) => revealBlock(index, "canvas"),
+    deselect: () => setSelected({ key: null, from: null }),
+    leave() {
+      if (!canvasPending.current) return;
+      canvasPending.current = false;
+      setRenderKey((k) => k + 1);
+    },
+  };
+
   const context = useMemo(() => ({
     dispatch, schema, media, focusLater,
     addMedia: (m) => setMedia((prev) => new Map(prev).set(m.id, m)),
@@ -138,15 +166,17 @@ export default function App({ productId }) {
   }
 
   // Abre um bloco e rola o EDITOR até ele (clique na pré-visualização ou erro do servidor).
+  // from "canvas": começou a editar um texto na página — o foco fica lá, não vai para o formulário.
   function revealBlock(index, from) {
     const block = sections[index];
     if (!block) return;
+    if (from === "canvas" && selected.key === block._key) return; // já selecionado (outro texto do mesmo bloco)
     setOpen((prev) => new Set(prev).add(block._key));
     setSelected({ key: block._key, from });
     requestAnimationFrame(() => {
       const card = document.querySelector(`[data-block-key="${block._key}"]`);
       card?.scrollIntoView({ block: "start", behavior: "smooth" });
-      card?.querySelector(".block-toggle")?.focus({ preventScroll: true });
+      if (from !== "canvas") card?.querySelector(".block-toggle")?.focus({ preventScroll: true });
     });
   }
 
@@ -305,7 +335,7 @@ export default function App({ productId }) {
             </form>
 
             <aside className="preview-pane" aria-label="Pré-visualização">
-              <Preview productId={productId} payload={previewPayload} device={device}
+              <Preview productId={productId} payload={previewPayload} renderKey={renderKey} canvas={canvas} device={device}
                 selectedIndex={selectedIndex >= 0 ? selectedIndex : null}
                 scrollToSelected={selected.from === "editor"}
                 onSelectBlock={(index) => revealBlock(index, "preview")}
