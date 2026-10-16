@@ -1,0 +1,196 @@
+/* Página de vendas DENTRO do editor do painel (pré-visualização ao vivo).
+   Carregado só quando o servidor renderiza com preview: "live" (ver server/sales/render.js);
+   a página pública nunca recebe este arquivo nem os atributos data-* usados aqui.
+
+   .is-editor-preview  -> colocada no <html> pelo editor quando a moldura carrega
+   [data-block="N"]    -> seção do bloco N; .is-selected / .is-hovered vêm do editor
+   [data-field]        -> texto editável direto na página (caminho do campo dentro do bloco)
+   [data-empty]        -> campo vazio: mostra o rótulo como exemplo, só no bloco selecionado
+   [data-hidden]       -> bloco que não aparece na página publicada (aviso no lugar) */
+
+/* ---------- Seções: seleção e destaque ---------- */
+.is-editor-preview [data-block] {
+  cursor: pointer;
+  outline-offset: -4px;
+}
+.is-editor-preview [data-block]:hover,
+.is-editor-preview [data-block].is-hovered {
+  outline: 3px dashed var(--color-accent);
+}
+.is-editor-preview [data-block].is-selected {
+  outline: 3px solid var(--color-accent);
+}
+
+/* ---------- Textos editáveis ---------- */
+.is-editor-preview [data-field] {
+  cursor: text;
+  border-radius: 4px;
+  white-space: pre-wrap; /* quebras de linha digitadas aparecem como no texto salvo */
+  transition: box-shadow 0.12s;
+}
+.is-editor-preview [data-field]:hover {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 45%, transparent);
+}
+.is-editor-preview [data-field]:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-accent);
+}
+/* Campos vazios: invisíveis (a prévia continua fiel à página), exceto no bloco selecionado
+   ou em edição, onde mostram o rótulo do campo como texto de exemplo. */
+.is-editor-preview [data-block]:not(.is-selected) [data-empty]:not(:focus) {
+  display: none;
+}
+.is-editor-preview [data-empty] {
+  min-width: 4ch;
+}
+.is-editor-preview [data-empty]:empty::before {
+  content: attr(data-placeholder);
+  font-style: italic;
+  opacity: 0.55;
+  pointer-events: none;
+}
+/* Resposta do FAQ vazia: mesmo recuo dos parágrafos. */
+.is-editor-preview .faq [data-multiline]:empty {
+  padding: 0 1.25rem 1.1rem;
+}
+
+/* ---------- Bloco que não aparece na página ---------- */
+.is-editor-preview .editor-hidden-block {
+  padding: 1.25rem 0;
+  color: var(--color-muted);
+  background: repeating-linear-gradient(-45deg, var(--color-surface), var(--color-surface) 10px, var(--color-bg) 10px, var(--color-bg) 20px);
+  border-block: 1px dashed var(--color-border);
+}
+.is-editor-preview .editor-hidden-block p {
+  margin: 0;
+  text-align: center;
+}
+
+/* ---------- Controles sobre a página (editor/src/components/CanvasOverlay.jsx) ----------
+   Posições e escala vêm do editor (style via JavaScript); aqui só a aparência. */
+.editor-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 60;
+  width: 0;
+  height: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+.editor-overlay > * {
+  position: absolute;
+}
+.editor-overlay svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+}
+
+/* Barra do bloco selecionado */
+.eo-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  white-space: nowrap;
+  color: var(--color-text);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.18);
+  transform-origin: 100% 0;
+}
+.eo-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px 0 6px;
+  margin-right: 2px;
+  font-size: 13px;
+  font-weight: 700;
+  border-right: 1px solid var(--color-border);
+}
+.eo-label .block-icon {
+  width: 16px;
+  height: 16px;
+  color: var(--color-primary);
+}
+.eo-btn {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  color: var(--color-text);
+  background: none;
+  border: 0;
+  border-radius: 7px;
+  cursor: pointer;
+}
+.eo-btn:hover:not(:disabled) {
+  color: var(--color-primary);
+  background: var(--color-surface);
+}
+.eo-btn.danger:hover:not(:disabled) {
+  color: var(--color-danger);
+}
+.eo-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.editor-overlay button:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* "+" nas bordas dos blocos */
+.eo-insert {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  color: var(--color-on-primary);
+  background: var(--color-primary);
+  border: 2px solid var(--color-bg);
+  border-radius: 50%;
+  box-shadow: 0 3px 10px rgb(0 0 0 / 0.25);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.eo-insert:hover:not(:disabled) {
+  background: var(--color-primary-dark);
+}
+.eo-insert:disabled {
+  background: var(--color-muted);
+  cursor: not-allowed;
+}
+
+/* Página vazia */
+.eo-first {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 22px;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-primary);
+  background: var(--color-bg);
+  border: 2px dashed var(--color-primary);
+  border-radius: 12px;
+  cursor: pointer;
+  transform-origin: 50% 0;
+}
+.eo-first:hover {
+  background: var(--color-surface);
+}
+
+/* Telas de toque: sem "passar o mouse", os "+" aparecem só no bloco tocado (selecionado). */
+@media (hover: none) {
+  .eo-btn,
+  .eo-insert {
+    min-width: 40px;
+    min-height: 40px;
+  }
+}

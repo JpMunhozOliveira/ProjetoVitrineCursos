@@ -114,6 +114,19 @@ const BLOCKS = {
       items: list("Itens", 8, { text: text("Texto", 160) }),
     },
   },
+  testimonials: {
+    label: "Depoimentos",
+    help: "O que clientes dizem do produto. Use só depoimentos reais. Depoimentos sem texto não aparecem.",
+    fields: {
+      title: text("Título da seção", 120),
+      items: list("Depoimentos", 9, {
+        quote: textarea("Depoimento", 600),
+        name: text("Nome", 80),
+        role: text("Profissão / cidade (opcional)", 80),
+        photo: image("Foto (opcional)"),
+      }),
+    },
+  },
   faq: {
     label: "Perguntas frequentes",
     help: "Funciona sem JavaScript (cada pergunta abre e fecha).",

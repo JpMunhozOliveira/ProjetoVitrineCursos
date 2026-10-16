@@ -15,13 +15,13 @@ export function StartScreen({ productUrl, onStart }) {
   );
 }
 
-// Telas pequenas: o editor lado a lado não cabe. Este aviso fica no HTML e o CSS
+// Celular: a página editável e os controles não cabem. Este aviso fica no HTML e o CSS
 // (styles/editor.css) decide quando mostrá-lo no lugar do editor.
 export function UnsupportedNotice({ productId, productUrl, hasPage }) {
   return (
     <div className="editor-unsupported" role="note">
-      <h2>Editor disponível no computador</h2>
-      <p>A edição da página de vendas precisa de uma tela com pelo menos 1024 px de largura, para mostrar o editor e a pré-visualização lado a lado.</p>
+      <h2>Editor disponível no tablet e no computador</h2>
+      <p>A edição da página de vendas precisa de uma tela com pelo menos 768 px de largura (um tablet, ou o celular deitado em alguns modelos).</p>
       <div className="row-actions">
         {hasPage && <a className="btn btn-outline" href={`/admin/preview/${encodeURIComponent(productId)}`} target="_blank" rel="noopener">Ver versão salva<span className="sr-only"> (abre em nova aba)</span></a>}
         <a className="btn" href={productUrl}>Voltar ao produto</a>

@@ -12,9 +12,12 @@
 .device-icon { display: block; width: 20px; height: 20px; }
 .device-toggle span { padding: .3rem .7rem; }
 
-.editor-layout { display: grid; gap: 1.5rem; align-items: start; }
-.page-editor { max-width: none; }
-.page-editor > .hint { margin: 0 0 1rem; }
+/* A página ocupa a largura toda; o painel lateral (quando aberto) fica ao lado em telas largas
+   e POR CIMA da página em telas menores (tablet). */
+.editor-layout { position: relative; display: grid; gap: 1rem; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 1280px) {
+  .editor-layout.has-panel { grid-template-columns: minmax(0, 1fr) 400px; }
+}
 
 /* ---------- Pré-visualização ---------- */
 .preview-pane { display: flex; flex-direction: column; gap: .5rem; }
@@ -31,19 +34,18 @@
 /* Celular: moldura centralizada (a escala só reduz se o painel for mais estreito que 390 px). */
 .preview-stage.mobile iframe { left: 50%; translate: -50% 0; transform-origin: 50% 0; box-shadow: 0 0 0 1px var(--color-border); }
 
-/* ---------- Layout de aplicativo (a partir de 1024 px) ----------
+/* ---------- Layout de aplicativo (a partir de 768 px: tablet e computador) ----------
    A "concha" ocupa a altura da janela menos o cabeçalho do painel (--top-offset, medido pelo
-   App). Só a coluna do editor rola; a pré-visualização fica fixa e sempre inteira à vista. */
+   App). A página e o painel lateral rolam por dentro; o cabeçalho do editor fica sempre à vista. */
 .editor-unsupported { display: none; }
-@media (min-width: 1024px) {
+@media (min-width: 768px) {
   .editor-shell { display: flex; flex-direction: column; height: calc(100dvh - var(--top-offset, 8rem) - .75rem); }
   .editor-main { display: flex; flex: 1; flex-direction: column; min-height: 0; }
-  .editor-layout { flex: 1; min-height: 0; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: stretch; }
-  .page-editor { min-height: 0; overflow-y: auto; padding-right: .75rem; scroll-padding-block: 1rem 8rem; overscroll-behavior: contain; }
+  .editor-layout { flex: 1; min-height: 0; align-items: stretch; }
   .preview-pane { min-height: 0; padding-bottom: .75rem; }
 }
-/* Telas menores: editor indisponível (aviso no lugar). */
-@media (max-width: 1023px) {
+/* Celular: editor indisponível (aviso no lugar). */
+@media (max-width: 767px) {
   .editor-main { display: none; }
   .editor-unsupported { display: block; max-width: 40rem; padding: 1.5rem; border: 2px dashed var(--color-border); border-radius: var(--radius); }
   .editor-unsupported h2 { font-size: 1.25rem; }
@@ -143,9 +145,6 @@
 .history-buttons { display: flex; gap: .25rem; }
 .history-buttons .icon-btn { width: 34px; height: 34px; font-size: 1.1rem; }
 
-/* Barra de baixo (Voltar + Salvar): acima dos cartões ao rolar. */
-.editor-actions { z-index: 10; grid-template-areas: "msg buttons"; align-items: center; }
-.editor-actions .msg { align-self: center; }
 
 /* Rascunho / Publicada no cabeçalho + explicação logo abaixo */
 .publish-toggle span { padding: .3rem .8rem; font-size: .9rem; }
@@ -178,7 +177,7 @@
 
 /* Sem "ancoragem de rolagem" na coluna do editor: quando o vão de "inserir aqui" se abre, o
    navegador tentava compensar a rolagem, a página andava sob o mouse e o vão abria/fechava sem parar. */
-.page-editor { overflow-anchor: none; }
+.side-panel-body { overflow-anchor: none; }
 
 /* Ícones: o admin.css tem ".field label { display: block; margin-bottom }" para rótulos de texto;
    esta regra é mais específica e mantém o desenho centralizado na opção. */
@@ -232,11 +231,19 @@
 /* Publicar é a ação principal do editor: botão cheio; "Salvar rascunho" fica como secundário. */
 .btn-publish { white-space: nowrap; }
 
-/* ---------- Cabeçalho do editor: título + barra de ferramentas ----------
-   O título encolhe e é cortado com "…"; a barra nunca quebra de linha nem desce. */
-.editor-head { flex-wrap: nowrap; align-items: center; gap: 1rem; }
+/* ---------- Cabeçalho do editor: duas linhas ----------
+   1) Voltar · título (encolhe e é cortado com "…") · situação · Salvar · Publicar
+   2) ferramentas em grupos, com a mensagem de salvamento à direita */
+.editor-head { flex-wrap: nowrap; align-items: center; gap: .75rem; margin-bottom: .5rem; }
+.back-link { flex: none; }
 .editor-head h1.editor-title { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.editor-toolbar { display: flex; flex: none; align-items: center; }
+.editor-toolbar { display: flex; flex-wrap: wrap; align-items: center; row-gap: .4rem; margin-bottom: .4rem; }
+.toolbar-msg { flex: 1 1 14rem; margin: 0 0 0 .75rem; text-align: right; font-size: .9rem; }
+.toolbar-msg:empty { display: none; }
+.editor-toolbar [aria-pressed="true"] { color: var(--color-on-primary); background: var(--color-primary); border-color: var(--color-primary); }
+.publish-controls { flex: none; }
+.save-btn { display: inline-flex; align-items: center; gap: .4rem; white-space: nowrap; }
+.dirty-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--color-warning); }
 /* Grupos separados por uma linha fina vertical. */
 .toolbar-group { display: flex; align-items: center; gap: .4rem; padding: 0 .75rem; }
 .toolbar-group + .toolbar-group { border-left: 1px solid var(--color-border); }
@@ -247,3 +254,40 @@
 
 /* Barra de status abaixo da pré-visualização. */
 .preview-bar { padding-top: .1rem; }
+
+/* ---------- Painel lateral (SidePanel.jsx) ---------- */
+.side-panel {
+  display: flex; flex-direction: column; min-height: 0; margin-bottom: .75rem;
+  background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius);
+}
+.side-panel-head {
+  display: flex; align-items: center; justify-content: space-between; gap: .5rem;
+  padding: .5rem .6rem; border-bottom: 1px solid var(--color-border);
+}
+.panel-tabs span { padding: .3rem .8rem; font-size: .9rem; }
+.side-panel-body { flex: 1; min-height: 0; overflow-y: auto; padding: .75rem; overscroll-behavior: contain; scroll-padding-block: 1rem; }
+.panel-empty { margin: .5rem 0; }
+.panel-block-title { display: flex; align-items: center; gap: .5rem; margin: 0 0 .5rem; font-size: 1.1rem; }
+.panel-block-title .block-icon { width: 22px; height: 22px; color: var(--color-primary); }
+.side-panel .add-block-btn { margin-bottom: .5rem; }
+/* Tablet (até 1279 px): o painel fica POR CIMA da página, encostado à direita. */
+@media (max-width: 1279px) {
+  .side-panel {
+    position: absolute; top: 0; right: 0; bottom: 0; z-index: 20; width: min(400px, 92%);
+    box-shadow: -10px 0 30px rgb(0 0 0 / .18);
+  }
+}
+
+/* ---------- Seletor de bloco compacto (aberto pelo "+" da página) ---------- */
+.block-picker.compact { position: fixed; inset: auto; margin: 0; width: 20rem; max-height: min(28rem, calc(100dvh - 1rem)); padding: .6rem; }
+.block-picker.compact::backdrop { background: rgb(0 0 0 / .08); }
+.block-picker.compact .picker-head h2 { margin: .1rem .25rem .5rem; font-size: .95rem; }
+.block-picker.compact .block-types { grid-template-columns: 1fr; gap: 2px; }
+.block-picker.compact .block-type { grid-template-columns: auto 1fr; align-items: center; padding: .45rem .6rem; border-width: 1px; border-color: transparent; }
+.block-picker.compact .block-type .block-icon { grid-row: auto; width: 22px; height: 22px; }
+
+/* Telas de toque: alvos maiores. */
+@media (hover: none) {
+  .editor-toolbar .btn-sm, .editor-head .btn-sm, .icon-btn { min-height: 40px; min-width: 40px; }
+}
+.block-head .icon-btn svg { display: block; width: 16px; height: 16px; }

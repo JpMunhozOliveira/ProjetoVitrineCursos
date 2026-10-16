@@ -17,11 +17,48 @@ const mark = (positive) => html`<svg aria-hidden="true"><use href="#i-${positive
 const SPRITE = html`<svg class="svg-sprite" aria-hidden="true">${Object.entries(ICONS).map(([name, icon]) =>
   html`<symbol id="i-${name}" viewBox="0 0 24 24"><path d="${icon.d}" fill="none" stroke="currentColor" stroke-width="${icon.width || 1.8}" stroke-linecap="round" stroke-linejoin="round"/></symbol>`)}</svg>`;
 
+// Rótulo de um campo pelo caminho ("items.0.question" -> "Pergunta"), para o texto de exemplo.
+function fieldLabel(type, path) {
+  let fields = BLOCKS[type]?.fields, field = null;
+  for (const part of path.split(".")) {
+    if (/^\d+$/.test(part)) continue;
+    field = fields?.[part];
+    fields = field?.item;
+  }
+  return field?.label || "";
+}
+
 // Contexto de uma renderização: produto, imagens e contadores (ids de títulos, fundo alternado).
-function createContext(data) {
+// live = true: pré-visualização dentro do editor, com os textos marcados para edição direta.
+function createContext(data, { live = false } = {}) {
   let sectionCount = 0, headingCount = 0, heroCount = 0;
-  return {
+  const ctx = {
     product: data,
+    live,
+    type: null, // tipo do bloco sendo desenhado (o laço de renderSalesPage atualiza)
+
+    /* ---- Edição direta no editor (só com live = true) ----
+       Na página pública estes devolvem a marcação de sempre (ou nada): o público não vê diferença. */
+
+    // Atributos de um texto editável: data-field="items.0.question" (caminho dentro do bloco).
+    // Vazio -> data-empty + data-placeholder (o editor mostra o rótulo só no bloco selecionado).
+    // fallback: o texto exibido é um padrão (ex.: título do produto); editar grava o campo do bloco.
+    field(path, value, { fallback = false } = {}) {
+      if (!live) return null;
+      const empty = !value && !fallback;
+      return html` data-field="${path}"${empty ? html` data-empty data-placeholder="${fieldLabel(ctx.type, path)}"` : null}${fallback && !value ? html` data-fallback` : null}`;
+    },
+    // Texto que divide o elemento com outra coisa (ícone, outro texto): ganha um <span> só no editor.
+    text(path, value) {
+      return live ? html`<span${ctx.field(path, value)}>${value}</span>` : value;
+    },
+    // Texto longo (parágrafos): no editor, os <p> ficam dentro de um <div> editável.
+    paras(path, value, cls) {
+      return live ? html`<div${ctx.field(path, value)} data-multiline>${paragraphs(value, cls)}</div>` : paragraphs(value, cls);
+    },
+    // Campo opcional: na página pública só aparece preenchido; no editor, sempre (vazio = espaço para digitar).
+    show: (value) => live || !!value,
+
     // <img> de uma imagem da biblioteca; "priority" para a primeira dobra (não espera rolar).
     img(id, cls, { priority = false } = {}) {
       const m = id && data.media.get(id);
@@ -29,19 +66,22 @@ function createContext(data) {
       return html`<img class="${cls}" src="${m.url}" alt="${m.alt_text || ""}" width="${m.width}" height="${m.height}" ${priority ? html`fetchpriority="high"` : html`loading="lazy"`} decoding="async">`;
     },
     // Botão de compra: o link vem SEMPRE do cadastro do produto (fonte única).
-    cta(label) {
+    // label: texto do bloco (vazio = usa o fallback); path: o campo, para a edição no editor.
+    cta(label, fallback, path) {
       if (!data.checkout_url) return html`<span class="btn-cta is-disabled" aria-disabled="true">Em breve</span>`;
-      return html`<a class="btn-cta" href="${data.checkout_url}" target="_blank" rel="noopener noreferrer">${label}<span class="sr-only"> (abre em nova aba)</span></a>`;
+      const text = live ? html`<span${ctx.field(path, label, { fallback: true })}>${label || fallback}</span>` : label || fallback;
+      return html`<a class="btn-cta" href="${data.checkout_url}" target="_blank" rel="noopener noreferrer">${text}<span class="sr-only"> (abre em nova aba)</span></a>`;
     },
-    price(label) {
+    price(label, path) {
       if (data.price_cents === null || data.price_cents === undefined) return null;
-      return html`<p class="price-big">${label && html`<span class="muted-on-dark">${label}</span>`} ${brl(data.price_cents)}</p>`;
+      return html`<p class="price-big">${ctx.show(label) && html`<span class="muted-on-dark"${ctx.field(path, label)}>${label}</span>`} ${brl(data.price_cents)}</p>`;
     },
     headingId: () => `t-${++headingCount}`,
     // Seções comuns alternam o fundo (branco / cinza) na ordem em que aparecem.
     sectionClass: () => (sectionCount++ % 2 ? "v-section alt" : "v-section"),
     firstHero: () => heroCount++ === 0,
   };
+  return ctx;
 }
 
 const RENDERERS = {
@@ -49,14 +89,15 @@ const RENDERERS = {
     const media = ctx.img(b.image, "v-media", { priority: true });
     const Title = ctx.firstHero() ? "h1" : "h2"; // só um <h1> por página
     const title = b.title || ctx.product.title;
+    const titleField = ctx.field("title", b.title, { fallback: true });
     return html`<section class="v-hero"${ctx.mark()}>
   <div class="container v-hero-grid${media ? "" : " no-media"}">
     <div>
       ${ctx.img(b.logo, "v-logo", { priority: true })}
-      ${Title === "h1" ? html`<h1>${title}</h1>` : html`<h2>${title}</h2>`}
-      ${b.lead && html`<p class="lead">${b.lead}</p>`}
-      ${b.badges.length > 0 && html`<ul class="badges" aria-label="Resumo do material">${b.badges.map((x) => html`<li>${x.strong && html`<strong>${x.strong}</strong>`} ${x.text}</li>`)}</ul>`}
-      <div class="offer">${ctx.price(b.price_label)}${ctx.cta(b.cta_label || "Comprar agora")}</div>
+      ${Title === "h1" ? html`<h1${titleField}>${title}</h1>` : html`<h2${titleField}>${title}</h2>`}
+      ${ctx.show(b.lead) && html`<p class="lead"${ctx.field("lead", b.lead)}>${b.lead}</p>`}
+      ${b.badges.length > 0 && html`<ul class="badges" aria-label="Resumo do material">${b.badges.map((x, i) => html`<li>${ctx.show(x.strong) && html`<strong${ctx.field(`badges.${i}.strong`, x.strong)}>${x.strong}</strong>`} ${ctx.text(`badges.${i}.text`, x.text)}</li>`)}</ul>`}
+      <div class="offer">${ctx.price(b.price_label, "price_label")}${ctx.cta(b.cta_label, "Comprar agora", "cta_label")}</div>
     </div>
     ${media}
   </div>
@@ -68,7 +109,7 @@ const RENDERERS = {
     const id = ctx.headingId();
     return html`<section class="${ctx.sectionClass()}" aria-labelledby="${id}"${ctx.mark()}><div class="container">
   <h2 id="${id}" class="sr-only">${b.title || "Benefícios"}</h2>
-  <div class="two">${b.items.map((x) => html`<article class="v-card">${svg(x.icon)}<h3>${x.title}</h3>${paragraphs(x.text)}${x.callout && html`<p class="callout">${x.callout}</p>`}</article>`)}</div>
+  <div class="two">${b.items.map((x, i) => html`<article class="v-card">${svg(x.icon)}<h3${ctx.field(`items.${i}.title`, x.title)}>${x.title}</h3>${ctx.paras(`items.${i}.text`, x.text)}${ctx.show(x.callout) && html`<p class="callout"${ctx.field(`items.${i}.callout`, x.callout)}>${x.callout}</p>`}</article>`)}</div>
 </div></section>`;
   },
 
@@ -76,8 +117,8 @@ const RENDERERS = {
     if (!b.items.length) return null;
     const id = ctx.headingId();
     return html`<section class="${ctx.sectionClass()}" aria-labelledby="${id}"${ctx.mark()}><div class="container">
-  <h2 id="${id}">${b.title}</h2>
-  <ul class="grid8">${b.items.map((x) => html`<li>${svg(x.icon)}<strong>${x.title}</strong><span>${x.text}</span></li>`)}</ul>
+  <h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>
+  <ul class="grid8">${b.items.map((x, i) => html`<li>${svg(x.icon)}<strong${ctx.field(`items.${i}.title`, x.title)}>${x.title}</strong><span${ctx.field(`items.${i}.text`, x.text)}>${x.text}</span></li>`)}</ul>
 </div></section>`;
   },
 
@@ -86,7 +127,7 @@ const RENDERERS = {
     if (!slides.length) return null;
     const id = ctx.headingId();
     return html`<section class="${ctx.sectionClass()}" aria-labelledby="${id}"${ctx.mark()}><div class="container">
-  <h2 id="${id}">${b.title}</h2>
+  <h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>
   <div class="carousel" role="region" aria-roledescription="carrossel" aria-labelledby="${id}">
     <button class="car-btn prev" type="button" aria-label="Slide anterior" hidden>‹</button>
     <ul class="track">${slides.map((img, i) => html`<li class="slide" aria-label="Slide ${i + 1} de ${slides.length}">${img}</li>`)}</ul>
@@ -100,19 +141,19 @@ const RENDERERS = {
     if (!b.items.length) return null;
     const id = ctx.headingId();
     return html`<section class="${ctx.sectionClass()}" aria-labelledby="${id}"${ctx.mark()}><div class="container narrow">
-  <div class="v-card center">${svg(b.icon, "ico big")}<h2 id="${id}">${b.title}</h2>
-    <ul class="mini">${b.items.map((x) => html`<li class="${x.positive ? "yes" : "no"}">${mark(x.positive)}${x.text}</li>`)}</ul>
+  <div class="v-card center">${svg(b.icon, "ico big")}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>
+    <ul class="mini">${b.items.map((x, i) => html`<li class="${x.positive ? "yes" : "no"}">${mark(x.positive)}${ctx.text(`items.${i}.text`, x.text)}</li>`)}</ul>
   </div>
 </div></section>`;
   },
 
   comparison(b, ctx) {
     const id = ctx.headingId();
-    const side = (title, items, positive) => html`<article class="v-card${positive ? " dark" : ""}"><h3>${title}</h3>
-      <ul class="mini">${items.map((x) => html`<li class="${positive ? "yes" : "no"}">${mark(positive)}${x.text}</li>`)}</ul></article>`;
+    const side = (prefix, title, items, positive) => html`<article class="v-card${positive ? " dark" : ""}"><h3${ctx.field(`${prefix}_title`, title)}>${title}</h3>
+      <ul class="mini">${items.map((x, i) => html`<li class="${positive ? "yes" : "no"}">${mark(positive)}${ctx.text(`${prefix}_items.${i}.text`, x.text)}</li>`)}</ul></article>`;
     return html`<section class="${ctx.sectionClass()}" aria-labelledby="${id}"${ctx.mark()}><div class="container">
-  <h2 id="${id}">${b.title}</h2>
-  <div class="versus">${side(b.left_title, b.left_items, false)}<div class="vs" aria-hidden="true">VS</div>${side(b.right_title, b.right_items, true)}</div>
+  <h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>
+  <div class="versus">${side("left", b.left_title, b.left_items, false)}<div class="vs" aria-hidden="true">VS</div>${side("right", b.right_title, b.right_items, true)}</div>
 </div></section>`;
   },
 
@@ -122,7 +163,7 @@ const RENDERERS = {
     const photo = ctx.img(b.photo, "author-photo");
     return html`<section class="${ctx.sectionClass()}" aria-labelledby="${id}"${ctx.mark()}><div class="container author${photo ? "" : " no-media"}">
   ${photo}
-  <div><h2 id="${id}">${b.name}</h2>${b.role && html`<p class="muted"><strong>${b.role}</strong></p>`}${paragraphs(b.bio)}</div>
+  <div><h2 id="${id}"${ctx.field("name", b.name)}>${b.name}</h2>${ctx.show(b.role) && html`<p class="muted"><strong${ctx.field("role", b.role)}>${b.role}</strong></p>`}${ctx.paras("bio", b.bio)}</div>
 </div></section>`;
   },
 
@@ -130,8 +171,8 @@ const RENDERERS = {
     if (!b.items.length) return null;
     const id = ctx.headingId();
     return html`<section class="${ctx.sectionClass()}" aria-labelledby="${id}"${ctx.mark()}><div class="container">
-  <h2 id="${id}">${b.title}</h2>
-  <ul class="who">${b.items.map((x) => html`<li>${svg(x.icon)}${x.text}</li>`)}</ul>
+  <h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>
+  <ul class="who">${b.items.map((x, i) => html`<li>${svg(x.icon)}${ctx.text(`items.${i}.text`, x.text)}</li>`)}</ul>
 </div></section>`;
   },
 
@@ -139,26 +180,43 @@ const RENDERERS = {
     const id = ctx.headingId();
     return html`<section class="${ctx.sectionClass()}" aria-labelledby="${id}"${ctx.mark()}><div class="container">
   <div class="banner">
-    <div><h2 id="${id}">${b.title}</h2>${paragraphs(b.text)}</div>
-    ${b.items.length > 0 && html`<ul class="mini">${b.items.map((x) => html`<li class="yes">${mark(true)}${x.text}</li>`)}</ul>`}
+    <div><h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.paras("text", b.text)}</div>
+    ${b.items.length > 0 && html`<ul class="mini">${b.items.map((x, i) => html`<li class="yes">${mark(true)}${ctx.text(`items.${i}.text`, x.text)}</li>`)}</ul>`}
   </div>
+</div></section>`;
+  },
+
+  testimonials(b, ctx) {
+    // Na página pública só entram depoimentos com texto. No editor aparecem todos (vazio = espaço
+    // para digitar); sem nenhum texto, a seção leva data-hidden ("não aparece na página").
+    const filled = b.items.some((x) => x.quote);
+    const items = b.items.map((x, i) => [x, i]).filter(([x]) => ctx.live || x.quote);
+    if (!items.length) return null;
+    const id = ctx.headingId();
+    return html`<section class="${ctx.sectionClass()}" aria-labelledby="${id}"${ctx.mark({ hidden: !filled })}><div class="container">
+  <h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>
+  <div class="quotes">${items.map(([x, i]) => html`<figure class="v-quote">
+    <blockquote>${ctx.paras(`items.${i}.quote`, x.quote)}</blockquote>
+    <figcaption>${ctx.img(x.photo, "quote-photo")}<span>${ctx.show(x.name) && html`<strong${ctx.field(`items.${i}.name`, x.name)}>${x.name}</strong>`}${ctx.show(x.role) && html`<span class="muted"${ctx.field(`items.${i}.role`, x.role)}>${x.role}</span>`}</span></figcaption>
+  </figure>`)}</div>
 </div></section>`;
   },
 
   faq(b, ctx) {
     if (!b.items.length) return null;
     const id = ctx.headingId();
+    // No editor as respostas ficam abertas, para serem editáveis.
     return html`<section class="${ctx.sectionClass()}" aria-labelledby="${id}"${ctx.mark()}><div class="container narrow">
-  <h2 id="${id}">${b.title}</h2>
-  ${b.items.map((x) => html`<details class="faq"><summary>${x.question}</summary>${paragraphs(x.answer)}</details>`)}
+  <h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>
+  ${b.items.map((x, i) => html`<details class="faq"${ctx.live ? html` open` : null}><summary>${ctx.text(`items.${i}.question`, x.question)}</summary>${ctx.paras(`items.${i}.answer`, x.answer)}</details>`)}
 </div></section>`;
   },
 
   guarantee(b, ctx) {
     const id = ctx.headingId();
     return html`<section class="${ctx.sectionClass()}" aria-labelledby="${id}"${ctx.mark()}><div class="container narrow">
-  <div class="v-card center"><h2 id="${id}">${b.title}</h2>
-    ${b.items.length > 0 && html`<ul class="seals">${b.items.map((x) => html`<li>${svg(x.icon)}${x.text}</li>`)}</ul>`}
+  <div class="v-card center"><h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>
+    ${b.items.length > 0 && html`<ul class="seals">${b.items.map((x, i) => html`<li>${svg(x.icon)}${ctx.text(`items.${i}.text`, x.text)}</li>`)}</ul>`}
   </div>
 </div></section>`;
   },
@@ -169,10 +227,17 @@ const RENDERERS = {
     return html`<section class="v-final" aria-labelledby="${id}"${ctx.mark()}>
   <div class="container v-hero-grid${media ? "" : " no-media"}">
     ${media}
-    <div><h2 id="${id}">${b.title || ctx.product.title}</h2><div class="offer">${ctx.price(b.price_label)}${ctx.cta(b.cta_label || "Garantir agora")}</div></div>
+    <div><h2 id="${id}"${ctx.field("title", b.title, { fallback: true })}>${b.title || ctx.product.title}</h2><div class="offer">${ctx.price(b.price_label, "price_label")}${ctx.cta(b.cta_label, "Garantir agora", "cta_label")}</div></div>
   </div>
 </section>`;
   },
+};
+
+// Por que um bloco não aparece na página (aviso exibido só no editor).
+const HIDDEN_REASON = {
+  testimonials: "escreva pelo menos um depoimento",
+  gallery: "adicione imagens",
+  author: "preencha o nome do autor",
 };
 
 // Blocos inválidos (ex.: dados antigos) são ignorados um a um, em vez de derrubar a página inteira.
@@ -195,11 +260,21 @@ function themeLink(stored) {
 // data: resultado de loadForRender. options:
 //   preview: false (público) | true (pré-visualização salva, com faixa) | "live" (dentro do editor, sem faixa)
 function renderSalesPage(data, { baseUrl, preview = false }) {
-  const ctx = createContext(data);
+  const live = preview === "live";
+  const ctx = createContext(data, { live });
   const body = cleanBlocks(data.sections).map(({ block, index }) => {
     // Na pré-visualização, cada seção leva data-block="N" (clicar nela abre o bloco N no editor).
-    ctx.mark = () => (preview ? html` data-block="${index}"` : null);
-    return RENDERERS[block.type](block, ctx);
+    // hidden: a seção só aparece no editor (ex.: depoimentos ainda sem texto) — marcada como oculta.
+    ctx.mark = ({ hidden = false } = {}) => (preview ? html` data-block="${index}"${live && hidden ? html` data-hidden` : null}` : null);
+    ctx.type = block.type;
+    const section = RENDERERS[block.type](block, ctx);
+    // No editor, um bloco que não aparece na página vira um aviso selecionável (senão ficaria inalcançável).
+    if (!section && live) {
+      return html`<section class="editor-hidden-block" data-block="${index}" data-hidden><div class="container">
+  <p><strong>${BLOCKS[block.type].label}</strong> — não aparece na página: ${HIDDEN_REASON[block.type] || "preencha o conteúdo principal do bloco"}.</p>
+</div></section>`;
+    }
+    return section;
   }).filter(Boolean);
 
   const title = data.seo_title || data.title;
@@ -229,7 +304,8 @@ function renderSalesPage(data, { baseUrl, preview = false }) {
   <link rel="stylesheet" href="/css/theme.css">
   <link rel="stylesheet" href="/css/style.css">
   <link rel="stylesheet" href="/css/venda.css">
-  ${themeLink(data.theme)}
+  ${themeLink(data.theme)}${live && html`
+  <link rel="stylesheet" href="/css/venda-editor.css">`}
   <script src="/js/theme.js"></script>
   <script src="/data/site.js" defer></script>
   <script src="/js/components.js" defer></script>

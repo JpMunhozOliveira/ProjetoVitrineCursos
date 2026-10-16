@@ -10,7 +10,8 @@
     "db:migrate": "node-pg-migrate up -m migrations",
     "db:rollback": "node-pg-migrate down -m migrations",
     "db:new": "node-pg-migrate create -m migrations",
-    "admin:user": "node scripts/admin-user.js"
+    "admin:user": "node scripts/admin-user.js",
+    "test": "node --test"
   },
   "dependencies": {
     "express": "^5.1.0",

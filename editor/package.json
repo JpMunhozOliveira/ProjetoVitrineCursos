@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "dev": "vite build --watch"
+    "dev": "vite build --watch",
+    "test": "node --test"
   },
   "dependencies": {
     "@dnd-kit/core": "6.3.1",
