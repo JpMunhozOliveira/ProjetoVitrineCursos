@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Produto — Painel administrativo</title>
+  <link rel="stylesheet" href="../css/theme.css">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="css/admin.css">
+  <script src="../js/theme.js"></script>
+  <script src="js/common.js" defer></script>
+  <script src="js/produto.js" defer></script>
+</head>
+<body>
+  <div class="container">
+    <div class="admin-top">
+      <header class="admin-bar">
+        <div class="admin-id">
+          <strong>Painel administrativo</strong>
+          <span id="who" class="muted small"></span>
+        </div>
+        <div class="admin-actions">
+          <button id="tema-btn" class="theme-btn" type="button" aria-label="Modo noturno" title="Modo noturno" aria-pressed="false"></button>
+          <button id="logout" class="btn btn-outline btn-sm" type="button">Sair</button>
+        </div>
+      </header>
+      <nav class="admin-nav" aria-label="Seções do painel">
+        <a href="./" aria-current="page">Produtos</a>
+        <a href="imagens.html">Imagens</a>
+      </nav>
+    </div>
+    <main class="section">
+      <a class="crumb" href="./">← Produtos</a>
+      <div class="page-head">
+        <h1 id="heading">Produto</h1>
+        <!-- Ações da página de vendas: aparecem só depois que o produto existe (ver produto.js). -->
+        <div class="row-actions">
+          <a id="sales-public" class="btn btn-sm btn-outline" target="_blank" rel="noopener" hidden>Ver publicada<span class="sr-only"> (abre em nova aba)</span></a>
+          <a id="sales-preview" class="btn btn-sm btn-outline" target="_blank" rel="noopener" hidden>Pré-visualizar<span class="sr-only"> (abre em nova aba)</span></a>
+          <a id="sales-edit" class="btn btn-sm" hidden>Editar página de vendas</a>
+        </div>
+      </div>
+      <p id="load-msg" class="msg" role="status" aria-live="polite">Carregando…</p>
+
+      <form id="product-form" class="product-form" hidden>
+        <fieldset>
+          <legend>Identificação</legend>
+          <div class="field">
+            <label for="title">Título <span class="req">(obrigatório)</span></label>
+            <input id="title" name="title" required maxlength="180">
+          </div>
+          <div class="field">
+            <label for="slug">Endereço (slug) <span class="req">(obrigatório)</span></label>
+            <input id="slug" name="slug" required maxlength="180" pattern="[a-z0-9]+(-[a-z0-9]+)*"
+              title="Letras minúsculas sem acento, números e hifens. Ex.: manual-reforma-tributaria"
+              aria-describedby="slug-help slug-hint" autocapitalize="none" spellcheck="false">
+            <p id="slug-help" class="hint">Parte final do link da página. Gerado a partir do título; pode ser ajustado.</p>
+            <p id="slug-hint" class="hint warn" hidden>Mudar o endereço de um produto publicado quebra os links já divulgados.</p>
+          </div>
+          <div class="field">
+            <label for="category">Categoria</label>
+            <input id="category" name="category" maxlength="80" aria-describedby="category-help">
+            <p id="category-help" class="hint">Usada no filtro do catálogo.</p>
+          </div>
+          <div class="field check">
+            <input id="featured" name="featured" type="checkbox">
+            <label for="featured">Destaque na página inicial</label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Imagem de capa</legend>
+          <div class="cover-field">
+            <div class="cover-preview">
+              <button id="cover-zoom" class="media-zoom" type="button" aria-label="Ampliar imagem de capa" hidden>
+                <img id="cover-img" alt="">
+              </button>
+              <span id="cover-empty" class="muted">Sem imagem</span>
+            </div>
+            <div class="cover-controls">
+              <div class="row-actions">
+                <!-- O input fica dentro do label: o botão inteiro abre o seletor de arquivos. -->
+                <label class="btn btn-sm btn-outline file-btn">Enviar imagem
+                  <input id="cover-file" type="file" accept="image/png,image/jpeg,image/webp">
+                </label>
+                <button id="cover-pick" class="btn btn-sm btn-outline" type="button">Escolher da biblioteca</button>
+                <button id="cover-remove" class="btn btn-sm btn-danger" type="button" hidden>Remover capa</button>
+              </div>
+              <p class="hint">PNG, JPEG ou WebP, até 5 MB. A imagem é otimizada automaticamente.</p>
+              <div id="cover-alt-field" class="field" hidden>
+                <label for="cover-alt">Texto alternativo</label>
+                <input id="cover-alt" maxlength="300" aria-describedby="cover-alt-help">
+                <p id="cover-alt-help" class="hint">Descreva a imagem para quem usa leitor de tela. Ex.: “Capa do Manual Prático da Reforma Tributária”.</p>
+              </div>
+              <p id="cover-msg" class="msg" role="status" aria-live="polite"></p>
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Conteúdo</legend>
+          <div class="field">
+            <label for="short_description">Resumo</label>
+            <textarea id="short_description" name="short_description" rows="2" maxlength="500" aria-describedby="short-help"></textarea>
+            <p id="short-help" class="hint">Texto curto exibido nos cards do catálogo.</p>
+          </div>
+          <div class="field">
+            <label for="description">Descrição completa</label>
+            <textarea id="description" name="description" rows="6" maxlength="10000"></textarea>
+          </div>
+          <div class="grid-2">
+            <div class="field">
+              <label for="audience">Para quem é</label>
+              <textarea id="audience" name="audience" rows="3" maxlength="2000"></textarea>
+            </div>
+            <div class="field">
+              <label for="prerequisites">Pré-requisitos</label>
+              <textarea id="prerequisites" name="prerequisites" rows="3" maxlength="2000"></textarea>
+            </div>
+          </div>
+          <div class="field">
+            <label for="modules">Conteúdo / módulos</label>
+            <textarea id="modules" name="modules" rows="5" aria-describedby="modules-help"></textarea>
+            <p id="modules-help" class="hint">Um item por linha (até 100 itens, 200 caracteres cada).</p>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Venda</legend>
+          <div class="grid-2">
+            <div class="field">
+              <label for="format">Formato</label>
+              <input id="format" name="format" maxlength="120" placeholder="Ex.: E-book em PDF">
+            </div>
+            <div class="field">
+              <label for="workload">Carga horária</label>
+              <input id="workload" name="workload" maxlength="60" placeholder="Ex.: 20 horas">
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="field">
+              <label for="price">Preço (R$)</label>
+              <input id="price" name="price" inputmode="decimal" maxlength="15" placeholder="197,00" aria-describedby="price-help">
+              <p id="price-help" class="hint">Deixe vazio para não exibir preço.</p>
+            </div>
+            <div class="field">
+              <label for="checkout_url">Link de checkout</label>
+              <input id="checkout_url" name="checkout_url" type="url" maxlength="2048" pattern="https://.+"
+                title="O link deve começar com https://" placeholder="https://pay.kiwify.com.br/..." spellcheck="false">
+            </div>
+          </div>
+        </fieldset>
+
+        <div class="form-actions">
+          <!-- Situação ao lado do Salvar: fica sempre visível e deixa claro o que será publicado. -->
+          <div class="status-picker" role="radiogroup" aria-labelledby="status-label" aria-describedby="status-hint">
+            <span id="status-label" class="status-label">Situação</span>
+            <div class="segmented">
+              <label><input type="radio" name="status" value="draft" checked><span>Rascunho</span></label>
+              <label><input type="radio" name="status" value="published"><span>Publicado</span></label>
+              <label><input type="radio" name="status" value="archived"><span>Arquivado</span></label>
+            </div>
+            <span id="status-hint" class="hint"></span>
+          </div>
+          <div class="buttons">
+            <a class="btn btn-outline" href="./">Voltar</a>
+            <button id="save" class="btn" type="submit">Salvar</button>
+          </div>
+          <p id="msg" class="msg" role="status" aria-live="polite"></p>
+        </div>
+      </form>
+
+      <section id="sales" class="sales-zone" aria-labelledby="sales-title" hidden>
+        <h2 id="sales-title">Página de vendas</h2>
+        <p id="sales-status"></p>
+      </section>
+
+      <section id="danger" class="danger-zone" aria-labelledby="danger-title" hidden>
+        <h2 id="danger-title">Remover produto</h2>
+        <p id="danger-text"></p>
+        <p id="danger-msg" class="msg" role="status" aria-live="polite"></p>
+        <button id="delete" class="btn btn-danger" type="button">Excluir produto</button>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

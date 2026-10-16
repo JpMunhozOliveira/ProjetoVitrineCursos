@@ -1,0 +1,82 @@
+# Ambiente local: banco + migrations automáticas + API/frontend.
+#   docker compose up --build   -> usa também docker-compose.override.yml (modo desenvolvimento)
+#   docker compose -f docker-compose.yml up --build   -> modo "produção local", sem o override
+
+x-app-build: &app-build
+  context: .
+  dockerfile: Dockerfile
+
+x-database-url: &database-url postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: vitrine-cursos-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: "${POSTGRES_DB:?Defina POSTGRES_DB no arquivo .env - rode: node scripts/gerar-env.js}"
+      POSTGRES_USER: "${POSTGRES_USER:?Defina POSTGRES_USER no arquivo .env}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no arquivo .env}"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  # Roda as migrations pendentes e termina. A API só sobe depois que ele conclui com sucesso.
+  migrate:
+    build: *app-build
+    image: vitrine-cursos:local
+    command: ["npm", "run", "db:migrate"]
+    restart: "no"
+    environment:
+      DATABASE_URL: *database-url
+    depends_on:
+      db:
+        condition: service_healthy
+
+  app:
+    build: *app-build
+    image: vitrine-cursos:local
+    container_name: vitrine-cursos-app
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      ADMIN_API_KEY: ${ADMIN_API_KEY:-}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      PUBLIC_URL: ${PUBLIC_URL:-}
+      TRUST_PROXY: ${TRUST_PROXY:-}
+      DATABASE_URL: *database-url
+      UPLOAD_DIR: /data/uploads
+      KIWIFY_CLIENT_ID: ${KIWIFY_CLIENT_ID:-}
+      KIWIFY_CLIENT_SECRET: ${KIWIFY_CLIENT_SECRET:-}
+    volumes:
+      # Imagens enviadas pelo painel. Faça backup deste volume junto com o banco.
+      - uploads:/data/uploads
+    ports:
+      # Somente este computador acessa. Para testar pelo celular na rede local,
+      # troque por "3000:3000" (e lembre que a API admin ficará visível na rede).
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  postgres_data:
+  uploads:

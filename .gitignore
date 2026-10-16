@@ -10,7 +10,7 @@ desktop.ini
 *.swo
 *~
 
-# Dependências e builds (caso o projeto evolua para Node/React)
+# Dependências e builds
 node_modules/
 dist/
 build/
@@ -35,3 +35,9 @@ secrets/
 
 # Pacotes gerados
 *.zip
+
+# Imagens enviadas pelo painel (quando a API roda fora do Docker)
+server/uploads/
+
+# Editor React compilado (gerado pelo Vite a partir de editor/)
+public/admin/editor/

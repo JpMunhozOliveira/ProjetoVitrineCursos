@@ -1,0 +1,20 @@
+.git
+.github
+.gitattributes
+node_modules
+**/node_modules
+.env
+.env.*
+!.env.example
+docker-compose*.yml
+README.md
+scripts
+npm-debug.log*
+yarn-debug.log*
+*.log
+.DS_Store
+Thumbs.db
+# Editor compilado: é gerado dentro da imagem (etapa "editor" do Dockerfile)
+public/admin/editor
+# Imagens enviadas com a API rodando fora do Docker: não entram na imagem
+server/uploads

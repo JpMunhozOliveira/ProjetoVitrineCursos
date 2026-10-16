@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Página de vendas — Painel administrativo</title>
+  <link rel="stylesheet" href="../css/theme.css">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="css/admin.css">
+  <!-- Editor React: compilado de editor/ para admin/editor/ (ver editor/vite.config.js) -->
+  <link rel="stylesheet" href="editor/editor.css">
+  <script src="../js/theme.js"></script>
+  <script src="js/common.js" defer></script>
+  <script src="editor/editor.js" defer></script>
+</head>
+<body class="editor-page">
+  <div class="container">
+    <div class="admin-top">
+      <header class="admin-bar">
+        <div class="admin-id">
+          <strong>Painel administrativo</strong>
+          <span id="who" class="muted small"></span>
+        </div>
+        <div class="admin-actions">
+          <button id="tema-btn" class="theme-btn" type="button" aria-label="Modo noturno" title="Modo noturno" aria-pressed="false"></button>
+          <button id="logout" class="btn btn-outline btn-sm" type="button">Sair</button>
+        </div>
+      </header>
+      <!-- Sem as abas Produtos | Imagens aqui: mais altura para o editor e a pré-visualização.
+           Para sair, use "Voltar" (barra de baixo do editor). -->
+    </div>
+    <main class="section">
+      <noscript><p class="msg error">O editor precisa de JavaScript.</p></noscript>
+      <div id="editor-root"><p class="msg" role="status">Carregando editor…</p></div>
+    </main>
+  </div>
+</body>
+</html>
