@@ -1,0 +1,67 @@
+/* Página de vendas DENTRO do editor do painel (pré-visualização ao vivo).
+   Carregado só quando o servidor renderiza com preview: "live" (ver server/sales/render.js);
+   a página pública nunca recebe este arquivo nem os atributos data-* usados aqui.
+
+   .is-editor-preview  -> colocada no <html> pelo editor quando a moldura carrega
+   [data-block="N"]    -> seção do bloco N; .is-selected / .is-hovered vêm do editor
+   [data-field]        -> texto editável direto na página (caminho do campo dentro do bloco)
+   [data-empty]        -> campo vazio: mostra o rótulo como exemplo, só no bloco selecionado
+   [data-hidden]       -> bloco que não aparece na página publicada (aviso no lugar) */
+
+/* ---------- Seções: seleção e destaque ---------- */
+.is-editor-preview [data-block] {
+  cursor: pointer;
+  outline-offset: -4px;
+}
+.is-editor-preview [data-block]:hover,
+.is-editor-preview [data-block].is-hovered {
+  outline: 3px dashed var(--color-accent);
+}
+.is-editor-preview [data-block].is-selected {
+  outline: 3px solid var(--color-accent);
+}
+
+/* ---------- Textos editáveis ---------- */
+.is-editor-preview [data-field] {
+  cursor: text;
+  border-radius: 4px;
+  white-space: pre-wrap; /* quebras de linha digitadas aparecem como no texto salvo */
+  transition: box-shadow 0.12s;
+}
+.is-editor-preview [data-field]:hover {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 45%, transparent);
+}
+.is-editor-preview [data-field]:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-accent);
+}
+/* Campos vazios: invisíveis (a prévia continua fiel à página), exceto no bloco selecionado
+   ou em edição, onde mostram o rótulo do campo como texto de exemplo. */
+.is-editor-preview [data-block]:not(.is-selected) [data-empty]:not(:focus) {
+  display: none;
+}
+.is-editor-preview [data-empty] {
+  min-width: 4ch;
+}
+.is-editor-preview [data-empty]:empty::before {
+  content: attr(data-placeholder);
+  font-style: italic;
+  opacity: 0.55;
+  pointer-events: none;
+}
+/* Resposta do FAQ vazia: mesmo recuo dos parágrafos. */
+.is-editor-preview .faq [data-multiline]:empty {
+  padding: 0 1.25rem 1.1rem;
+}
+
+/* ---------- Bloco que não aparece na página ---------- */
+.is-editor-preview .editor-hidden-block {
+  padding: 1.25rem 0;
+  color: var(--color-muted);
+  background: repeating-linear-gradient(-45deg, var(--color-surface), var(--color-surface) 10px, var(--color-bg) 10px, var(--color-bg) 20px);
+  border-block: 1px dashed var(--color-border);
+}
+.is-editor-preview .editor-hidden-block p {
+  margin: 0;
+  text-align: center;
+}
