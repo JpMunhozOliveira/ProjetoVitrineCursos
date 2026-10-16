@@ -145,6 +145,8 @@ const BLOCKS = {
 const MAX_BLOCKS = 30;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const isObject = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
+// Nome definido no próprio objeto (o operador "in" aceitaria também "constructor", "toString"...).
+const has = (obj, key) => typeof key === "string" && Object.hasOwn(obj, key);
 
 class ValidationError extends Error {}
 
@@ -152,7 +154,7 @@ class ValidationError extends Error {}
 // "Bloco 3 (FAQ) › Perguntas › item 2 › Resposta".
 function validateFields(input, fields, where) {
   if (!isObject(input)) throw new ValidationError(`${where}: formato inválido.`);
-  const unknown = Object.keys(input).filter((k) => !(k in fields));
+  const unknown = Object.keys(input).filter((k) => !has(fields, k));
   if (unknown.length) throw new ValidationError(`${where}: campo(s) não suportado(s): ${unknown.join(", ")}.`);
 
   const out = {};
@@ -169,7 +171,7 @@ function validateFields(input, fields, where) {
         break;
       }
       case "icon":
-        if (value !== undefined && value !== null && value !== "" && !(value in ICONS)) throw new ValidationError(`${at}: ícone inválido.`);
+        if (value !== undefined && value !== null && value !== "" && !has(ICONS, value)) throw new ValidationError(`${at}: ícone inválido.`);
         out[name] = value || "check";
         break;
       case "image":
@@ -203,7 +205,7 @@ function validateSections(sections) {
     if (!Array.isArray(sections)) throw new ValidationError("sections deve ser uma lista de blocos.");
     if (sections.length > MAX_BLOCKS) throw new ValidationError(`Use no máximo ${MAX_BLOCKS} blocos.`);
     const out = sections.map((block, i) => {
-      if (!isObject(block) || !(block.type in BLOCKS)) throw new ValidationError(`Bloco ${i + 1}: tipo inválido.`);
+      if (!isObject(block) || !has(BLOCKS, block.type)) throw new ValidationError(`Bloco ${i + 1}: tipo inválido.`);
       const { type, ...fields } = block;
       return { type, ...validateFields(fields, BLOCKS[type].fields, `Bloco ${i + 1} (${BLOCKS[type].label})`) };
     });

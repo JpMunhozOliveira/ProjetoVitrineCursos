@@ -14,7 +14,26 @@ const { themeStylesheet, checkColors } = require("./sales/theme");
 const app = express();
 
 app.disable("x-powered-by");
+
+// Atrás de proxy HTTPS (Nginx, Caddy, Cloudflare...), o IP do visitante e o "https" chegam nos
+// cabeçalhos X-Forwarded-*. TRUST_PROXY = quantos proxies há na frente (normalmente 1). Sem isso,
+// todos parecem ter o IP do proxy: o limite de tentativas de login vira um só para o mundo inteiro.
+if (process.env.TRUST_PROXY) {
+  const hops = Number(process.env.TRUST_PROXY);
+  app.set("trust proxy", Number.isInteger(hops) ? hops : process.env.TRUST_PROXY); // ou lista de IPs/sub-redes
+}
+
 app.use(express.json({ limit: "300kb" })); // páginas de vendas com muitos blocos passam de 100 KB
+
+// Cabeçalhos básicos de todas as respostas; o painel e as páginas de vendas reforçam abaixo.
+app.use((_req, res, next) => {
+  res.set({
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "SAMEORIGIN",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+  });
+  next();
+});
 
 // Cabeçalhos de segurança do painel e da API administrativa.
 app.use(["/admin", "/api/admin"], (_req, res, next) => {

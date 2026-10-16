@@ -7,15 +7,19 @@ const WINDOW = 15 * 60 * 1000;
 const byIpEmail = sec.createLimiter({ max: 5, windowMs: WINDOW });
 const byIp = sec.createLimiter({ max: 30, windowMs: WINDOW });
 
-function sessionCookie(value, maxAgeSeconds) {
+// Secure (cookie só trafega em HTTPS): COOKIE_SECURE=true, ou automático quando a requisição chegou
+// por HTTPS (req.secure; atrás de proxy, depende de TRUST_PROXY).
+function sessionCookie(req, value, maxAgeSeconds) {
   const parts = [`${COOKIE}=${value}`, "Path=/", "HttpOnly", "SameSite=Strict", `Max-Age=${maxAgeSeconds}`];
-  if (process.env.COOKIE_SECURE === "true") parts.push("Secure"); // ative quando o site estiver em HTTPS
+  if (process.env.COOKIE_SECURE === "true" || req.secure) parts.push("Secure");
   return parts.join("; ");
 }
 
 async function login(req, res) {
   const { email, password } = req.body || {};
-  if (typeof email !== "string" || typeof password !== "string" || !email.trim() || !password || password.length > 256) {
+  // E-mail até 254 caracteres (limite da coluna): ele vira chave do limitador, guardada em memória.
+  if (typeof email !== "string" || typeof password !== "string" || !email.trim() || !password
+    || email.length > 254 || password.length > 256) {
     return res.status(400).json({ error: "Informe e-mail e senha." });
   }
   const mail = email.trim().toLowerCase();
@@ -25,14 +29,13 @@ async function login(req, res) {
     res.set("Retry-After", String(WINDOW / 1000));
     return res.status(429).json({ error: "Muitas tentativas. Aguarde alguns minutos e tente de novo." });
   }
+  // A tentativa conta já aqui, antes de conferir a senha (ver createLimiter); o acerto zera a contagem.
+  byIpEmail.hit(keyPair); byIp.hit(req.ip);
 
   const { rows } = await pool.query(
     "SELECT id, email, password_hash FROM admin_users WHERE lower(email) = $1", [mail]);
   const ok = await sec.verifyPassword(password, rows[0]?.password_hash);
-  if (!ok) {
-    byIpEmail.fail(keyPair); byIp.fail(req.ip);
-    return res.status(401).json({ error: "E-mail ou senha incorretos." });
-  }
+  if (!ok) return res.status(401).json({ error: "E-mail ou senha incorretos." });
   byIpEmail.clear(keyPair);
 
   const token = sec.randomToken();
@@ -44,7 +47,7 @@ async function login(req, res) {
     [rows[0].id, sec.sha256(token), csrf, SESSION_HOURS]);
   await pool.query("UPDATE admin_users SET last_login_at = now() WHERE id = $1", [rows[0].id]);
 
-  res.set("Set-Cookie", sessionCookie(token, SESSION_HOURS * 3600));
+  res.set("Set-Cookie", sessionCookie(req, token, SESSION_HOURS * 3600));
   return res.json({ data: { email: rows[0].email, csrfToken: csrf } });
 }
 
@@ -55,7 +58,7 @@ function me(req, res) {
 
 async function logout(req, res) {
   if (req.admin.sessionId) await pool.query("DELETE FROM admin_sessions WHERE id = $1", [req.admin.sessionId]);
-  res.set("Set-Cookie", sessionCookie("", 0));
+  res.set("Set-Cookie", sessionCookie(req, "", 0));
   return res.status(204).end();
 }
 

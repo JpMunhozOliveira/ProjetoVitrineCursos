@@ -4,6 +4,10 @@ const { sha256, safeEqual, parseCookies } = require("../lib/security");
 const COOKIE = "vitrine_admin";
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
+// A chave de API dá acesso total ao painel. Curta ou ainda a do .env.example (que é pública no
+// repositório) = desativada, para quem copiou o exemplo sem trocar a chave não ficar exposto.
+const isUsableApiKey = (key) => typeof key === "string" && key.length >= 32 && !key.startsWith("troque_por");
+
 // Sessão válida do painel a partir do cookie, ou null. Usado também por páginas HTML
 // (pré-visualização), que redirecionam para o login em vez de responder JSON 401.
 async function findSession(req) {
@@ -23,7 +27,7 @@ async function requireAdmin(req, res, next) {
   const apiKey = req.get("x-admin-api-key");
   if (apiKey !== undefined) {
     const expected = process.env.ADMIN_API_KEY;
-    if (!expected) return res.status(503).json({ error: "Admin API is not configured." });
+    if (!isUsableApiKey(expected)) return res.status(503).json({ error: "Admin API is not configured." });
     if (!safeEqual(apiKey, expected)) return res.status(401).json({ error: "Invalid or missing admin key." });
     req.admin = { via: "api-key" };
     return next();
@@ -53,3 +57,4 @@ async function requireAdmin(req, res, next) {
 module.exports = requireAdmin;
 module.exports.COOKIE = COOKIE;
 module.exports.findSession = findSession;
+module.exports.isUsableApiKey = isUsableApiKey;

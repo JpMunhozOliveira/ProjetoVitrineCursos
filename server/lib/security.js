@@ -48,6 +48,8 @@ function parseCookies(header = "") {
 }
 
 // Limitador de tentativas em memória (suficiente para uma instância).
+// hit() deve ser chamado ANTES da operação lenta (ex.: conferir a senha), na mesma passagem que
+// isBlocked(): se contar só depois do await, requisições simultâneas passam todas pelo bloqueio.
 function createLimiter({ max, windowMs }) {
   const hits = new Map();
   const live = (key) => {
@@ -57,7 +59,7 @@ function createLimiter({ max, windowMs }) {
   };
   return {
     isBlocked: (key) => (live(key)?.count ?? 0) >= max,
-    fail(key) {
+    hit(key) {
       if (hits.size > 5000) for (const [k, v] of hits) if (v.resetAt <= Date.now()) hits.delete(k);
       const h = live(key) || { count: 0, resetAt: Date.now() + windowMs };
       h.count += 1; hits.set(key, h);

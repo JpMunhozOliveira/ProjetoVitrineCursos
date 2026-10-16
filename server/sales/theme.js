@@ -41,7 +41,8 @@ function normalizeTheme(input) {
 
   const preset = input.preset || DEFAULT;
   if (preset !== "custom") {
-    if (!THEMES[preset]) throw new ThemeError("Cores da página: paleta desconhecida.");
+    // hasOwn: "constructor", "toString"... existem em todo objeto e não são paletas.
+    if (typeof preset !== "string" || !Object.hasOwn(THEMES, preset)) throw new ThemeError("Cores da página: paleta desconhecida.");
     return { preset, ...pick(THEMES[preset]) };
   }
   const hero = String(input.hero || "").toLowerCase(), accent = String(input.accent || "").toLowerCase();
