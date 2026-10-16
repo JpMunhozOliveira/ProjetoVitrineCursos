@@ -17,6 +17,7 @@ const sample = () => [
   ...defaultSections(),
   { type: "hero", title: "", lead: "", badges: [{ strong: "", text: "x" }] },
   { type: "author", name: "" },                                     // não aparece: sem nome
+  { type: "testimonials", title: "Dizem", items: [{ quote: "Q", name: "N", role: "" }, { quote: "" }] },
   { type: "benefits", items: [{ title: "<script>alert(1)</script>", text: "P1\n\nP2", callout: "" }] },
 ];
 
@@ -120,4 +121,29 @@ test("FAQ fica aberto no editor e fechado na página pública", () => {
   const sections = [{ type: "faq", items: [{ question: "Q", answer: "A" }] }];
   assert.match(render(sections, "live"), /<details class="faq" open>/);
   assert.match(render(sections, false), /<details class="faq">/);
+});
+
+test("depoimentos: página pública mostra só os que têm texto", () => {
+  const sections = [{ type: "testimonials", title: "Dizem", items: [{ quote: "Mudou meu trabalho.\n\nRecomendo.", name: "Ana", role: "Contadora" }, { quote: "", name: "Sem texto" }] }];
+  const page = render(sections, false);
+  assert.match(page, /<figure class="v-quote">\s*<blockquote><p>Mudou meu trabalho\.<\/p><p>Recomendo\.<\/p><\/blockquote>/);
+  assert.match(page, /<strong>Ana<\/strong><span class="muted">Contadora<\/span>/);
+  assert.ok(!page.includes("Sem texto"));
+});
+
+test("depoimentos: sem nenhum texto, some da página e aparece marcado no editor", () => {
+  const sections = [{ type: "testimonials", items: [{ quote: "" }] }];
+  assert.ok(!render(sections, false).includes("v-quote"));
+  const live = render(sections, "live");
+  assert.match(live, /data-block="0" data-hidden/);
+  assert.match(live, /data-field="items\.0\.quote" data-empty data-placeholder="Depoimento" data-multiline/);
+  assert.match(render([{ type: "testimonials", items: [] }], "live"), /Depoimentos<\/strong> — não aparece na página: escreva pelo menos um depoimento/);
+});
+
+test("depoimentos: foto da biblioteca vira <img> redonda com texto alternativo", () => {
+  const photo = "11111111-1111-4111-8111-111111111111";
+  const data = product([{ type: "testimonials", items: [{ quote: "Bom.", name: "Ana", photo }] }]);
+  data.media = new Map([[photo, { url: "/uploads/ana.webp", alt_text: "Foto de Ana", width: 200, height: 200 }]]);
+  const page = renderSalesPage(data, { baseUrl: "http://localhost", preview: false });
+  assert.match(page, /<figcaption><img class="quote-photo" src="\/uploads\/ana\.webp" alt="Foto de Ana" width="200" height="200" loading="lazy" decoding="async"><span><strong>Ana<\/strong><\/span><\/figcaption>/);
 });

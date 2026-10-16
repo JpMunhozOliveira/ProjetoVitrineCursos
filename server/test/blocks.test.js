@@ -46,3 +46,15 @@ test("recusa ícone e imagem inválidos", () => {
   assert.match(validateSections([{ type: "topics", items: [{ icon: "constructor" }] }]).error, /ícone inválido/);
   assert.match(validateSections([{ type: "author", photo: "../etc/passwd" }]).error, /imagem inválida/);
 });
+
+test("depoimentos: aceita texto, nome, cargo e foto; aplica os limites", () => {
+  const ok = validateSections([{ type: "testimonials", title: "O que dizem", items: [{ quote: "Ótimo!", name: "Ana", role: "Contadora" }] }]);
+  assert.equal(ok.error, undefined);
+  assert.deepEqual(ok.sections[0].items[0], { quote: "Ótimo!", name: "Ana", role: "Contadora", photo: null });
+  assert.match(validateSections([{ type: "testimonials", items: [{ quote: "x".repeat(601) }] }]).error, /Depoimento: máximo de 600/);
+  assert.match(validateSections([{ type: "testimonials", items: Array(10).fill({ quote: "x" }) }]).error, /máximo de 9 itens/);
+});
+
+test("modelo padrão não traz depoimentos (exemplo poderia ir ao ar como se fosse real)", () => {
+  assert.ok(!defaultSections().some((b) => b.type === "testimonials"));
+});

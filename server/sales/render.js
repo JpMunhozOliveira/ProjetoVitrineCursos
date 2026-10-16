@@ -186,6 +186,22 @@ const RENDERERS = {
 </div></section>`;
   },
 
+  testimonials(b, ctx) {
+    // Na página pública só entram depoimentos com texto. No editor aparecem todos (vazio = espaço
+    // para digitar); sem nenhum texto, a seção leva data-hidden ("não aparece na página").
+    const filled = b.items.some((x) => x.quote);
+    const items = b.items.map((x, i) => [x, i]).filter(([x]) => ctx.live || x.quote);
+    if (!items.length) return null;
+    const id = ctx.headingId();
+    return html`<section class="${ctx.sectionClass()}" aria-labelledby="${id}"${ctx.mark({ hidden: !filled })}><div class="container">
+  <h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>
+  <div class="quotes">${items.map(([x, i]) => html`<figure class="v-quote">
+    <blockquote>${ctx.paras(`items.${i}.quote`, x.quote)}</blockquote>
+    <figcaption>${ctx.img(x.photo, "quote-photo")}<span>${ctx.show(x.name) && html`<strong${ctx.field(`items.${i}.name`, x.name)}>${x.name}</strong>`}${ctx.show(x.role) && html`<span class="muted"${ctx.field(`items.${i}.role`, x.role)}>${x.role}</span>`}</span></figcaption>
+  </figure>`)}</div>
+</div></section>`;
+  },
+
   faq(b, ctx) {
     if (!b.items.length) return null;
     const id = ctx.headingId();
@@ -219,6 +235,7 @@ const RENDERERS = {
 
 // Por que um bloco não aparece na página (aviso exibido só no editor).
 const HIDDEN_REASON = {
+  testimonials: "escreva pelo menos um depoimento",
   gallery: "adicione imagens",
   author: "preencha o nome do autor",
 };
@@ -247,7 +264,8 @@ function renderSalesPage(data, { baseUrl, preview = false }) {
   const ctx = createContext(data, { live });
   const body = cleanBlocks(data.sections).map(({ block, index }) => {
     // Na pré-visualização, cada seção leva data-block="N" (clicar nela abre o bloco N no editor).
-    ctx.mark = () => (preview ? html` data-block="${index}"` : null);
+    // hidden: a seção só aparece no editor (ex.: depoimentos ainda sem texto) — marcada como oculta.
+    ctx.mark = ({ hidden = false } = {}) => (preview ? html` data-block="${index}"${live && hidden ? html` data-hidden` : null}` : null);
     ctx.type = block.type;
     const section = RENDERERS[block.type](block, ctx);
     // No editor, um bloco que não aparece na página vira um aviso selecionável (senão ficaria inalcançável).
