@@ -407,7 +407,10 @@
 html[data-editor] .site-footer {
   padding-bottom: calc(2.5rem + 84px);
 }
-/* Rolagens automáticas (mostrar o bloco, focar um texto) param acima da barra de baixo. */
+/* Rolagens automáticas (mostrar o bloco, focar um texto) param acima da barra de baixo e são
+   instantâneas (o site usa rolagem suave nos links internos; no editor ela faria a página
+   "descer de novo" a cada atualização). A rolagem pedida como suave (escolher bloco no painel) continua. */
 html[data-editor] {
   scroll-padding-block: 24px 110px;
+  scroll-behavior: auto;
 }

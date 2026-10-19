@@ -41,6 +41,8 @@
 .preview { position: absolute; inset: 0; }
 .preview-stage { position: absolute; inset: 0; overflow: hidden; background: var(--color-surface); }
 .preview-stage iframe { position: absolute; top: 0; left: 0; border: 0; background: #fff; transform-origin: 0 0; }
+/* Versão nova carregando por trás da atual (ver Preview.jsx): invisível até ficar pronta. */
+.preview-stage iframe.is-pending { visibility: hidden; }
 /* Celular: moldura centralizada, com a página "de pé" e o fundo do editor em volta. */
 .preview-stage.mobile iframe { left: 50%; translate: -50% 0; transform-origin: 50% 0; box-shadow: 0 0 0 1px var(--color-border), 0 12px 40px rgb(0 0 0 / .12); }
 /* Situação da pré-visualização: selo pequeno no canto de baixo, à esquerda da barra. */

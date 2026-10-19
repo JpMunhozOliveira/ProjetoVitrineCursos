@@ -14,7 +14,6 @@ export function Preview({ productId, payload, renderKey, canvas, selectedIndex, 
   const frame = useRef(null);
   const scrollY = useRef(0);          // posição da rolagem, mantida entre atualizações
   const requestId = useRef(0);        // descarta respostas atrasadas (fora de ordem)
-  const [html, setHtml] = useState("");
   const htmlRef = useRef("");
   const payloadRef = useRef(payload);
   payloadRef.current = payload;
@@ -54,7 +53,7 @@ export function Preview({ productId, payload, renderKey, canvas, selectedIndex, 
           // um comentário diferente força o recarregamento, senão a tela ficaria com o texto velho.
           const html = result === htmlRef.current ? `${result}<!-- ${id} -->` : result;
           htmlRef.current = result;
-          setHtml(html);
+          showHtml(html);
         }
         // Quais blocos o servidor de fato desenhou: os que faltam "não aparecem" (ex.: galeria sem imagens).
         // (data-hidden marca o aviso que o servidor desenha no lugar desses blocos.)
@@ -100,22 +99,48 @@ export function Preview({ productId, payload, renderKey, canvas, selectedIndex, 
   }
   useEffect(() => { hover(frame.current?.contentDocument); }, [hoveredIndex]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Rede de segurança: se a moldura chegou a abrir outra página (endereço diferente do da
-  // pré-visualização), recriamos o iframe com o HTML atual. O "key" novo força o React a recriá-lo.
-  const [frameKey, setFrameKey] = useState(0);
+  // Moldura dupla: cada versão nova da página carrega numa moldura PENDENTE, invisível, atrás da
+  // atual. Quando ela termina de carregar, recebe a mesma rolagem e só então aparece no lugar da
+  // antiga — sem piscar o topo da página nem "descer de novo" até o ponto em edição.
+  // frames: [atual] ou [atual, pendente]; o id é a chave do iframe no React.
+  const [frames, setFrames] = useState([]);
+  const pending = useRef(null);       // elemento iframe da moldura pendente
+  const nextFrameId = useRef(0);
+  function showHtml(html) {
+    const next = { id: ++nextFrameId.current, html };
+    // Primeira versão: aparece direto. Depois: entra como pendente (substitui uma pendente anterior).
+    setFrames((prev) => (prev.length ? [prev[0], next] : [next]));
+  }
 
-  function handleLoad() {
-    const win = frame.current.contentWindow, doc = frame.current.contentDocument;
+  function handleLoad(id) {
+    const el = frames.length > 1 && frames[1].id === id ? pending.current : frame.current;
+    const win = el?.contentWindow, doc = el?.contentDocument;
     if (!doc) return;
-    // Só endereço http(s) indica que um link navegou; about:srcdoc (a pré-visualização) e
-    // about:blank (moldura ainda vazia) são normais — reagir a eles recriaria o iframe sem parar.
+    // Rede de segurança: se a moldura chegou a abrir outra página (um link navegou: endereço
+    // http/https), recriamos o iframe com o mesmo HTML (id novo = React recria o elemento).
+    // about:blank (moldura ainda vazia) é normal e é ignorado.
     if (/^https?:/.test(win.location.href)) {
-      setFrameKey((k) => k + 1);
+      setFrames((prev) => prev.map((f) => (f.id === id ? { ...f, id: ++nextFrameId.current } : f)));
       return;
     }
-    win.scrollTo(0, scrollY.current);
-    win.addEventListener("scroll", () => { scrollY.current = win.scrollY; }, { passive: true });
+    if (win.location.href !== "about:srcdoc") return;
+    // Estado do editor na página ANTES de rolar: a classe e o bloco selecionado mostram campos
+    // vazios e botões, que mudam a altura da página (rolar antes limitaria a rolagem).
+    // Destaque também antes do foco: campos vazios só aparecem (e só aceitam foco) no bloco selecionado.
     doc.documentElement.classList.add("is-editor-preview"); // ativa o destaque ao passar o mouse
+    highlight(doc, false);
+    hover(doc);
+    // Rolagem da versão anterior, sem animação (o site usa rolagem suave nos links internos).
+    win.scrollTo({ top: scrollY.current, behavior: "instant" });
+    win.addEventListener("scroll", () => { scrollY.current = win.scrollY; }, { passive: true });
+    // A pendente vira a atual: aparece (antes de receber foco: elemento invisível não aceita foco)
+    // e a antiga sai na próxima renderização.
+    if (el !== frame.current) {
+      el.classList.remove("is-pending");
+      frame.current?.classList.add("is-pending");
+      frame.current = el;
+      setFrames((prev) => prev.filter((f) => f.id === id));
+    }
 
     // A pré-visualização não navega: links (clique normal, do meio ou com Ctrl) e formulários são
     // bloqueados na fase de CAPTURA, antes de qualquer outro código da página reagir ao clique.
@@ -133,9 +158,6 @@ export function Preview({ productId, payload, renderKey, canvas, selectedIndex, 
     attachCanvas(doc, canvasRef);
     typedInFrame.current = false;
     doc.addEventListener("input", () => { typedInFrame.current = true; });
-    // Destaque ANTES do foco: campos vazios só aparecem (e só aceitam foco) no bloco selecionado.
-    highlight(doc, false);
-    hover(doc);
     if (restoreFocus.current) focusField(doc, restoreFocus.current);
     restoreFocus.current = null;
     // Depois de inserir, mover ou duplicar: mostra o bloco e, se pedido, começa a editar o 1º texto dele.
@@ -183,7 +205,11 @@ export function Preview({ productId, payload, renderKey, canvas, selectedIndex, 
   return (
     <div className="preview">
       <div ref={stage} className={`preview-stage ${device}`}>
-        <iframe key={frameKey} ref={frame} title="Pré-visualização da página de vendas" srcDoc={html} onLoad={handleLoad} style={frameStyle} />
+        {frames.map((f, i) => (
+          <iframe key={f.id} ref={i === 0 ? frame : pending} className={i === 0 ? undefined : "is-pending"}
+            title="Pré-visualização da página de vendas" srcDoc={f.html} onLoad={() => handleLoad(f.id)} style={frameStyle}
+            aria-hidden={i === 0 ? undefined : "true"} tabIndex={i === 0 ? undefined : -1} />
+        ))}
         {frameDoc && frameDoc === frame.current?.contentDocument && (
           <CanvasOverlay doc={frameDoc} scale={scale} selectedIndex={selectedIndex}
             canvas={{ ...canvas, insert: (position, rect) => canvas.insert(position, toWindow(rect)) }} />
