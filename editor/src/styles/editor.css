@@ -158,22 +158,11 @@
 /* Campos lado a lado: curtos dividem a linha; textos longos, imagens e ícones ocupam a largura toda. */
 .item-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: .4rem .75rem; }
 .item-fields > .field { margin: 0; }
-.item-fields > .field:has(textarea), .item-fields > .image-field, .item-fields > .icon-field { grid-column: 1 / -1; }
+.item-fields > .field:has(textarea), .item-fields > .image-field { grid-column: 1 / -1; }
 .item-fields label, .item-fields legend { margin-bottom: .1rem; font-size: .85rem; }
 .item-fields input:not([type="checkbox"]):not([type="radio"]), .item-fields textarea { min-height: 36px; padding: .35rem .6rem; }
 .item-fields .field.check { align-self: end; min-height: 36px; }
 
-/* ---------- Escolha visual de ícone ---------- */
-.icon-field { margin: 0 0 1rem; padding: 0; border: 0; min-width: 0; }
-.icon-field legend { padding: 0; font-weight: 700; margin-bottom: .25rem; }
-.icon-options { display: flex; flex-wrap: wrap; gap: .35rem; }
-.icon-option { position: relative; display: grid; place-items: center; width: 36px; height: 36px; cursor: pointer;
-  color: var(--color-muted); background: var(--color-bg); border: 2px solid var(--color-border); border-radius: 8px; }
-.icon-option svg { width: 20px; height: 20px; }
-.icon-option input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
-.icon-option:hover { color: var(--color-primary); border-color: var(--color-primary); }
-.icon-option:has(input:checked) { color: var(--color-on-primary); background: var(--color-primary); border-color: var(--color-primary); }
-.icon-option:has(input:focus-visible) { outline: 3px solid var(--color-focus); outline-offset: 2px; }
 
 /* ---------- Escolha entre poucas opções (ex.: fundo da seção) ---------- */
 .choice-field { margin: 0 0 1rem; padding: 0; border: 0; min-width: 0; }
@@ -197,10 +186,6 @@
    navegador tentava compensar a rolagem, a página andava sob o mouse e o vão abria/fechava sem parar. */
 .side-panel-body { overflow-anchor: none; }
 
-/* Ícones: o admin.css tem ".field label { display: block; margin-bottom }" para rótulos de texto;
-   esta regra é mais específica e mantém o desenho centralizado na opção. */
-.icon-field .icon-options .icon-option { display: grid; place-items: center; margin: 0; padding: 0; line-height: 0; }
-.icon-field .icon-options .icon-option svg { display: block; }
 
 /* Item numa linha só: ⠿ [campos] [↑ ↓ ✕] */
 .list-item.inline { display: flex; align-items: center; gap: .4rem; padding: .3rem .4rem; }
@@ -309,3 +294,32 @@
   .editor-toolbar .btn-sm, .editor-head .btn-sm, .icon-btn { min-height: 40px; min-width: 40px; }
 }
 .block-head .icon-btn svg { display: block; width: 16px; height: 16px; }
+
+/* ---------- Ícone: botão com o ícone atual + lista suspensa (IconMenu.jsx) ---------- */
+.icon-field .field-label { display: block; font-weight: 700; margin-bottom: .25rem; }
+.icon-select { display: inline-flex; align-items: center; gap: .55rem; min-height: 40px; padding: .35rem .6rem .35rem .45rem; cursor: pointer;
+  font: inherit; font-weight: 600; color: var(--color-text); background: var(--color-bg); border: 2px solid var(--color-border); border-radius: 8px; }
+.icon-select > svg:first-child { width: 28px; height: 28px; padding: 4px; border-radius: 6px; color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent); }
+.icon-select .caret { width: 16px; height: 16px; margin-left: .15rem; color: var(--color-muted); }
+.icon-select:hover { border-color: var(--color-primary); }
+.icon-select:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; }
+
+dialog.picker.icon-menu { position: fixed; inset: auto; margin: 0; width: min(22rem, calc(100vw - 1rem)); max-height: min(30rem, calc(100dvh - 1rem));
+  padding: 0; display: none; flex-direction: column; overflow: hidden; }
+dialog.picker.icon-menu[open] { display: flex; }
+dialog.picker.icon-menu::backdrop { background: rgb(0 0 0 / .08); }
+.icon-menu-head { padding: .7rem .7rem .5rem; border-bottom: 1px solid var(--color-border); }
+.icon-menu-head h2 { margin: 0 0 .45rem; font-size: .95rem; }
+.icon-menu-head input { width: 100%; min-height: 38px; padding: .35rem .6rem; font: inherit; color: var(--color-text);
+  background: var(--color-bg); border: 2px solid var(--color-border); border-radius: 8px; }
+.icon-menu-head input:focus { border-color: var(--color-primary); outline: none; }
+.icon-menu-body { overflow-y: auto; padding: .3rem .7rem .8rem; overscroll-behavior: contain; }
+.icon-menu-body h3 { margin: .6rem 0 .35rem; font-size: .75rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--color-muted); }
+.icon-menu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: .3rem; }
+.icon-menu-item { display: grid; place-items: center; aspect-ratio: 1; min-height: 40px; padding: 0; cursor: pointer;
+  color: var(--color-text); background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px; }
+.icon-menu-item svg { width: 22px; height: 22px; }
+.icon-menu-item:hover { color: var(--color-primary); border-color: var(--color-primary); }
+.icon-menu-item[aria-pressed="true"] { color: var(--color-on-primary); background: var(--color-primary); border-color: var(--color-primary); }
+.icon-menu-item:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; }

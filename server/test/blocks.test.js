@@ -96,3 +96,10 @@ test("ícones: todos têm nome e um desenho SVG válido (só comandos de caminho
     assert.match(icon.d, /^M[MLHVCSQTAZmlhvcsqtaz0-9.,\s-]+$/, name);
   }
 });
+
+test("ícones: cada um está em exatamente um grupo do seletor", () => {
+  const { ICONS, ICON_GROUPS } = require("../sales/blocks");
+  const listed = ICON_GROUPS.flatMap(([, keys]) => keys);
+  assert.deepEqual([...listed].sort(), Object.keys(ICONS).sort());
+  assert.equal(new Set(listed).size, listed.length);
+});

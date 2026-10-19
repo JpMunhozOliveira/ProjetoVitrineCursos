@@ -197,3 +197,17 @@
     min-height: 40px;
   }
 }
+
+/* ---------- Ícones: clicar troca o ícone (abre a lista de ícones no editor) ---------- */
+.is-editor-preview [data-icon-field] {
+  cursor: pointer;
+  transition:
+    outline-color 0.12s,
+    transform 0.12s;
+  outline: 2px solid transparent;
+  outline-offset: 3px;
+}
+.is-editor-preview [data-icon-field]:hover {
+  outline-color: var(--color-accent);
+  transform: scale(1.06);
+}

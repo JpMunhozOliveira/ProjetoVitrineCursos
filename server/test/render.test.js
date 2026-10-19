@@ -41,7 +41,7 @@ function schemaField(type, path) {
 test("página pública não tem nenhuma marcação do editor", () => {
   for (const preview of [false, true]) {
     const page = render(sample(), preview);
-    for (const marker of ["data-field", "data-empty", "data-hidden", "data-fallback", "data-multiline", "venda-editor.css", "editor-hidden-block", "data-editor"]) {
+    for (const marker of ["data-field", "data-empty", "data-hidden", "data-fallback", "data-multiline", "venda-editor.css", "editor-hidden-block", "data-editor", "data-icon-field"]) {
       assert.ok(!page.includes(marker), `"${marker}" apareceu com preview=${preview}`);
     }
   }
@@ -179,4 +179,24 @@ test("editor: <html data-editor> desliga as animações; fonte Inter pré-carreg
   assert.match(render(sample(), "live"), /<html lang="pt-BR" data-editor>/);
   assert.match(render(sample(), false), /<html lang="pt-BR">/);
   assert.match(render(sample(), false), /<link rel="preload" href="\/fonts\/inter\/InterVariable-latin\.woff2" as="font" type="font\/woff2" crossorigin>/);
+});
+
+test("ícones: no editor levam o caminho do campo (clique troca o ícone); na página pública, não", () => {
+  const sections = [{ type: "benefits", items: [{ icon: "gift", title: "T" }] }, { type: "checklist", icon: "shield", title: "C", items: [{ text: "x", positive: true }] }];
+  const live = render(sections, "live");
+  assert.match(live, /<svg class="ico" aria-hidden="true" data-icon-field="items\.0\.icon"><use href="#i-gift"\/><\/svg>/);
+  assert.match(live, /<svg class="ico big" aria-hidden="true" data-icon-field="icon"><use href="#i-shield"\/><\/svg>/);
+  assert.match(render(sections, false), /<svg class="ico" aria-hidden="true"><use href="#i-gift"\/><\/svg>/);
+});
+
+test("todo data-icon-field aponta para um campo de ícone do bloco certo", () => {
+  const sections = [...defaultSections(), { type: "benefits", items: [{ icon: "gift", title: "T" }] }];
+  let count = 0;
+  for (const [index, chunk] of sectionsOf(render(sections, "live"))) {
+    for (const [, path] of chunk.matchAll(/data-icon-field="([^"]+)"/g)) {
+      assert.equal(schemaField(sections[index].type, path)?.type, "icon", `bloco ${index}: ${path}`);
+      count++;
+    }
+  }
+  assert.ok(count > 8, `poucos ícones marcados (${count})`);
 });

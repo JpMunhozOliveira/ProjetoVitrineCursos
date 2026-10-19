@@ -142,6 +142,14 @@ export function attachCanvas(doc, apiRef) {
   doc.addEventListener("click", (e) => {
     if (fieldOf(e) && e.target.closest("summary")) e.preventDefault();
   }, true);
+  // Clicar num ícone da página abre a lista de ícones logo abaixo dele (o servidor marca cada
+  // ícone editável com data-icon-field = caminho do campo dentro do bloco).
+  doc.addEventListener("click", (e) => {
+    const icon = e.target.closest?.("[data-icon-field]");
+    const section = icon?.closest("[data-block]");
+    if (!section) return;
+    api().pickIcon(Number(section.dataset.block), icon.dataset.iconField, icon.getBoundingClientRect());
+  });
   doc.addEventListener("toggle", (e) => {
     if (e.target.matches?.("details") && !e.target.open) e.target.open = true;
   }, true);

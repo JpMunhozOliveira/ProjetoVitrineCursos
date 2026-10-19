@@ -1,10 +1,11 @@
 // Campos do formulário, gerados a partir do esquema do servidor (sales/blocks.js).
 // Cada campo recebe o "caminho" do valor que edita (ex.: ["sections", 2, "items", 0, "question"])
 // e avisa as mudanças com dispatch({ type: "set", path, value }).
-import { useId } from "react";
+import { useId, useState } from "react";
 import { useEditor } from "../state/context.js";
 import { emptyValue } from "../state/document.js";
 import { SortableList, useSortableItem, DragHandle } from "../ui/dnd.jsx";
+import { IconMenu, IconGlyph } from "./IconMenu.jsx";
 
 // compact: dentro de itens de lista (textos longos começam com 2 linhas em vez de 3).
 export function Field({ field, value, path, compact, inline }) {
@@ -44,27 +45,27 @@ function TextField({ field, value, path, compact, inline }) {
   );
 }
 
-// Escolha visual do ícone: os mesmos desenhos da página (vêm do esquema do servidor).
-// São radios por baixo: setas do teclado trocam a opção e o leitor de tela lê o nome.
+// Ícone: botão com o ícone atual que abre a lista suspensa (busca + grupos, ver IconMenu.jsx).
+// Os desenhos são os mesmos da página (vêm do esquema do servidor).
 function IconField({ field, value, path }) {
   const { dispatch, schema } = useEditor();
-  const name = useId();
+  const id = useId();
+  const [anchor, setAnchor] = useState(null);
   const current = value || "check";
+  const icon = schema.icons[current];
   return (
-    <fieldset className="field icon-field">
-      <legend>{field.label}</legend>
-      <div className="icon-options">
-        {Object.entries(schema.icons).map(([key, icon]) => (
-          <label key={key} className="icon-option" title={icon.label}>
-            <input type="radio" name={name} value={key} checked={current === key} aria-label={icon.label}
-              onChange={() => dispatch({ type: "set", path, value: key })} />
-            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <path d={icon.d} fill="none" stroke="currentColor" strokeWidth={icon.width || 1.8} strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </label>
-        ))}
-      </div>
-    </fieldset>
+    <div className="field icon-field">
+      <span id={id} className="field-label">{field.label}</span>
+      <button type="button" className="icon-select" aria-haspopup="dialog" aria-labelledby={`${id} ${id}-value`}
+        onClick={(e) => setAnchor(e.currentTarget.getBoundingClientRect())}>
+        <IconGlyph icon={icon} />
+        <span id={`${id}-value`}>{icon?.label || current}</span>
+        <svg className="caret" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+      </button>
+      <IconMenu open={!!anchor} anchor={anchor} value={current} title={field.label}
+        onPick={(key) => { dispatch({ type: "set", path, value: key }); setAnchor(null); }}
+        onClose={() => setAnchor(null)} />
+    </div>
   );
 }
 

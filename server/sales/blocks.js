@@ -69,6 +69,16 @@ const ICONS = {
   alert: { label: "Atenção", d: "M12 3l10 18H2zM12 10v4M12 17h.01" },
 };
 
+// Grupos do seletor de ícones do editor (cada ícone em exatamente um grupo).
+const ICON_GROUPS = [
+  ["Básicos", ["check", "x", "doc", "bolt", "shield", "user", "calc"]],
+  ["Estudo e conteúdo", ["book", "cap", "video", "layers", "clipboard", "folder", "pencil", "bulb", "search", "download", "laptop", "mobile"]],
+  ["Tempo e progresso", ["clock", "calendar", "refresh", "target", "trend", "chart", "pie", "flag"]],
+  ["Contabilidade e dinheiro", ["money", "card", "percent", "receipt", "scale", "building", "briefcase"]],
+  ["Pessoas e contato", ["users", "chat", "mail", "phone", "headset", "globe", "pin"]],
+  ["Confiança e destaque", ["lock", "star", "award", "heart", "thumb", "gift", "eye", "info", "alert"]],
+];
+
 const text = (label, max, extra = {}) => ({ type: "text", label, max, ...extra });
 const textarea = (label, max, extra = {}) => ({ type: "textarea", label, max, ...extra });
 const icon = (label = "Ícone") => ({ type: "icon", label });
@@ -365,4 +375,4 @@ function defaultSections() {
   ].map((block) => validateSections([block]).sections[0]); // preenche os campos que faltam
 }
 
-module.exports = { ICONS, BLOCKS, MAX_BLOCKS, validateSections, mediaIds, defaultSections };
+module.exports = { ICONS, ICON_GROUPS, BLOCKS, MAX_BLOCKS, validateSections, mediaIds, defaultSections };

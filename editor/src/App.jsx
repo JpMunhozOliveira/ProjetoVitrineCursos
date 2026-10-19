@@ -12,12 +12,15 @@ import { EditorHeader } from "./components/EditorHeader.jsx";
 import { StartScreen, UnsupportedNotice } from "./components/StartScreen.jsx";
 import { BlockList } from "./components/BlockList.jsx";
 import { BlockPicker } from "./components/BlockPicker.jsx";
+import { IconMenu } from "./components/IconMenu.jsx";
 import { ThemePicker, resolveTheme } from "./components/ThemePicker.jsx";
 import { SeoFields } from "./components/SeoFields.jsx";
 import { SidePanel } from "./components/SidePanel.jsx";
 import { Preview } from "./components/Preview.jsx";
 
 const api = (...args) => window.Admin.api(...args);
+// Caminho completo do ícone clicado na página: bloco 2, "items.0.icon" -> ["sections", 2, "items", 0, "icon"].
+const iconPath = ({ index, field }) => ["sections", index, ...field.split(".").map((p) => (/^\d+$/.test(p) ? Number(p) : p))];
 
 export default function App({ productId }) {
   const [boot, setBoot] = useState({ status: "loading" });  // loading | error | ready
@@ -40,6 +43,7 @@ export default function App({ productId }) {
   const [hovered, setHovered] = useState(null);               // cartão sob o mouse (destaca na página)
   const [visible, setVisible] = useState(null);               // índices que aparecem na página (da prévia)
   const [picker, setPicker] = useState(null);                 // { index, anchor } onde inserir (null = fechado)
+  const [iconPick, setIconPick] = useState(null);             // { index, field, anchor } ícone clicado na página
   const pendingFocus = useRef(null);
   const reveal = useRef(null);                                // bloco a mostrar quando a página redesenhar
 
@@ -179,6 +183,12 @@ export default function App({ productId }) {
     },
     insert(index, anchor) {
       if (!full) setPicker({ index, anchor });
+    },
+    // Clique num ícone da página: seleciona o bloco e abre a lista de ícones junto dele.
+    pickIcon(index, field, anchor) {
+      if (!sections[index]) return;
+      revealBlock(index, "canvas");
+      setIconPick({ index, field, anchor });
     },
   };
 
@@ -387,6 +397,10 @@ export default function App({ productId }) {
           </div>
           <BlockPicker position={picker?.index ?? null} anchor={picker?.anchor} total={sections.length}
             onPick={(type) => addBlock(type, picker.index)} onClose={() => setPicker(null)} />
+          <IconMenu open={!!iconPick} anchor={iconPick?.anchor} title="Trocar ícone"
+            value={iconPick ? iconPath(iconPick).reduce((v, k) => v?.[k], doc) : null}
+            onPick={(key) => { dispatch({ type: "set", path: iconPath(iconPick), value: key }); setIconPick(null); }}
+            onClose={() => setIconPick(null)} />
         </div>
       </div>
     </EditorContext.Provider>

@@ -19,7 +19,8 @@ export function Preview({ productId, payload, renderKey, canvas, selectedIndex, 
   const payloadRef = useRef(payload);
   payloadRef.current = payload;
   const canvasRef = useRef(canvas);   // funções do editor chamadas de dentro da moldura
-  canvasRef.current = canvas;
+  // O retângulo do ícone clicado vem em coordenadas da moldura: converte para as da janela.
+  canvasRef.current = { ...canvas, pickIcon: (block, field, rect) => canvas.pickIcon(block, field, toWindow(rect)) };
   const restoreFocus = useRef(null);  // campo em edição quando a atualização começou
   const typedInFrame = useRef(false); // a moldura atual tem texto digitado (difere do HTML desenhado)?
   const [frameDoc, setFrameDoc] = useState(null); // documento da moldura carregada (para os controles sobre a página)

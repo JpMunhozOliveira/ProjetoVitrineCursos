@@ -60,6 +60,11 @@ function createContext(data, { live = false } = {}) {
     paras(path, value, cls) {
       return live ? html`<div${ctx.field(path, value)} data-multiline>${paragraphs(value, cls)}</div>` : paragraphs(value, cls);
     },
+    // Ícone de um campo "icon". No editor leva data-icon-field (clicar nele abre a escolha de ícone).
+    icon(path, name, cls = "ico") {
+      if (!live) return svg(name, cls);
+      return html`<svg class="${cls}" aria-hidden="true" data-icon-field="${path}"><use href="#i-${name}"/></svg>`;
+    },
     // Campo opcional: na página pública só aparece preenchido; no editor, sempre (vazio = espaço para digitar).
     show: (value) => live || !!value,
 
@@ -121,7 +126,7 @@ const RENDERERS = {
     const id = ctx.headingId();
     return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark()}><div class="container">
   <h2 id="${id}" class="sr-only">${b.title || "Benefícios"}</h2>
-  <div class="two">${b.items.map((x, i) => html`<article class="v-card">${svg(x.icon)}<h3${ctx.field(`items.${i}.title`, x.title)}>${x.title}</h3>${ctx.paras(`items.${i}.text`, x.text)}${ctx.show(x.callout) && html`<p class="callout"${ctx.field(`items.${i}.callout`, x.callout)}>${x.callout}</p>`}</article>`)}</div>
+  <div class="two">${b.items.map((x, i) => html`<article class="v-card">${ctx.icon(`items.${i}.icon`, x.icon)}<h3${ctx.field(`items.${i}.title`, x.title)}>${x.title}</h3>${ctx.paras(`items.${i}.text`, x.text)}${ctx.show(x.callout) && html`<p class="callout"${ctx.field(`items.${i}.callout`, x.callout)}>${x.callout}</p>`}</article>`)}</div>
 </div></section>`;
   },
 
@@ -130,7 +135,7 @@ const RENDERERS = {
     const id = ctx.headingId();
     return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark()}><div class="container">
   ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>
-  <ul class="grid8">${b.items.map((x, i) => html`<li>${svg(x.icon)}<strong${ctx.field(`items.${i}.title`, x.title)}>${x.title}</strong><span${ctx.field(`items.${i}.text`, x.text)}>${x.text}</span></li>`)}</ul>
+  <ul class="grid8">${b.items.map((x, i) => html`<li>${ctx.icon(`items.${i}.icon`, x.icon)}<strong${ctx.field(`items.${i}.title`, x.title)}>${x.title}</strong><span${ctx.field(`items.${i}.text`, x.text)}>${x.text}</span></li>`)}</ul>
 </div></section>`;
   },
 
@@ -153,7 +158,7 @@ const RENDERERS = {
     if (!b.items.length) return null;
     const id = ctx.headingId();
     return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark()}><div class="container narrow">
-  <div class="v-card center">${svg(b.icon, "ico big")}${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>
+  <div class="v-card center">${ctx.icon("icon", b.icon, "ico big")}${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>
     <ul class="mini">${b.items.map((x, i) => html`<li class="${x.positive ? "yes" : "no"}">${mark(x.positive)}${ctx.text(`items.${i}.text`, x.text)}</li>`)}</ul>
   </div>
 </div></section>`;
@@ -184,7 +189,7 @@ const RENDERERS = {
     const id = ctx.headingId();
     return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark()}><div class="container">
   ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>
-  <ul class="who">${b.items.map((x, i) => html`<li>${svg(x.icon)}${ctx.text(`items.${i}.text`, x.text)}</li>`)}</ul>
+  <ul class="who">${b.items.map((x, i) => html`<li>${ctx.icon(`items.${i}.icon`, x.icon)}${ctx.text(`items.${i}.text`, x.text)}</li>`)}</ul>
 </div></section>`;
   },
 
@@ -238,7 +243,7 @@ const RENDERERS = {
     const id = ctx.headingId();
     return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark()}><div class="container narrow">
   <div class="v-card center">${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>
-    ${b.items.length > 0 && html`<ul class="seals">${b.items.map((x, i) => html`<li>${svg(x.icon)}${ctx.text(`items.${i}.text`, x.text)}</li>`)}</ul>`}
+    ${b.items.length > 0 && html`<ul class="seals">${b.items.map((x, i) => html`<li>${ctx.icon(`items.${i}.icon`, x.icon)}${ctx.text(`items.${i}.text`, x.text)}</li>`)}</ul>`}
   </div>
 </div></section>`;
   },

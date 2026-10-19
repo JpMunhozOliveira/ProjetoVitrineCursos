@@ -17,8 +17,8 @@
   Admin.hasUnsavedChanges = function () { return dirty; };
 
   // Campos de texto enviados como estão; a API apara espaços e transforma vazio em null.
-  var TEXT_FIELDS = ["title", "slug", "status", "category", "short_description", "description",
-    "audience", "prerequisites", "format", "workload", "checkout_url"];
+  var TEXT_FIELDS = ["title", "slug", "status", "category", "short_description",
+    "format", "workload", "checkout_url"];
 
   // "Manual Prático!" -> "manual-pratico"
   function slugify(text) {
@@ -45,7 +45,6 @@
   function fill(p) {
     TEXT_FIELDS.forEach(function (f) { form.elements[f].value = p[f] || ""; });
     form.elements.featured.checked = !!p.featured;
-    form.elements.modules.value = (p.modules || []).join("\n");
     form.elements.price.value = priceToInput(p.price_cents);
     showCover(p.image || null);
   }
@@ -54,7 +53,6 @@
     var data = {};
     TEXT_FIELDS.forEach(function (f) { data[f] = form.elements[f].value; });
     data.featured = form.elements.featured.checked;
-    data.modules = form.elements.modules.value.split("\n"); // linhas vazias são descartadas pela API
     data.price_cents = parsePrice(form.elements.price.value);
     data.image_id = cover ? cover.id : null;
     return data;
