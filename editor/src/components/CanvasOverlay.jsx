@@ -103,9 +103,11 @@ export function CanvasOverlay({ doc, scale, canvas, selectedIndex }) {
     const barHeight = 44 * k;
     const top = Math.min(Math.max(selRect.top + 10 * k, 10 * k), Math.max(selRect.top, selRect.bottom - barHeight - 10 * k));
     const n = i + 1;
+    // Com a janela flutuante aberta (à direita, por cima da página), a barra desvia para a esquerda dela.
+    const right = Math.min(selRect.right, win.innerWidth - (canvas.panelInset || 0) * k);
     toolbar = block && (
       <div className="eo-toolbar" role="toolbar" aria-label={`Bloco ${n}: ${label}`}
-        style={{ top: `${top + win.scrollY}px`, left: `${selRect.right - 10 * k + win.scrollX}px`, transform: `translateX(-100%) scale(${k})` }}>
+        style={{ top: `${top + win.scrollY}px`, left: `${right - 10 * k + win.scrollX}px`, transform: `translateX(-100%) scale(${k})` }}>
         <span className="eo-label"><BlockIcon type={block.type} /> {label}</span>
         <ToolButton icon="up" label={`Mover bloco ${n} (${label}) para cima`} disabled={i === 0} onClick={() => canvas.move(i, -1)} />
         <ToolButton icon="down" label={`Mover bloco ${n} (${label}) para baixo`} disabled={i === sections.length - 1} onClick={() => canvas.move(i, 1)} />

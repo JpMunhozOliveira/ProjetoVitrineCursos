@@ -164,14 +164,13 @@ export function Preview({ productId, payload, renderKey, canvas, selectedIndex, 
     observer.observe(stage.current);
     return () => observer.disconnect();
   }, []);
-  const logical = device === "mobile" ? 390 : 1280;
+  // Computador: a página usa a largura da tela (no mínimo 1280 px; abaixo disso, reduz a escala).
+  const logical = device === "mobile" ? 390 : Math.max(1280, Math.floor(box.width));
   const scale = box.width ? Math.min(1, box.width / logical) : 1;
   const frameStyle = {
     width: `${logical}px`,
     height: `${box.height / scale}px`,
     transform: `scale(${scale})`,
-    // Tela mais larga que a página: centraliza (no celular o CSS já centraliza).
-    left: device === "desktop" && box.width > logical ? `${(box.width - logical) / 2}px` : undefined,
   };
 
   // Retângulo medido dentro da moldura (em escala) -> coordenadas da janela do painel.
@@ -190,7 +189,7 @@ export function Preview({ productId, payload, renderKey, canvas, selectedIndex, 
             canvas={{ ...canvas, insert: (position, rect) => canvas.insert(position, toWindow(rect)) }} />
         )}
       </div>
-      {/* Barra de status embaixo da pré-visualização: situação e escala de exibição. */}
+      {/* Selo discreto no canto de baixo: situação da pré-visualização e escala de exibição. */}
       <div className="preview-bar">
         <span className={`preview-status ${status.kind}`} role="status" aria-live="polite">{status.text}</span>
         {scale < 1 && <span className="muted small">{logical} px, exibido a {Math.round(scale * 100)}%</span>}

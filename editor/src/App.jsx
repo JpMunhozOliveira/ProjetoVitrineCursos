@@ -8,7 +8,7 @@ import { EditorContext } from "./state/context.js";
 import { withKeys, stripKeys, carryKeys, newBlock, duplicateBlock, emptyValue, getIn, hasText } from "./state/document.js";
 import { historyReducer, initialHistory } from "./state/history.js";
 import { PRODUCT_STATUS } from "./labels.js";
-import { EditorHeader } from "./components/EditorHeader.jsx";
+import { TopBar, ToolDock } from "./components/EditorHeader.jsx";
 import { StartScreen, UnsupportedNotice } from "./components/StartScreen.jsx";
 import { BlockList } from "./components/BlockList.jsx";
 import { BlockPicker } from "./components/BlockPicker.jsx";
@@ -47,16 +47,6 @@ export default function App({ productId }) {
   const pendingFocus = useRef(null);
   const reveal = useRef(null);                                // bloco a mostrar quando a página redesenhar
 
-  // Altura do cabeçalho fixo do painel -> variável CSS. Com ela, a tela do editor ocupa exatamente
-  // o resto da janela: a página e o painel rolam por dentro.
-  useEffect(() => {
-    const top = document.querySelector(".admin-top");
-    if (!top) return;
-    const observer = new ResizeObserver(() =>
-      document.documentElement.style.setProperty("--top-offset", `${top.offsetHeight}px`));
-    observer.observe(top);
-    return () => observer.disconnect();
-  }, []);
   const dirtyRef = useRef(false);
   dirtyRef.current = dirty;
 
@@ -152,6 +142,9 @@ export default function App({ productId }) {
   // Ações chamadas de dentro da página (CanvasEditing e CanvasOverlay).
   const canvas = {
     schema, sections, undo, redo,
+    // Largura (na tela) ocupada à direita pela janela flutuante aberta: os controles da página desviam dela.
+    // (Mesmas medidas do .floating-panel em editor.css: largura até 460 px, a 16 px da borda.)
+    panelInset: panel ? Math.min(460, window.innerWidth - 32) + 16 + 8 : 0,
     save: () => saveRef.current?.(),
     edit(path, value) {
       fromCanvas.current = true;
@@ -383,10 +376,8 @@ export default function App({ productId }) {
 
   const productUrl = `produto.html?id=${encodeURIComponent(productId)}`;
   const header = (
-    <EditorHeader product={product} productId={productId} productUrl={productUrl} page={page} dirty={dirty} editing={!!doc}
-      canUndo={history.past.length > 0} canRedo={history.future.length > 0} onUndo={undo} onRedo={redo}
-      device={device} onDevice={setDevice} saving={saving} onSave={save} onPublish={publish}
-      panel={panel} onPanel={setPanel} message={message} />
+    <TopBar product={product} productId={productId} productUrl={productUrl} page={page} dirty={dirty} editing={!!doc}
+      saving={saving} onSave={save} onPublish={publish} message={message} />
   );
   const unsupported = <UnsupportedNotice productId={productId} productUrl={productUrl} hasPage={!!page} />;
 
@@ -424,22 +415,23 @@ export default function App({ productId }) {
         {unsupported}
         <div className="editor-main">
           {header}
-          <div className={`editor-layout${panel ? " has-panel" : ""}`}>
-            <section className="preview-pane" aria-label="Página (clique num texto para editar)">
-              <Preview productId={productId} payload={previewPayload} renderKey={renderKey} canvas={canvas} device={device}
-                selectedIndex={selectedIndex >= 0 ? selectedIndex : null}
-                scrollToSelected={selected.from === "editor"}
-                onSelectBlock={(index) => revealBlock(index, "preview")}
-                hoveredIndex={hovered} onVisibleChange={setVisible} />
-            </section>
-            {panel && (
-              <SidePanel mode={panel} onMode={setPanel} onClose={() => setPanel(null)}
-                block={sections[selectedIndex]} blockIndex={selectedIndex}
-                blockHidden={visible !== null && selectedIndex >= 0 && !visible.has(selectedIndex)}
-                structure={structure}
-                page={<><ThemePicker theme={doc.theme} /><SeoFields title={doc.seo_title} description={doc.seo_description} /></>} />
-            )}
-          </div>
+          {/* A página ocupa a tela inteira; barras e painel flutuam por cima dela. */}
+          <section className="preview-pane" aria-label="Página (clique num texto para editar)">
+            <Preview productId={productId} payload={previewPayload} renderKey={renderKey} canvas={canvas} device={device}
+              selectedIndex={selectedIndex >= 0 ? selectedIndex : null}
+              scrollToSelected={selected.from === "editor"}
+              onSelectBlock={(index) => revealBlock(index, "preview")}
+              hoveredIndex={hovered} onVisibleChange={setVisible} />
+          </section>
+          {panel && (
+            <SidePanel mode={panel} onMode={setPanel} onClose={() => setPanel(null)}
+              block={sections[selectedIndex]} blockIndex={selectedIndex}
+              blockHidden={visible !== null && selectedIndex >= 0 && !visible.has(selectedIndex)}
+              structure={structure}
+              page={<><ThemePicker theme={doc.theme} /><SeoFields title={doc.seo_title} description={doc.seo_description} /></>} />
+          )}
+          <ToolDock canUndo={history.past.length > 0} canRedo={history.future.length > 0} onUndo={undo} onRedo={redo}
+            device={device} onDevice={setDevice} panel={panel} onPanel={setPanel} />
           <BlockPicker position={picker?.index ?? null} anchor={picker?.anchor} total={sections.length}
             onPick={(type) => addBlock(type, picker.index)} onClose={() => setPicker(null)} />
           <IconMenu open={!!iconPick} anchor={iconPick?.anchor} title="Trocar ícone"

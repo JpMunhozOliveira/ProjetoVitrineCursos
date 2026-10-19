@@ -401,3 +401,13 @@
 .faq ~ .item-add {
   margin-top: 0.75rem;
 }
+
+/* Tela cheia do editor: a barra de ferramentas flutua sobre o fim da página. O rodapé ganha
+   espaço extra embaixo para rolar até acima dela (só no editor; a página pública não muda). */
+html[data-editor] .site-footer {
+  padding-bottom: calc(2.5rem + 84px);
+}
+/* Rolagens automáticas (mostrar o bloco, focar um texto) param acima da barra de baixo. */
+html[data-editor] {
+  scroll-padding-block: 24px 110px;
+}
