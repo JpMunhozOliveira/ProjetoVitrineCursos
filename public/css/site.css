@@ -478,9 +478,11 @@ body .menu-btn:hover {
 body :focus-visible {
   outline-color: var(--v-cta);
 }
-/* Celular: o menu aberto vira um painel arredondado logo abaixo da pílula. */
+/* Celular: o menu aberto vira um painel arredondado logo abaixo da pílula, que desce com um fade
+   e os itens entram um a um. Fechado, fica invisível (visibility tira os links da ordem do Tab). */
 @media (max-width: 719px) {
   .js body .nav {
+    display: block;
     top: calc(100% + 0.5rem);
     left: 0;
     right: 0;
@@ -489,7 +491,86 @@ body :focus-visible {
     border: 1px solid rgb(255 255 255 / 0.12);
     border-radius: 20px;
     box-shadow: 0 20px 40px -16px rgb(0 0 0 / 0.6);
+    visibility: hidden;
+    opacity: 0;
+    transform: translateY(-10px) scale(0.97);
+    transform-origin: top right;
+    transition:
+      opacity 0.2s ease,
+      transform 0.25s cubic-bezier(0.2, 0.7, 0.2, 1),
+      visibility 0s linear 0.25s;
   }
+  .js body .nav.open {
+    visibility: visible;
+    opacity: 1;
+    transform: none;
+    transition-delay: 0s;
+  }
+  .js body .nav.open li {
+    animation: nav-item-in 0.35s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+  .js body .nav.open li:nth-child(2) { animation-delay: 0.04s; }
+  .js body .nav.open li:nth-child(3) { animation-delay: 0.08s; }
+  .js body .nav.open li:nth-child(4) { animation-delay: 0.12s; }
+  .js body .nav.open li:nth-child(5) { animation-delay: 0.16s; }
+}
+@keyframes nav-item-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+/* Botão do menu: três traços que viram um X quando o menu abre. */
+body .menu-btn {
+  display: none;
+  position: relative;
+  width: 44px;
+  padding: 0;
+  font-size: 0; /* o nome continua para leitores de tela (aria-label) */
+}
+.js body .menu-btn {
+  display: inline-block;
+}
+@media (min-width: 720px) {
+  .js body .menu-btn {
+    display: none;
+  }
+}
+body .menu-btn::before,
+body .menu-btn::after,
+body .menu-btn span {
+  content: "";
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  height: 2px;
+  border-radius: 2px;
+  background: currentColor;
+  transition:
+    transform 0.25s cubic-bezier(0.2, 0.7, 0.2, 1),
+    opacity 0.2s;
+}
+body .menu-btn::before {
+  top: 14px;
+}
+body .menu-btn span {
+  top: 20px;
+}
+body .menu-btn::after {
+  top: 26px;
+}
+body .menu-btn[aria-expanded="true"]::before {
+  transform: translateY(6px) rotate(45deg);
+}
+body .menu-btn[aria-expanded="true"] span {
+  opacity: 0;
+}
+body .menu-btn[aria-expanded="true"]::after {
+  transform: translateY(-6px) rotate(-45deg);
 }
 /* A primeira seção começa abaixo da pílula. */
 main > section:first-child {

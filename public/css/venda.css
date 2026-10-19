@@ -294,6 +294,13 @@
 .faq[open] summary::after {
   transform: rotate(45deg);
 }
+/* Fechando (animação de venda.js): o "+" e a borda voltam já no início, não só no fim. */
+.faq.is-closing summary::after {
+  transform: none;
+}
+.faq.is-closing {
+  border-color: var(--v-line);
+}
 .faq p {
   margin: 0;
   padding: 0 1.35rem 1.2rem;

@@ -86,3 +86,13 @@ test("chamada intermediária: texto e botão com limites", () => {
   assert.deepEqual(ok.sections[0], { type: "cta", eyebrow: "", title: "Pronto?", cta_label: "Quero" });
   assert.match(validateSections([{ type: "cta", eyebrow: "x".repeat(41) }]).error, /Rótulo acima do título: máximo de 40/);
 });
+
+test("ícones: todos têm nome e um desenho SVG válido (só comandos de caminho e números)", () => {
+  const { ICONS } = require("../sales/blocks");
+  assert.ok(Object.keys(ICONS).length >= 50);
+  for (const [name, icon] of Object.entries(ICONS)) {
+    assert.match(name, /^[a-z]+$/, name);
+    assert.ok(icon.label, name);
+    assert.match(icon.d, /^M[MLHVCSQTAZmlhvcsqtaz0-9.,\s-]+$/, name);
+  }
+});

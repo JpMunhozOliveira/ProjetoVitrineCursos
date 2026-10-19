@@ -265,5 +265,9 @@
     document.addEventListener("keydown", function (e) {
       if (e.key === "Escape" && nav.classList.contains("open")) { close(); btn.focus(); }
     });
+    // Tocar fora do menu aberto também fecha.
+    document.addEventListener("click", function (e) {
+      if (nav.classList.contains("open") && !nav.contains(e.target) && !btn.contains(e.target)) close();
+    });
   }
 })();

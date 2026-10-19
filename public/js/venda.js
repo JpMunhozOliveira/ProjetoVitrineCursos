@@ -74,6 +74,39 @@
 
   [].forEach.call(document.querySelectorAll(".carousel"), setup);
 
+  // Perguntas frequentes: abrir e fechar deslizando, em vez de saltar. Sem JavaScript, com
+  // "menos movimento" ou dentro do editor (onde ficam sempre abertas), o <details> funciona sozinho.
+  var editing = document.documentElement.hasAttribute("data-editor");
+  function accordion(details) {
+    var summary = details.querySelector("summary"), running = null;
+    if (!summary || !details.animate) return;
+    function finish(open) {
+      details.open = open;
+      details.classList.remove("is-closing");
+      details.style.height = details.style.overflow = "";
+      running = null;
+    }
+    function slide(from, to, open) {
+      details.style.overflow = "hidden";
+      if (running) running.cancel();
+      running = details.animate({ height: [from + "px", to + "px"] }, { duration: 280, easing: "cubic-bezier(.2,.7,.2,1)" });
+      running.onfinish = function () { finish(open); };
+    }
+    summary.addEventListener("click", function (event) {
+      event.preventDefault();
+      var start = details.offsetHeight;
+      if (details.open && !details.classList.contains("is-closing")) {
+        details.classList.add("is-closing"); // o "+" volta a girar já no início
+        slide(start, summary.offsetHeight + 2, false);
+      } else {
+        details.classList.remove("is-closing");
+        details.open = true;
+        slide(start, details.scrollHeight + 2, true);
+      }
+    });
+  }
+  if (!reduce && !editing) [].forEach.call(document.querySelectorAll("details.faq"), accordion);
+
   // Animações ao rolar: títulos, cartões e itens surgem suavemente ao entrar na tela.
   // Fora quando a pessoa pede menos movimento e dentro do editor do painel (<html data-editor>),
   // onde a página é redesenhada a cada mudança e nada pode ficar escondido.

@@ -22,7 +22,7 @@
         </ul>
       </nav>
       <button id="tema-btn" class="theme-btn" type="button" aria-label="Modo noturno" title="Modo noturno" aria-pressed="false"></button>
-      <button id="menu-btn" class="menu-btn" aria-expanded="false" aria-controls="nav">Menu</button>
+      <button id="menu-btn" class="menu-btn" type="button" aria-label="Menu" aria-expanded="false" aria-controls="nav"><span></span></button>
     </div>
   </div>
 </header>`;
