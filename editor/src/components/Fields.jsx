@@ -13,6 +13,7 @@ export function Field({ field, value, path, compact, inline }) {
     case "image": return <ImageField field={field} value={value} path={path} />;
     case "bool": return <BoolField field={field} value={value} path={path} />;
     case "icon": return <IconField field={field} value={value} path={path} />;
+    case "choice": return <ChoiceField field={field} value={value} path={path} />;
     default: return <TextField field={field} value={value} path={path} compact={compact} inline={inline} />;
   }
 }
@@ -63,6 +64,29 @@ function IconField({ field, value, path }) {
           </label>
         ))}
       </div>
+    </fieldset>
+  );
+}
+
+// Uma opção entre poucas (ex.: fundo da seção): botões lado a lado, radios por baixo.
+// Cada opção leva data-option, que o CSS usa para mostrar uma amostra (ex.: a cor do fundo).
+function ChoiceField({ field, value, path }) {
+  const { dispatch } = useEditor();
+  const name = useId();
+  const current = value || field.default;
+  return (
+    <fieldset className="field choice-field">
+      <legend>{field.label}</legend>
+      <div className="choice-options">
+        {Object.entries(field.options).map(([key, label]) => (
+          <label key={key} className="choice-option" data-option={key}>
+            <input type="radio" name={name} value={key} checked={current === key}
+              onChange={() => dispatch({ type: "set", path, value: key })} />
+            <span>{label}</span>
+          </label>
+        ))}
+      </div>
+      <Help text={field.help} />
     </fieldset>
   );
 }

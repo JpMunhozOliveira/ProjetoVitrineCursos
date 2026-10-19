@@ -47,7 +47,8 @@ export function emptyValue(fields) {
   const out = { _key: newKey() };
   for (const [name, field] of Object.entries(fields)) {
     out[name] = field.type === "list" ? [] : field.type === "bool" ? false
-      : field.type === "image" ? null : field.type === "icon" ? "check" : "";
+      : field.type === "image" ? null : field.type === "icon" ? "check"
+      : field.type === "choice" ? field.default : "";
   }
   return out;
 }

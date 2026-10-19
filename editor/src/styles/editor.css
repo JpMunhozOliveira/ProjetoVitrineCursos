@@ -175,6 +175,24 @@
 .icon-option:has(input:checked) { color: var(--color-on-primary); background: var(--color-primary); border-color: var(--color-primary); }
 .icon-option:has(input:focus-visible) { outline: 3px solid var(--color-focus); outline-offset: 2px; }
 
+/* ---------- Escolha entre poucas opções (ex.: fundo da seção) ---------- */
+.choice-field { margin: 0 0 1rem; padding: 0; border: 0; min-width: 0; }
+.choice-field legend { padding: 0; font-weight: 700; margin-bottom: .25rem; }
+.choice-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(5.5rem, 1fr)); gap: .35rem; }
+.choice-field .choice-options .choice-option { position: relative; display: flex; align-items: center; gap: .45rem; margin: 0;
+  min-height: 40px; padding: .35rem .6rem; cursor: pointer; font-weight: 600; font-size: .9rem;
+  color: var(--color-text); background: var(--color-bg); border: 2px solid var(--color-border); border-radius: 8px; }
+.choice-option input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+.choice-option:hover { border-color: var(--color-primary); }
+.choice-option:has(input:checked) { border-color: var(--color-primary); background: color-mix(in srgb, var(--color-primary) 10%, var(--color-bg)); }
+.choice-option:has(input:focus-visible) { outline: 3px solid var(--color-focus); outline-offset: 2px; }
+/* Amostra do fundo (cores das páginas de venda: claro, cinza quente, marinho) */
+.choice-option[data-option]::before { content: ""; flex: none; width: 16px; height: 16px; border-radius: 4px; border: 1px solid var(--color-border); }
+.choice-option[data-option="auto"]::before { background: linear-gradient(135deg, #fff 50%, #07152a 50%); }
+.choice-option[data-option="light"]::before { background: #fff; }
+.choice-option[data-option="soft"]::before { background: #f4f3ef; }
+.choice-option[data-option="dark"]::before { background: #07152a; }
+
 /* Sem "ancoragem de rolagem" na coluna do editor: quando o vão de "inserir aqui" se abre, o
    navegador tentava compensar a rolagem, a página andava sob o mouse e o vão abria/fechava sem parar. */
 .side-panel-body { overflow-anchor: none; }

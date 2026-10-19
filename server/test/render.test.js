@@ -41,7 +41,7 @@ function schemaField(type, path) {
 test("página pública não tem nenhuma marcação do editor", () => {
   for (const preview of [false, true]) {
     const page = render(sample(), preview);
-    for (const marker of ["data-field", "data-empty", "data-hidden", "data-fallback", "data-multiline", "venda-editor.css", "editor-hidden-block"]) {
+    for (const marker of ["data-field", "data-empty", "data-hidden", "data-fallback", "data-multiline", "venda-editor.css", "editor-hidden-block", "data-editor"]) {
       assert.ok(!page.includes(marker), `"${marker}" apareceu com preview=${preview}`);
     }
   }
@@ -81,8 +81,8 @@ test("cada texto preenchido do modelo padrão é editável na página", () => {
     walk(block, BLOCKS[block.type].fields, "");
   });
   // Exceções conhecidas: o título dos benefícios é só para leitores de tela, e a galeria do modelo
-  // não tem imagens (não aparece; o editor mostra o aviso e o título fica no painel).
-  assert.deepEqual(missing.filter((m) => !["benefits:title", "gallery:title"].includes(m)), []);
+  // não tem imagens (não aparece; o editor mostra o aviso e o título e o rótulo ficam no painel).
+  assert.deepEqual(missing.filter((m) => !["benefits:title", "gallery:title", "gallery:eyebrow"].includes(m)), []);
 });
 
 test("campos vazios ganham texto de exemplo com o rótulo do esquema", () => {
@@ -146,4 +146,37 @@ test("depoimentos: foto da biblioteca vira <img> redonda com texto alternativo",
   data.media = new Map([[photo, { url: "/uploads/ana.webp", alt_text: "Foto de Ana", width: 200, height: 200 }]]);
   const page = renderSalesPage(data, { baseUrl: "http://localhost", preview: false });
   assert.match(page, /<figcaption><img class="quote-photo" src="\/uploads\/ana\.webp" alt="Foto de Ana" width="200" height="200" loading="lazy" decoding="async"><span><strong>Ana<\/strong><\/span><\/figcaption>/);
+});
+
+test("fundo: automático alterna claro e cinza; o autor é escuro; a escolha do bloco vale", () => {
+  const page = render([
+    { type: "faq", items: [{ question: "Q", answer: "A" }] },
+    { type: "author", name: "Ana" },
+    { type: "faq", items: [{ question: "Q", answer: "A" }] },
+    { type: "faq", items: [{ question: "Q", answer: "A" }], background: "dark" },
+    { type: "faq", items: [{ question: "Q", answer: "A" }], background: "light" },
+  ], false);
+  const tones = [...page.matchAll(/<section class="v-section is-(\w+)"/g)].map((m) => m[1]);
+  assert.deepEqual(tones, ["light", "dark", "soft", "dark", "light"]);
+});
+
+test("rótulo acima do título: só aparece preenchido na página pública; no editor, editável", () => {
+  assert.match(render([{ type: "faq", eyebrow: "Dúvidas", title: "T", items: [{ question: "Q" }] }], false), /<p class="v-eyebrow">Dúvidas<\/p><h2/);
+  assert.ok(!render([{ type: "faq", eyebrow: "", title: "T", items: [{ question: "Q" }] }], false).includes("v-eyebrow"));
+  assert.match(render([{ type: "faq", eyebrow: "", title: "T", items: [{ question: "Q" }] }], "live"),
+    /<p class="v-eyebrow" data-field="eyebrow" data-empty data-placeholder="Rótulo acima do título"><\/p>/);
+});
+
+test("chamada intermediária: texto, preço e botão com o link do produto", () => {
+  const page = render([{ type: "cta", title: "Pronto para começar?", cta_label: "" }], false);
+  assert.match(page, /<section class="v-strip" aria-label="Chamada para compra">/);
+  assert.match(page, /<p class="v-strip-text">Pronto para começar\?<\/p>/);
+  assert.match(page, /<span class="v-strip-price">R\$\s49,90<\/span>/);
+  assert.match(page, /<a class="btn-cta" href="https:\/\/pay\.example\.com\/x"[^>]*>Quero garantir<span class="sr-only">/);
+});
+
+test("editor: <html data-editor> desliga as animações; fonte Inter pré-carregada do próprio site", () => {
+  assert.match(render(sample(), "live"), /<html lang="pt-BR" data-editor>/);
+  assert.match(render(sample(), false), /<html lang="pt-BR">/);
+  assert.match(render(sample(), false), /<link rel="preload" href="\/fonts\/inter\/InterVariable-latin\.woff2" as="font" type="font\/woff2" crossorigin>/);
 });

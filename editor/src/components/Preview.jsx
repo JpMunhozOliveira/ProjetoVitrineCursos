@@ -142,7 +142,8 @@ export function Preview({ productId, payload, renderKey, canvas, selectedIndex, 
     if (reveal) {
       const section = doc.querySelector(`[data-block="${reveal.index}"]`);
       section?.scrollIntoView({ block: "nearest" });
-      const first = reveal.edit && section?.querySelector("[data-field]");
+      // O rótulo acima do título é opcional: o foco vai direto para o primeiro texto principal.
+      const first = reveal.edit && (section?.querySelector("[data-field]:not([data-field='eyebrow'])") || section?.querySelector("[data-field]"));
       if (first) focusField(doc, { block: reveal.index, field: first.dataset.field });
     }
     setFrameDoc(doc);

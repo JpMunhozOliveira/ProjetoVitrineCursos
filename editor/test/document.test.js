@@ -2,7 +2,7 @@
 // Rodar: npm test (node --test)
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { withKeys, stripKeys, duplicateBlock, reducer } from "../src/state/document.js";
+import { withKeys, stripKeys, duplicateBlock, reducer, newBlock } from "../src/state/document.js";
 import { historyReducer, initialHistory } from "../src/state/history.js";
 
 // Esquema mínimo, no mesmo formato que /api/admin/sales-blocks devolve.
@@ -84,4 +84,12 @@ test("saved: edição feita durante o salvamento não se perde", () => {
   assert.equal(state.doc.sections[0].title, "Digitado depois");
   assert.equal(state.saved, sent);
   assert.notEqual(state.doc, state.saved); // continua "alterações não salvas"
+});
+
+test("bloco novo começa com a opção padrão dos campos de escolha (ex.: fundo automático)", () => {
+  const withChoice = { ...schema, blocks: { ...schema.blocks, faq: { fields: {
+    ...schema.blocks.faq.fields,
+    background: { type: "choice", options: { auto: "Automático", dark: "Escuro" }, default: "auto" },
+  } } } };
+  assert.equal(newBlock("faq", withChoice).background, "auto");
 });

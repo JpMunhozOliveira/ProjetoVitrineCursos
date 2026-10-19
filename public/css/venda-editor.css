@@ -34,6 +34,9 @@
 .is-editor-preview [data-field]:focus {
   outline: none;
   box-shadow: 0 0 0 2px var(--color-accent);
+  /* Em edição, o texto aparece como foi digitado: o editor lê o texto com innerText, que
+     aplicaria o text-transform (ex.: o rótulo em caixa alta seria gravado em MAIÚSCULAS). */
+  text-transform: none;
 }
 /* Campos vazios: invisíveis (a prévia continua fiel à página), exceto no bloco selecionado
    ou em edição, onde mostram o rótulo do campo como texto de exemplo. */

@@ -1,5 +1,22 @@
-/* Páginas de venda. As cores vêm de theme.css; os apelidos abaixo mantêm o restante do arquivo legível. */
+/* Páginas de venda (/p/nome-do-produto), desenhadas pelo servidor (server/sales/render.js).
+   Visual: docs/Conceito visual pro site.md — azul-marinho profundo, laranja só nos pontos de ação,
+   faixas escuras e claras alternadas, cartões arredondados com sombra leve.
+   As cores do tema vêm de theme.css (ou de /page-theme.css, quando a página tem outra paleta). */
+
+/* Inter (OFL, ver /fonts/inter/LICENSE.txt), hospedada no próprio site: a CSP bloqueia fontes externas. */
+@font-face {
+  font-family: "Inter Variable";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/fonts/inter/InterVariable-latin.woff2") format("woff2-variations"),
+    url("/fonts/inter/InterVariable-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 :root {
+  /* Apelidos das cores do tema (mantêm o restante do arquivo legível) */
   --v-navy: var(--color-hero);
   --v-navy-2: var(--color-hero-2);
   --v-cta: var(--color-accent);
@@ -7,6 +24,57 @@
   --v-cta-text: var(--color-on-accent);
   --v-on-navy: var(--color-on-hero);
   --v-on-navy-muted: var(--color-on-hero-muted);
+  /* Neutros e formas das páginas de venda */
+  --v-soft: #f4f3ef;                 /* cinza quente: faixas claras alternadas */
+  --v-line: #dde3e9;                 /* cinza-azulado: bordas e separadores */
+  --v-radius: 16px;
+  --v-shadow: 0 1px 2px rgb(7 21 42 / 0.04), 0 8px 24px rgb(7 21 42 / 0.07);
+  --v-shadow-hover: 0 2px 4px rgb(7 21 42 / 0.06), 0 18px 40px rgb(7 21 42 / 0.13);
+  /* Laranja para TEXTO em fundo claro: o laranja puro não tem contraste suficiente com o branco. */
+  --v-accent-ink: color-mix(in srgb, var(--color-accent) 58%, #000);
+  --v-font: "Inter Variable", Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}
+:root[data-theme="dark"] {
+  --v-soft: var(--color-surface);
+  --v-line: var(--color-border);
+  --v-shadow: 0 8px 24px rgb(0 0 0 / 0.35);
+  --v-shadow-hover: 0 18px 40px rgb(0 0 0 / 0.5);
+  --v-accent-ink: var(--color-accent);
+}
+
+/* Faixas escuras: os tokens de cor são redefinidos aqui, então cartões, FAQ, listas etc.
+   se adaptam sozinhos (texto claro, cartões translúcidos, ícones e links em laranja). */
+.v-hero,
+.v-final,
+.v-strip,
+.v-section.is-dark,
+.banner,
+.v-card.dark {
+  --color-text: var(--v-on-navy);
+  --color-muted: var(--v-on-navy-muted);
+  --color-bg: rgb(255 255 255 / 0.05);
+  --color-border: rgb(255 255 255 / 0.14);
+  --color-primary: var(--v-cta);
+  --color-focus: #5fd4bd;
+  --v-line: rgb(255 255 255 / 0.12);
+  --v-accent-ink: var(--v-cta);
+  --v-shadow: none;
+  --v-shadow-hover: 0 18px 40px rgb(0 0 0 / 0.35);
+  color: var(--color-text);
+}
+.v-hero,
+.v-final,
+.v-strip,
+.v-section.is-dark {
+  background:
+    radial-gradient(circle at 8% 100%, color-mix(in srgb, var(--v-cta) 9%, transparent), transparent 38%),
+    radial-gradient(circle at 85% 0%, var(--v-navy-2), var(--v-navy) 62%);
+}
+
+/* ---------- Base ---------- */
+body[data-page="venda"] {
+  font-family: var(--v-font);
+  font-feature-settings: "cv11", "ss01"; /* Inter: "a" e números mais legíveis */
 }
 .sr-only {
   position: absolute;
@@ -16,55 +84,125 @@
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+.venda h1,
+.venda h2,
+.venda h3 {
+  color: var(--color-text);
+  text-wrap: balance;
+}
+.venda h1 {
+  font-size: clamp(2.1rem, 5vw, 3.4rem);
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+}
 .venda h2 {
   margin-bottom: 1rem;
+  font-size: clamp(1.6rem, 3.4vw, 2.4rem);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+}
+.venda h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.venda p {
+  text-wrap: pretty;
 }
 .v-section {
-  padding: 3.5rem 0;
+  padding: clamp(3.5rem, 7vw, 5.5rem) 0;
+  color: var(--color-text);
 }
-.v-section.alt {
-  background: var(--color-surface);
+.v-section.is-light {
+  background: var(--color-bg);
+}
+.v-section.is-soft {
+  background: var(--v-soft);
+}
+/* Títulos de seção centralizados (os que ficam dentro de cartões ou ao lado de foto seguem o conteúdo). */
+.v-section > .container > h2 {
+  max-width: 26ch;
+  margin: 0 auto 2.5rem;
+  text-align: center;
+}
+.v-section > .container > .v-eyebrow {
+  margin-inline: auto;
 }
 .narrow {
-  max-width: 760px;
+  max-width: 780px;
 }
+
+/* Rótulo em caixa alta acima do título, com um traço laranja à esquerda. */
+.v-eyebrow {
+  display: block;
+  width: fit-content;
+  margin: 0 0 0.85rem;
+  padding-left: 2.1rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--v-accent-ink);
+  background: linear-gradient(var(--v-cta), var(--v-cta)) left center / 1.5rem 2px no-repeat;
+}
+.v-card.center .v-eyebrow {
+  margin-inline: auto;
+}
+
+/* Ícones: traço laranja dentro de um quadrado arredondado com fundo laranja suave. */
 .ico {
-  width: 32px;
-  height: 32px;
-  color: var(--color-primary);
   flex: none;
+  width: 48px;
+  height: 48px;
+  padding: 12px;
+  border-radius: 12px;
+  color: var(--v-accent-ink);
+  background: color-mix(in srgb, var(--v-cta) 14%, transparent);
 }
 .ico.big {
-  width: 44px;
-  height: 44px;
-  margin-inline: auto;
+  display: block;
+  width: 64px;
+  height: 64px;
+  padding: 16px;
+  margin: 0 auto 1.25rem;
+  border-radius: 18px;
 }
 .muted-on-dark {
   display: block;
   font-size: 0.95rem;
   font-weight: 500;
+  letter-spacing: 0;
   color: var(--v-on-navy-muted);
 }
 
-/* Hero e oferta final */
+/* ---------- Abertura e oferta final ---------- */
 .v-hero,
 .v-final {
-  background: radial-gradient(
-    circle at 80% 10%,
-    var(--v-navy-2),
-    var(--v-navy) 60%
-  );
-  color: var(--v-on-navy);
+  position: relative;
+  overflow: hidden;
+}
+/* Pontinhos decorativos no lado direito, sumindo em direção ao texto. */
+.v-hero::before,
+.v-final::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(rgb(255 255 255 / 0.08) 1px, transparent 1.5px) 0 0 / 22px 22px;
+  mask-image: linear-gradient(to left, #000, transparent 55%);
+  pointer-events: none;
+}
+.v-hero > .container,
+.v-final > .container {
+  position: relative;
 }
 .v-hero {
-  padding: 3.5rem 0 4rem;
+  padding: clamp(3.5rem, 8vw, 6rem) 0 clamp(4rem, 9vw, 6.5rem);
 }
 .v-final {
-  padding: 4rem 0;
-}
-.v-hero h1,
-.v-final h2 {
-  color: var(--v-on-navy);
+  padding: clamp(4rem, 8vw, 6rem) 0;
 }
 .v-hero-grid {
   display: grid;
@@ -74,32 +212,36 @@
 @media (min-width: 860px) {
   .v-hero-grid {
     grid-template-columns: 1.1fr 0.9fr;
+    gap: 3.5rem;
   }
   .v-final .v-hero-grid {
     grid-template-columns: 0.8fr 1.2fr;
   }
 }
 .lead {
-  font-size: 1.15rem;
   max-width: 56ch;
-  color: var(--v-on-navy-muted);
+  margin: 0 0 1.5rem;
+  font-size: clamp(1.05rem, 1.6vw, 1.2rem);
+  color: var(--color-muted);
 }
 .badges {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: 0.6rem;
   list-style: none;
   padding: 0;
-  margin: 1.5rem 0;
+  margin: 0 0 2rem;
 }
 .badges li {
-  padding: 0.5rem 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  border-radius: 10px;
+  padding: 0.45rem 1rem;
+  font-size: 0.95rem;
+  background: rgb(255 255 255 / 0.06);
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-radius: 999px;
 }
 .badges strong {
-  font-size: 1.2rem;
-  color: var(--v-on-navy);
+  font-weight: 800;
+  color: var(--v-cta);
 }
 .offer {
   display: flex;
@@ -112,33 +254,122 @@
   font-size: clamp(2.2rem, 6vw, 3.2rem);
   font-weight: 800;
   line-height: 1.1;
+  letter-spacing: -0.03em;
   color: var(--v-on-navy);
 }
+/* Imagem do produto na abertura: "objeto" com sombra (drop-shadow respeita fundos transparentes). */
+.v-hero .v-media {
+  border-radius: 14px;
+  filter: drop-shadow(0 28px 40px rgb(0 0 0 / 0.45));
+}
+/* Oferta final: preço e botão num painel com contorno sutil. */
+.offer-panel {
+  margin-top: 1.75rem;
+  padding: 1.5rem 1.75rem;
+  background: rgb(255 255 255 / 0.05);
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-radius: 20px;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06);
+}
+.v-final h2 {
+  font-size: clamp(1.9rem, 4vw, 2.8rem);
+}
+
+/* ---------- Botão de compra ---------- */
 .btn-cta {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 0.6rem;
   min-height: 56px;
-  padding: 0.9rem 2rem;
+  padding: 0.95rem 2rem;
   border-radius: 12px;
   background: var(--v-cta);
   color: var(--v-cta-text);
   font-weight: 800;
-  font-size: 1.1rem;
+  font-size: 1.05rem;
+  letter-spacing: 0.01em;
   text-decoration: none;
+  box-shadow: 0 12px 28px -10px color-mix(in srgb, var(--v-cta) 75%, transparent);
   transition:
     transform 0.15s,
     box-shadow 0.15s,
     background 0.15s;
 }
+.btn-cta:not(.is-disabled)::after {
+  content: "→";
+  font-weight: 700;
+  transition: transform 0.15s;
+}
 .btn-cta:hover {
   background: var(--v-cta-hover);
   color: var(--v-cta-text);
-  transform: scale(1.04);
-  box-shadow: 0 0 24px rgb(212 167 58 / .45);
+  transform: translateY(-2px);
+  box-shadow: 0 18px 36px -10px color-mix(in srgb, var(--v-cta) 85%, transparent);
+}
+.btn-cta:hover::after {
+  transform: translateX(3px);
+}
+/* Produto sem link de checkout cadastrado (o botão só aparece em faixas escuras). */
+.btn-cta.is-disabled,
+.btn-cta.is-disabled:hover {
+  background: rgb(255 255 255 / 0.08);
+  color: var(--v-on-navy-muted);
+  border: 1px dashed rgb(255 255 255 / 0.3);
+  box-shadow: none;
+  transform: none;
+  cursor: not-allowed;
 }
 
-/* Cards */
+/* ---------- Chamada intermediária ---------- */
+.v-strip {
+  padding: clamp(1.75rem, 4vw, 2.5rem) 0;
+  border-block: 1px solid rgb(255 255 255 / 0.06);
+}
+.v-strip-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem 2.5rem;
+}
+.v-strip-row > div:first-child {
+  flex: 1 1 320px;
+  padding-left: 1.1rem;
+  border-left: 3px solid var(--v-cta);
+}
+.v-strip .v-eyebrow {
+  margin-bottom: 0.35rem;
+  padding-left: 0;
+  background: none;
+}
+.v-strip-text {
+  margin: 0;
+  max-width: 44ch;
+  font-size: clamp(1.15rem, 2.2vw, 1.45rem);
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.015em;
+}
+.v-strip-action {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.5rem;
+}
+.v-strip-price {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+@media (max-width: 599px) {
+  .v-strip-action,
+  .v-strip-action .btn-cta {
+    width: 100%;
+  }
+}
+
+/* ---------- Cartões ---------- */
 .two {
   display: grid;
   gap: 1.5rem;
@@ -149,61 +380,81 @@
   }
 }
 .v-card {
-  padding: 1.75rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  padding: clamp(1.5rem, 3vw, 2rem);
+  border: 1px solid var(--v-line);
+  border-radius: var(--v-radius);
   background: var(--color-bg);
+  box-shadow: var(--v-shadow);
   transition:
     transform 0.2s,
     box-shadow 0.2s;
 }
 .v-card:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-hover);
+  transform: translateY(-4px);
+  box-shadow: var(--v-shadow-hover);
+}
+.v-card > .ico {
+  margin-bottom: 1.1rem;
+}
+.v-card p {
+  color: var(--color-muted);
 }
 .v-card.center {
   text-align: center;
 }
 .v-card.dark {
-  background: var(--v-navy);
-  border-color: var(--v-navy);
-  color: var(--v-on-navy);
+  background: radial-gradient(circle at 100% 0%, var(--v-navy-2), var(--v-navy) 70%);
+  border-color: transparent;
 }
-.v-card.dark h3 {
-  color: var(--v-on-navy);
+.is-dark .v-card.dark {
+  background: rgb(255 255 255 / 0.08);
+  border-color: color-mix(in srgb, var(--v-cta) 55%, transparent);
 }
 .callout {
-  margin: 1rem 0 0;
+  margin: 1.1rem 0 0;
   padding: 0.75rem 1rem;
-  border-radius: 8px;
-  background: var(--v-navy);
-  color: var(--v-on-navy);
+  border-left: 3px solid var(--v-cta);
+  border-radius: 0 10px 10px 0;
+  background: color-mix(in srgb, var(--v-cta) 10%, transparent);
+  color: var(--color-text);
   font-weight: 600;
 }
+.v-card .callout {
+  color: var(--color-text);
+}
 
+/* Grade de tópicos (com fundo escuro, vira o painel de conteúdo do curso) */
 .grid8 {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 1rem;
+  gap: 1.25rem;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 .grid8 li {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
-  padding: 1.25rem;
+  gap: 0.4rem;
+  padding: 1.5rem;
   background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  border: 1px solid var(--v-line);
+  border-radius: var(--v-radius);
+  box-shadow: var(--v-shadow);
   transition:
     transform 0.2s,
     box-shadow 0.2s;
 }
 .grid8 li:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-hover);
+  transform: translateY(-4px);
+  box-shadow: var(--v-shadow-hover);
+}
+.grid8 .ico {
+  margin-bottom: 0.6rem;
+}
+.grid8 strong {
+  font-size: 1.05rem;
+  letter-spacing: -0.01em;
 }
 .grid8 span {
   color: var(--color-muted);
@@ -221,12 +472,12 @@
   padding: 0;
   margin: 1rem 0 0;
   display: grid;
-  gap: 0.6rem;
+  gap: 0.7rem;
   text-align: left;
 }
 .mini li {
   display: flex;
-  gap: 0.6rem;
+  gap: 0.7rem;
   align-items: flex-start;
 }
 .mini svg {
@@ -241,15 +492,20 @@
 .mini .no svg {
   color: var(--color-danger);
 }
+.is-dark .mini .no svg,
+.v-card.dark .mini .no svg,
+.banner .mini .no svg {
+  color: #ff9b8f;
+}
 .v-card.center .mini {
-  max-width: 420px;
+  max-width: 440px;
   margin-inline: auto;
 }
 
 /* Comparativo */
 .versus {
   display: grid;
-  gap: 1rem;
+  gap: 1.25rem;
   align-items: center;
 }
 @media (min-width: 760px) {
@@ -264,21 +520,42 @@
   width: 52px;
   height: 52px;
   border-radius: 50%;
-  background: var(--color-primary);
-  color: var(--color-on-primary);
+  background: var(--v-cta);
+  color: var(--v-cta-text);
   font-weight: 800;
+  box-shadow: 0 8px 20px -6px color-mix(in srgb, var(--v-cta) 70%, transparent);
 }
 
 /* Autor */
 .author {
   display: grid;
-  gap: 2rem;
+  gap: 2.5rem;
   align-items: center;
 }
 @media (min-width: 760px) {
   .author {
-    grid-template-columns: 280px 1fr;
+    grid-template-columns: 320px 1fr;
+    gap: 3.5rem;
   }
+  .author.no-media {
+    grid-template-columns: minmax(0, 760px);
+  }
+}
+.author .muted strong {
+  font-weight: 600;
+  color: var(--v-accent-ink);
+}
+.author-photo {
+  width: 100%;
+  aspect-ratio: 6/7;
+  object-fit: cover;
+  border-radius: 24px;
+  box-shadow: var(--v-shadow-hover);
+}
+.is-dark .author-photo {
+  box-shadow:
+    0 0 0 1px rgb(255 255 255 / 0.1),
+    0 28px 50px -18px rgb(0 0 0 / 0.6);
 }
 
 /* Público */
@@ -288,71 +565,98 @@
   padding: 0;
   display: grid;
   gap: 1rem;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 .who li {
   display: flex;
   align-items: center;
   gap: 0.9rem;
-  padding: 1.1rem 1.25rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--v-line);
+  border-radius: var(--v-radius);
   background: var(--color-bg);
+  box-shadow: var(--v-shadow);
   font-weight: 700;
   transition:
     transform 0.2s,
     box-shadow 0.2s;
 }
 .who li:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-hover);
+  transform: translateY(-4px);
+  box-shadow: var(--v-shadow-hover);
+}
+.who .ico {
+  width: 42px;
+  height: 42px;
+  padding: 10px;
+  border-radius: 10px;
 }
 
-/* Banner aprofundar */
+/* Destaque: cartão escuro dentro da seção */
 .banner {
   display: grid;
-  gap: 1.5rem;
+  gap: 1.5rem 3rem;
   align-items: center;
-  padding: 2rem;
-  border-radius: var(--radius);
-  background: var(--v-navy);
-  color: var(--v-on-navy);
+  padding: clamp(2rem, 4vw, 3rem);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 0% 100%, color-mix(in srgb, var(--v-cta) 12%, transparent), transparent 45%),
+    radial-gradient(circle at 100% 0%, var(--v-navy-2), var(--v-navy) 70%);
+  box-shadow: 0 24px 50px -24px rgb(7 21 42 / 0.55);
 }
-.banner h2 {
-  color: var(--v-on-navy);
+.banner p {
+  color: var(--color-muted);
+}
+.is-dark .banner {
+  background: rgb(255 255 255 / 0.05);
+  border: 1px solid rgb(255 255 255 / 0.12);
+  box-shadow: none;
 }
 @media (min-width: 760px) {
   .banner {
     grid-template-columns: 1.2fr 1fr;
-    padding: 2.5rem;
   }
 }
 
-/* FAQ */
+/* FAQ: acordeão em faixas arredondadas, "+" em círculo laranja */
 .faq {
   margin-bottom: 0.75rem;
-  border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border: 1px solid var(--v-line);
+  border-radius: 14px;
   background: var(--color-bg);
+  box-shadow: var(--v-shadow);
+  transition: border-color 0.2s;
+}
+.faq[open] {
+  border-color: color-mix(in srgb, var(--v-cta) 45%, var(--v-line));
 }
 .faq summary {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   gap: 1rem;
-  padding: 1rem 1.25rem;
+  min-height: 44px;
+  padding: 1.1rem 1.35rem;
   font-weight: 700;
   cursor: pointer;
   list-style: none;
-  min-height: 44px;
 }
 .faq summary::-webkit-details-marker {
   display: none;
 }
 .faq summary::after {
   content: "+";
-  font-size: 1.4rem;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  font-size: 1.3rem;
+  font-weight: 500;
   line-height: 1;
-  color: var(--color-primary);
+  color: var(--v-accent-ink);
+  background: color-mix(in srgb, var(--v-cta) 14%, transparent);
   transition: transform 0.2s;
 }
 .faq[open] summary::after {
@@ -360,7 +664,7 @@
 }
 .faq p {
   margin: 0;
-  padding: 0 1.25rem 1.1rem;
+  padding: 0 1.35rem 1.2rem;
   color: var(--color-muted);
 }
 .faq[open] p {
@@ -389,25 +693,26 @@
   flex-direction: column;
   gap: 1rem;
   margin: 0;
-  padding: 1.5rem;
+  padding: 1.75rem;
   background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  border: 1px solid var(--v-line);
+  border-radius: var(--v-radius);
+  box-shadow: var(--v-shadow);
 }
 .v-quote blockquote {
   position: relative;
   margin: 0;
-  padding-top: 1.4rem;
+  padding-top: 1.6rem;
 }
 .v-quote blockquote::before {
   content: "“"; /* aspas de abertura */
   position: absolute;
-  top: -0.5rem;
+  top: -0.6rem;
   left: -0.1rem;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: 3.2rem;
+  font-size: 3.4rem;
   line-height: 1;
-  color: var(--color-accent);
+  color: var(--v-cta);
 }
 .v-quote blockquote p {
   margin: 0 0 0.6rem;
@@ -417,6 +722,8 @@
   align-items: center;
   gap: 0.75rem;
   margin-top: auto;
+  padding-top: 1rem;
+  border-top: 1px solid var(--v-line);
 }
 .v-quote figcaption > span {
   display: flex;
@@ -437,34 +744,40 @@
   border-radius: 50%;
 }
 
-/* Garantia */
+/* Garantia: faixa de confiança com selos em grade */
 .seals {
   list-style: none;
-  margin: 1.25rem 0 0;
+  margin: 1.5rem 0 0;
   padding: 0;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 1.5rem 2.5rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1.5rem;
 }
 .seals li {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.4rem;
-  font-weight: 700;
+  gap: 0.6rem;
+  font-weight: 600;
+}
+.seals .ico {
+  width: 56px;
+  height: 56px;
+  padding: 14px;
+  border-radius: 50%;
 }
 
-/* Carrossel: funciona só com rolagem; o JS adiciona setas e pontos */
+/* ---------- Galeria (carrossel) ----------
+   Funciona só com rolagem; o JS adiciona setas, pontos e o destaque do slide central. */
 .carousel {
   position: relative;
 }
 .track {
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding: 1.25rem 9%;
   display: flex;
-  gap: 1rem;
+  gap: 1.25rem;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   scrollbar-width: none;
@@ -472,26 +785,64 @@
 .track::-webkit-scrollbar {
   display: none;
 }
+/* Cada slide ocupa a área interna do trilho; o recuo lateral (9% / 18%) deixa ver parte dos vizinhos. */
 .track > li {
-  flex: 0 0 min(100%, 720px);
+  flex: 0 0 100%;
   scroll-snap-align: center;
+}
+@media (min-width: 760px) {
+  .track {
+    padding-inline: 18%;
+  }
+}
+.track > li.slide {
+  aspect-ratio: 3/2;
+  border-radius: var(--v-radius);
+  overflow: hidden;
+  background: var(--color-bg);
+  box-shadow: var(--v-shadow-hover);
+  transition:
+    transform 0.4s ease,
+    opacity 0.4s ease;
+}
+.is-dark .track > li.slide {
+  background: rgb(255 255 255 / 0.06);
+}
+/* Capas laterais menores e mais apagadas: o olhar vai para a do centro. */
+.carousel.is-ready .slide:not(.is-current) {
+  transform: scale(0.88);
+  opacity: 0.55;
+}
+/* "contain": páginas do material aparecem inteiras, sem cortes. */
+.slide-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 .car-btn {
   position: absolute;
-  top: calc(50% - 22px);
+  top: calc(50% - 40px);
   z-index: 2;
-  width: 44px;
-  height: 44px;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  padding: 0 0 3px;
   border: 0;
   border-radius: 50%;
-  background: var(--v-navy);
-  color: var(--v-on-navy);
-  font-size: 1.6rem;
+  background: #fff;
+  color: var(--v-navy);
+  font-size: 1.7rem;
+  line-height: 1;
+  box-shadow: 0 8px 24px rgb(7 21 42 / 0.22);
   cursor: pointer;
-  transition: background 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
 .car-btn:hover {
-  background: var(--color-primary);
+  background: var(--v-cta);
+  color: var(--v-cta-text);
 }
 .car-btn.prev {
   left: 0.5rem;
@@ -503,28 +854,49 @@
   display: flex;
   justify-content: center;
   gap: 0.25rem;
-  margin-top: 0.75rem;
+  margin-top: 0.5rem;
 }
 .dots button {
+  position: relative;
   width: 44px;
   height: 24px;
   border: 0;
   background: none;
   cursor: pointer;
-  position: relative;
 }
 .dots button::after {
   content: "";
   position: absolute;
-  inset: 8px 14px;
-  border-radius: 50%;
-  background: var(--color-border);
+  inset: 9px 16px;
+  border-radius: 999px;
+  background: var(--v-line);
+  transition:
+    inset 0.25s,
+    background 0.25s;
 }
 .dots button[aria-current="true"]::after {
-  background: var(--color-primary);
+  inset: 9px 6px;
+  background: var(--v-cta);
 }
 
-/* Rodapé 3 colunas */
+/* ---------- Rodapé ---------- */
+.v-footer {
+  padding: 3rem 0 2.5rem;
+  background: var(--v-navy);
+  color: var(--v-on-navy-muted);
+  border-top: 3px solid var(--v-cta);
+}
+.v-footer strong {
+  color: var(--v-on-navy);
+}
+.v-footer a {
+  color: var(--v-on-navy-muted);
+  text-decoration: none;
+}
+.v-footer a:hover {
+  color: var(--v-cta);
+  text-decoration: underline;
+}
 .foot3 {
   display: grid;
   gap: 1.5rem;
@@ -535,6 +907,23 @@
   }
 }
 
+/* ---------- Animações ao rolar ----------
+   public/js/venda.js põe .reveal nos elementos fora da tela e .is-in quando eles aparecem.
+   Sem JavaScript, com "menos movimento" ou dentro do editor, nada fica escondido. */
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+}
+/* A transição fica só na entrada: esconder é instantâneo (sem o elemento "sumir" ao carregar). */
+.reveal.is-in {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.6s cubic-bezier(0.2, 0.7, 0.2, 1),
+    transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .track {
     scroll-behavior: auto;
@@ -542,14 +931,17 @@
   .btn-cta:hover,
   .v-card:hover,
   .grid8 li:hover,
-  .who li:hover {
+  .who li:hover,
+  .carousel.is-ready .slide:not(.is-current) {
+    transform: none;
+  }
+  .reveal {
+    opacity: 1;
     transform: none;
   }
 }
 
-/* ==========================================================
-   Páginas geradas pelo painel (/p/nome-do-produto)
-   ========================================================== */
+/* ---------- Peças das páginas geradas pelo painel ---------- */
 /* Sprite de ícones fora da tela (substitui o style="" inline, que a CSP bloquearia). */
 .svg-sprite {
   position: absolute;
@@ -562,13 +954,13 @@
   width: auto;
   max-width: 200px;
   max-height: 56px;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.75rem;
   object-fit: contain;
 }
 .v-media {
   width: 100%;
   height: auto;
-  border-radius: var(--radius);
+  border-radius: var(--v-radius);
 }
 .v-media.small {
   max-width: 420px;
@@ -581,38 +973,6 @@
     grid-template-columns: minmax(0, 820px);
   }
 }
-.track > li.slide {
-  aspect-ratio: 3/2;
-  border-radius: var(--radius);
-  overflow: hidden;
-  background: var(--color-surface);
-}
-/* "contain": páginas do material aparecem inteiras, sem cortes. */
-.slide-img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-.author-photo {
-  width: 100%;
-  aspect-ratio: 6/7;
-  object-fit: cover;
-  border-radius: 24px;
-}
-@media (min-width: 760px) {
-  .author.no-media {
-    grid-template-columns: minmax(0, 760px);
-  }
-}
-/* Produto sem link de checkout cadastrado. */
-.btn-cta.is-disabled,
-.btn-cta.is-disabled:hover {
-  background: var(--color-surface);
-  color: var(--color-muted);
-  box-shadow: none;
-  transform: none;
-  cursor: not-allowed;
-}
 /* Faixa da pré-visualização (só aparece para quem está logado no painel). */
 .preview-banner {
   position: sticky;
@@ -624,9 +984,4 @@
   color: var(--color-notice-text);
   background: var(--color-notice-bg);
   border-bottom: 2px solid var(--color-accent);
-}
-
-/* Oferta final: título, depois preço e botão (mesmo espaçamento da abertura). */
-.v-final .offer {
-  margin-top: 1.25rem;
 }

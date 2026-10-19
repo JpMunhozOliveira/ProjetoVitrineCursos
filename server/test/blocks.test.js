@@ -11,7 +11,7 @@ test("aceita o modelo padrão inteiro", () => {
 
 test("preenche campos ausentes com valores padrão", () => {
   const { sections } = validateSections([{ type: "faq" }]);
-  assert.deepEqual(sections[0], { type: "faq", title: "", items: [] });
+  assert.deepEqual(sections[0], { type: "faq", eyebrow: "", title: "", items: [], background: "auto" });
 });
 
 test("recusa tipo desconhecido, inclusive nomes herdados de Object", () => {
@@ -57,4 +57,32 @@ test("depoimentos: aceita texto, nome, cargo e foto; aplica os limites", () => {
 
 test("modelo padrão não traz depoimentos (exemplo poderia ir ao ar como se fosse real)", () => {
   assert.ok(!defaultSections().some((b) => b.type === "testimonials"));
+});
+
+test("fundo da seção: aceita só as opções, e vazio vira automático", () => {
+  for (const background of ["auto", "light", "soft", "dark"]) {
+    assert.equal(validateSections([{ type: "faq", background }]).sections[0].background, background);
+  }
+  assert.equal(validateSections([{ type: "faq", background: "" }]).sections[0].background, "auto");
+  for (const background of ["roxo", "constructor", "toString", 1, true]) {
+    assert.match(validateSections([{ type: "faq", background }]).error, /Fundo da seção: opção inválida/);
+  }
+});
+
+test("blocos salvos antes do visual novo (sem rótulo nem fundo) continuam válidos", () => {
+  const { sections, error } = validateSections([{ type: "author", name: "Ana", role: "", bio: "", photo: null }]);
+  assert.equal(error, undefined);
+  assert.equal(sections[0].eyebrow, "");
+  assert.equal(sections[0].background, "auto");
+});
+
+test("abertura, oferta e chamada são sempre escuras (sem escolha de fundo)", () => {
+  for (const type of ["hero", "offer", "cta"]) assert.ok(!BLOCKS[type].fields.background, type);
+  assert.match(validateSections([{ type: "cta", background: "dark" }]).error, /não suportado/);
+});
+
+test("chamada intermediária: texto e botão com limites", () => {
+  const ok = validateSections([{ type: "cta", title: "Pronto?", cta_label: "Quero" }]);
+  assert.deepEqual(ok.sections[0], { type: "cta", eyebrow: "", title: "Pronto?", cta_label: "Quero" });
+  assert.match(validateSections([{ type: "cta", eyebrow: "x".repeat(41) }]).error, /Rótulo acima do título: máximo de 40/);
 });
