@@ -5,7 +5,7 @@
 // Este arquivo coordena: carregamento, estado da página, seleção, salvar e publicar.
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { EditorContext } from "./state/context.js";
-import { withKeys, stripKeys, carryKeys, newBlock, duplicateBlock } from "./state/document.js";
+import { withKeys, stripKeys, carryKeys, newBlock, duplicateBlock, emptyValue, getIn } from "./state/document.js";
 import { historyReducer, initialHistory } from "./state/history.js";
 import { PRODUCT_STATUS } from "./labels.js";
 import { EditorHeader } from "./components/EditorHeader.jsx";
@@ -19,8 +19,8 @@ import { SidePanel } from "./components/SidePanel.jsx";
 import { Preview } from "./components/Preview.jsx";
 
 const api = (...args) => window.Admin.api(...args);
-// Caminho completo do ícone clicado na página: bloco 2, "items.0.icon" -> ["sections", 2, "items", 0, "icon"].
-const iconPath = ({ index, field }) => ["sections", index, ...field.split(".").map((p) => (/^\d+$/.test(p) ? Number(p) : p))];
+// Caminho completo de um campo clicado na página: bloco 2, "items.0.icon" -> ["sections", 2, "items", 0, "icon"].
+const fieldPath = ({ index, field }) => ["sections", index, ...field.split(".").map((p) => (/^\d+$/.test(p) ? Number(p) : p))];
 
 export default function App({ productId }) {
   const [boot, setBoot] = useState({ status: "loading" });  // loading | error | ready
@@ -189,6 +189,28 @@ export default function App({ productId }) {
       if (!sections[index]) return;
       revealBlock(index, "canvas");
       setIconPick({ index, field, anchor });
+    },
+    // Clique numa imagem da página (ou no espaço vazio dela): escolhe na biblioteca (ou envia nova).
+    async pickImage(index, field) {
+      if (!sections[index]) return;
+      revealBlock(index, "canvas");
+      const path = fieldPath({ index, field });
+      const chosen = await window.Admin.pickImage({ currentId: getIn(doc, path) });
+      if (!chosen) return;
+      setMedia((prev) => new Map(prev).set(chosen.id, chosen));
+      dispatch({ type: "set", path, value: chosen.id });
+    },
+    // "Adicionar imagem" no fim da galeria: a imagem escolhida vira um item novo da lista.
+    async addImage(index, list) {
+      const block = sections[index];
+      const field = block && schema.blocks[block.type].fields[list];
+      if (field?.type !== "list" || block[list].length >= field.max) return;
+      revealBlock(index, "canvas");
+      const chosen = await window.Admin.pickImage({});
+      if (!chosen) return;
+      setMedia((prev) => new Map(prev).set(chosen.id, chosen));
+      const [name] = Object.entries(field.item).find(([, f]) => f.type === "image");
+      dispatch({ type: "insert", path: ["sections", index, list], value: { ...emptyValue(field.item), [name]: chosen.id } });
     },
   };
 
@@ -398,8 +420,8 @@ export default function App({ productId }) {
           <BlockPicker position={picker?.index ?? null} anchor={picker?.anchor} total={sections.length}
             onPick={(type) => addBlock(type, picker.index)} onClose={() => setPicker(null)} />
           <IconMenu open={!!iconPick} anchor={iconPick?.anchor} title="Trocar ícone"
-            value={iconPick ? iconPath(iconPick).reduce((v, k) => v?.[k], doc) : null}
-            onPick={(key) => { dispatch({ type: "set", path: iconPath(iconPick), value: key }); setIconPick(null); }}
+            value={iconPick ? fieldPath(iconPick).reduce((v, k) => v?.[k], doc) : null}
+            onPick={(key) => { dispatch({ type: "set", path: fieldPath(iconPick), value: key }); setIconPick(null); }}
             onClose={() => setIconPick(null)} />
         </div>
       </div>

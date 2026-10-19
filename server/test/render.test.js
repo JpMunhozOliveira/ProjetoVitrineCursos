@@ -200,3 +200,49 @@ test("todo data-icon-field aponta para um campo de ícone do bloco certo", () =>
   }
   assert.ok(count > 8, `poucos ícones marcados (${count})`);
 });
+
+const M1 = "0b6f7a52-9c1e-4d3a-8f2b-5e6c7d8e9f01";
+test("imagens: no editor, clicáveis e com espaço vazio mostrando o tamanho recomendado", () => {
+  const media = new Map([[M1, { url: "/uploads/a.webp", alt_text: "Capa", width: 1200, height: 900 }]]);
+  const sections = [
+    { type: "hero", title: "T", image: null, logo: null },
+    { type: "author", name: "Ana", photo: M1 },
+    { type: "gallery", title: "G", images: [{ image: M1 }] },
+    { type: "testimonials", items: [{ quote: "Q", name: "N", photo: null }] },
+  ];
+  const live = renderSalesPage({ ...product(sections), media }, { baseUrl: "http://localhost", preview: "live" });
+  assert.match(live, /<span class="img-slot v-media" data-image-field="image" title="[^"]*1200 × 900 px[^"]*">/);
+  assert.match(live, /Tamanho recomendado: 1200 × 900 px/);
+  assert.ok(!/v-hero-grid no-media/.test(live), "no editor a abertura reserva o espaço da imagem");
+  assert.match(live, /class="img-slot v-logo" data-image-field="logo" data-empty/); // opcional: só no bloco selecionado
+  assert.match(live, /<img class="author-photo"[^>]* data-image-field="photo">/);
+  assert.match(live, /<img class="slide-img"[^>]* data-image-field="images\.0\.image">/);
+  assert.match(live, /data-image-add="images"/);
+  assert.match(live, /class="img-slot quote-photo" data-image-field="items\.0\.photo" data-empty/);
+  // Todo data-image-field aponta para um campo de imagem do esquema.
+  for (const [index, chunk] of sectionsOf(live)) {
+    for (const [, path] of chunk.matchAll(/data-image-field="([^"]+)"/g)) {
+      assert.equal(schemaField(sections[index].type, path)?.type, "image", `${sections[index].type}:${path}`);
+    }
+  }
+  const pub = renderSalesPage({ ...product(sections), media }, { baseUrl: "http://localhost", preview: false });
+  assert.ok(!/img-slot|data-image-field|data-image-add|Tamanho recomendado/.test(pub));
+  assert.match(pub, /v-hero-grid no-media/);
+});
+
+test("galeria sem imagens: no editor só o espaço para adicionar, marcada como oculta", () => {
+  const live = render([{ type: "gallery", title: "G", images: [] }], "live");
+  assert.match(live, /data-block="0" data-hidden/);
+  assert.match(live, /<li class="slide"[^>]*><span class="img-slot slide-img" data-image-add="images"/);
+  assert.match(live, /1500 × 1000 px/);
+  assert.ok(!render([{ type: "gallery", title: "G", images: [] }], false).includes("carousel"));
+});
+
+test("imagens: todo campo de imagem tem tamanho recomendado", () => {
+  for (const [type, block] of Object.entries(BLOCKS)) {
+    for (const [name, field] of Object.entries(block.fields)) {
+      const fields = field.type === "list" ? Object.entries(field.item) : [[name, field]];
+      for (const [n, f] of fields) if (f.type === "image") assert.match(f.size || "", /^\d+ × \d+ px$/, `${type}.${n}`);
+    }
+  }
+});

@@ -17,16 +17,21 @@ const mark = (positive) => html`<svg aria-hidden="true"><use href="#i-${positive
 const SPRITE = html`<svg class="svg-sprite" aria-hidden="true">${Object.entries(ICONS).map(([name, icon]) =>
   html`<symbol id="i-${name}" viewBox="0 0 24 24"><path d="${icon.d}" fill="none" stroke="currentColor" stroke-width="${icon.width || 1.8}" stroke-linecap="round" stroke-linejoin="round"/></symbol>`)}</svg>`;
 
-// Rótulo de um campo pelo caminho ("items.0.question" -> "Pergunta"), para o texto de exemplo.
-function fieldLabel(type, path) {
+// Campo do esquema pelo caminho ("items.0.question" -> o campo "Pergunta"): rótulo do texto de
+// exemplo e tamanho recomendado das imagens.
+function schemaField(type, path) {
   let fields = BLOCKS[type]?.fields, field = null;
   for (const part of path.split(".")) {
     if (/^\d+$/.test(part)) continue;
     field = fields?.[part];
     fields = field?.item;
   }
-  return field?.label || "";
+  return field;
 }
+const fieldLabel = (type, path) => schemaField(type, path)?.label || "";
+
+// Desenho do espaço de imagem vazia no editor (moldura com montanha e sol).
+const IMAGE_GLYPH = html`<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 5h18v14H3zM3 16l5-5 4 4 3-3 6 6M15.5 10a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
 // Fundo padrão dos tipos que não seguem a alternância claro/cinza (como no conceito visual:
 // o autor fica numa faixa escura). Abertura, oferta e chamada são sempre escuras.
@@ -69,10 +74,21 @@ function createContext(data, { live = false } = {}) {
     show: (value) => live || !!value,
 
     // <img> de uma imagem da biblioteca; "priority" para a primeira dobra (não espera rolar).
-    img(id, cls, { priority = false } = {}) {
+    // No editor (com path, o caminho do campo): a imagem leva data-image-field (clicar troca) e,
+    // sem imagem, aparece um espaço clicável com o tamanho recomendado. optional: esse espaço só
+    // aparece no bloco selecionado (como os textos vazios), para não pesar na prévia.
+    img(id, cls, { priority = false, path = null, optional = false } = {}) {
       const m = id && data.media.get(id);
-      if (!m) return null;
-      return html`<img class="${cls}" src="${m.url}" alt="${m.alt_text || ""}" width="${m.width}" height="${m.height}" ${priority ? html`fetchpriority="high"` : html`loading="lazy"`} decoding="async">`;
+      const editable = live && path;
+      if (!m) return editable ? ctx.imageSlot(cls, path, { optional }) : null;
+      return html`<img class="${cls}" src="${m.url}" alt="${m.alt_text || ""}" width="${m.width}" height="${m.height}" ${priority ? html`fetchpriority="high"` : html`loading="lazy"`} decoding="async"${editable ? html` data-image-field="${path}"` : null}>`;
+    },
+    // Espaço de imagem vazia (só no editor). add: lista onde a imagem escolhida entra (galeria).
+    imageSlot(cls, path, { optional = false, add = null } = {}) {
+      const field = schemaField(ctx.type, path);
+      const size = field?.size ? `${field.size}${field.tip ? ` · ${field.tip}` : ""}` : "";
+      const attr = add ? html` data-image-add="${add}"` : html` data-image-field="${path}"`;
+      return html`<span class="img-slot ${cls}"${attr}${optional ? html` data-empty` : null} title="Adicionar imagem${size ? ` (${size})` : ""}">${IMAGE_GLYPH}<strong>Adicionar imagem</strong>${size && html`<small>Tamanho recomendado: ${size}</small>`}</span>`;
     },
     // Botão de compra: o link vem SEMPRE do cadastro do produto (fonte única).
     // label: texto do bloco (vazio = usa o fallback); path: o campo, para a edição no editor.
@@ -102,14 +118,14 @@ function createContext(data, { live = false } = {}) {
 
 const RENDERERS = {
   hero(b, ctx) {
-    const media = ctx.img(b.image, "v-media", { priority: true });
+    const media = ctx.img(b.image, "v-media", { priority: true, path: "image" });
     const Title = ctx.firstHero() ? "h1" : "h2"; // só um <h1> por página
     const title = b.title || ctx.product.title;
     const titleField = ctx.field("title", b.title, { fallback: true });
     return html`<section class="v-hero"${ctx.mark()}>
   <div class="container v-hero-grid${media ? "" : " no-media"}">
     <div>
-      ${ctx.img(b.logo, "v-logo", { priority: true })}
+      ${ctx.img(b.logo, "v-logo", { priority: true, path: "logo", optional: true })}
       ${ctx.eyebrow(b)}
       ${Title === "h1" ? html`<h1${titleField}>${title}</h1>` : html`<h2${titleField}>${title}</h2>`}
       ${ctx.show(b.lead) && html`<p class="lead"${ctx.field("lead", b.lead)}>${b.lead}</p>`}
@@ -140,10 +156,14 @@ const RENDERERS = {
   },
 
   gallery(b, ctx) {
-    const slides = b.images.map((x) => ctx.img(x.image, "slide-img")).filter(Boolean);
+    const slides = b.images.map((x, i) => ctx.img(x.image, "slide-img", { path: `images.${i}.image` })).filter(Boolean);
+    // No editor, um último slide "Adicionar imagem" (a escolhida entra no fim da lista). Sem nenhuma
+    // imagem a galeria não aparece na página, mas no editor fica só com esse slide, para começar.
+    const filled = b.images.some((x) => ctx.product.media.get(x.image));
+    if (ctx.live && b.images.length < BLOCKS.gallery.fields.images.max) slides.push(ctx.imageSlot("slide-img", "images.0.image", { add: "images" }));
     if (!slides.length) return null;
     const id = ctx.headingId();
-    return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark()}><div class="container">
+    return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark({ hidden: !filled })}><div class="container">
   ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>
   <div class="carousel" role="region" aria-roledescription="carrossel" aria-labelledby="${id}">
     <button class="car-btn prev" type="button" aria-label="Slide anterior" hidden>‹</button>
@@ -177,7 +197,7 @@ const RENDERERS = {
   author(b, ctx) {
     if (!b.name) return null;
     const id = ctx.headingId();
-    const photo = ctx.img(b.photo, "author-photo");
+    const photo = ctx.img(b.photo, "author-photo", { path: "photo" });
     return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark()}><div class="container author${photo ? "" : " no-media"}">
   ${photo}
   <div>${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("name", b.name)}>${b.name}</h2>${ctx.show(b.role) && html`<p class="muted"><strong${ctx.field("role", b.role)}>${b.role}</strong></p>`}${ctx.paras("bio", b.bio)}</div>
@@ -224,7 +244,7 @@ const RENDERERS = {
   ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>
   <div class="quotes">${items.map(([x, i]) => html`<figure class="v-quote">
     <blockquote>${ctx.paras(`items.${i}.quote`, x.quote)}</blockquote>
-    <figcaption>${ctx.img(x.photo, "quote-photo")}<span>${ctx.show(x.name) && html`<strong${ctx.field(`items.${i}.name`, x.name)}>${x.name}</strong>`}${ctx.show(x.role) && html`<span class="muted"${ctx.field(`items.${i}.role`, x.role)}>${x.role}</span>`}</span></figcaption>
+    <figcaption>${ctx.img(x.photo, "quote-photo", { path: `items.${i}.photo`, optional: true })}<span>${ctx.show(x.name) && html`<strong${ctx.field(`items.${i}.name`, x.name)}>${x.name}</strong>`}${ctx.show(x.role) && html`<span class="muted"${ctx.field(`items.${i}.role`, x.role)}>${x.role}</span>`}</span></figcaption>
   </figure>`)}</div>
 </div></section>`;
   },
@@ -250,7 +270,7 @@ const RENDERERS = {
 
   offer(b, ctx) {
     const id = ctx.headingId();
-    const media = ctx.img(b.image, "v-media small");
+    const media = ctx.img(b.image, "v-media small", { path: "image" });
     return html`<section class="v-final" aria-labelledby="${id}"${ctx.mark()}>
   <div class="container v-hero-grid${media ? "" : " no-media"}">
     ${media}

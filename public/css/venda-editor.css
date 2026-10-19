@@ -211,3 +211,94 @@
   outline-color: var(--color-accent);
   transform: scale(1.06);
 }
+
+/* ---------- Imagens: clicar escolhe ou troca a imagem (abre a biblioteca no editor) ----------
+   .img-slot: imagem ainda vazia, com o tamanho recomendado (o servidor desenha só no editor).
+   Recebe também a classe da imagem que ocupará o lugar (v-media, author-photo...), então
+   ocupa o mesmo espaço que ela. */
+.is-editor-preview img[data-image-field] {
+  cursor: pointer;
+  outline: 3px solid transparent;
+  outline-offset: 3px;
+  transition: outline-color 0.12s;
+}
+.is-editor-preview img[data-image-field]:hover {
+  outline-color: var(--color-accent);
+}
+.img-slot {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 1.25rem;
+  text-align: center;
+  font-size: 0.95rem;
+  line-height: 1.35;
+  color: var(--color-muted);
+  background: color-mix(in srgb, currentColor 6%, transparent);
+  border: 2px dashed color-mix(in srgb, currentColor 40%, transparent);
+  border-radius: var(--v-radius, 16px);
+  box-shadow: none;
+  filter: none;
+  cursor: pointer;
+  transition:
+    color 0.12s,
+    border-color 0.12s,
+    background 0.12s;
+}
+.img-slot:hover {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 8%, transparent);
+}
+.img-slot svg {
+  width: 44px;
+  height: 44px;
+}
+.img-slot strong {
+  font-weight: 700;
+  color: inherit;
+}
+.img-slot small {
+  font-size: 0.85rem;
+  opacity: 0.85;
+}
+/* Proporções iguais às das imagens que vão ocupar o espaço. */
+.img-slot.v-media {
+  aspect-ratio: 4 / 3;
+}
+.img-slot.slide-img {
+  height: 100%;
+  border-radius: inherit;
+}
+/* Logotipo: faixa baixa acima do título. */
+.img-slot.v-logo {
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  width: fit-content;
+  max-width: 100%;
+  max-height: none;
+  padding: 0.5rem 0.9rem;
+  font-size: 0.85rem;
+  border-radius: 10px;
+}
+.img-slot.v-logo svg {
+  width: 22px;
+  height: 22px;
+}
+/* Foto do depoimento: círculo pequeno, só o desenho (o tamanho aparece ao passar o mouse). */
+.img-slot.quote-photo {
+  padding: 0;
+  border-radius: 50%;
+}
+.img-slot.quote-photo svg {
+  width: 22px;
+  height: 22px;
+}
+.img-slot.quote-photo strong,
+.img-slot.quote-photo small {
+  display: none;
+}

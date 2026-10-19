@@ -135,6 +135,7 @@ function ImageField({ field, value, path }) {
             <button type="button" className="btn btn-sm btn-danger" onClick={() => dispatch({ type: "set", path, value: null })}>Remover</button>
           )}
         </div>
+        {field.size && <p className="hint">Tamanho recomendado: {field.size}{field.tip ? ` (${field.tip})` : ""}</p>}
         {image && !image.alt_text && <p className="hint warn">Sem texto alternativo: descreva esta imagem na página Imagens.</p>}
       </div>
     </div>

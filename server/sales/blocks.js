@@ -98,14 +98,14 @@ const BLOCKS = {
     label: "Abertura",
     help: "Primeira dobra da página: título, chamada, selos, preço e botão de compra. Preço e link de checkout vêm do cadastro do produto.",
     fields: {
-      logo: image("Logotipo (opcional)"),
+      logo: image("Logotipo (opcional)", { size: "400 × 120 px", tip: "PNG com fundo transparente" }),
       eyebrow: eyebrow(),
       title: text("Título", 200, { help: "Vazio = usa o título do produto." }),
       lead: textarea("Chamada", 600),
       badges: list("Selos", 6, { strong: text("Destaque", 30), text: text("Complemento", 40) }),
       price_label: text("Texto acima do preço", 40, { placeholder: "Por apenas" }),
       cta_label: text("Texto do botão", 60, { placeholder: "Comprar agora" }),
-      image: image("Imagem (mockup do produto)"),
+      image: image("Imagem (mockup do produto)", { size: "1200 × 900 px", tip: "PNG com fundo transparente fica melhor" }),
     },
   },
   benefits: {
@@ -135,7 +135,7 @@ const BLOCKS = {
     fields: {
       eyebrow: eyebrow(),
       title: text("Título da seção", 120),
-      images: list("Imagens", 12, { image: image("Imagem", { required: true }) }),
+      images: list("Imagens", 12, { image: image("Imagem", { required: true, size: "1500 × 1000 px" }) }),
       background: background(),
     },
   },
@@ -167,7 +167,7 @@ const BLOCKS = {
     label: "Autor",
     help: "Quem criou o produto.",
     fields: {
-      photo: image("Foto"),
+      photo: image("Foto", { size: "600 × 700 px" }),
       eyebrow: eyebrow(),
       name: text("Nome", 120),
       role: text("Especialidade / cargo", 160),
@@ -215,7 +215,7 @@ const BLOCKS = {
         quote: textarea("Depoimento", 600),
         name: text("Nome", 80),
         role: text("Profissão / cidade (opcional)", 80),
-        photo: image("Foto (opcional)"),
+        photo: image("Foto (opcional)", { size: "200 × 200 px", tip: "quadrada" }),
       }),
       background: background(),
     },
@@ -244,7 +244,7 @@ const BLOCKS = {
     label: "Oferta final",
     help: "Última chamada com preço e botão. Preço e link vêm do cadastro do produto.",
     fields: {
-      image: image("Imagem"),
+      image: image("Imagem", { size: "1000 × 750 px", tip: "PNG com fundo transparente fica melhor" }),
       eyebrow: eyebrow(),
       title: text("Título", 200),
       price_label: text("Texto acima do preço", 40, { placeholder: "Oferta especial" }),

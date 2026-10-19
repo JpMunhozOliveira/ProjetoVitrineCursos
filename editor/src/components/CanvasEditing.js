@@ -150,6 +150,16 @@ export function attachCanvas(doc, apiRef) {
     if (!section) return;
     api().pickIcon(Number(section.dataset.block), icon.dataset.iconField, icon.getBoundingClientRect());
   });
+  // Imagens: clicar numa imagem (ou no espaço "Adicionar imagem") abre a biblioteca de imagens.
+  // data-image-field = campo da imagem; data-image-add = lista onde entra uma imagem nova (galeria).
+  doc.addEventListener("click", (e) => {
+    const image = e.target.closest?.("[data-image-field], [data-image-add]");
+    const section = image?.closest("[data-block]");
+    if (!section) return;
+    const block = Number(section.dataset.block);
+    if (image.dataset.imageAdd) api().addImage(block, image.dataset.imageAdd);
+    else api().pickImage(block, image.dataset.imageField);
+  });
   doc.addEventListener("toggle", (e) => {
     if (e.target.matches?.("details") && !e.target.open) e.target.open = true;
   }, true);
