@@ -83,7 +83,7 @@
   }
   function buyButton(c) {
     if (isUrl(c.checkoutUrl))
-      return el("a", { "class": "btn", href: c.checkoutUrl, target: "_blank", rel: "noopener noreferrer", text: "Comprar na Kiwify (abre em nova aba)" });
+      return el("a", { "class": "btn-cta", href: c.checkoutUrl, target: "_blank", rel: "noopener noreferrer", text: "Comprar na Kiwify (abre em nova aba)" });
     return el("span", { "class": "btn btn-disabled", "aria-disabled": "true", text: "Compra em breve" });
   }
 
@@ -103,16 +103,22 @@
       return;
     }
     list.forEach(function (c) {
+      // Página de vendas publicada = destino principal; sem ela, a página de detalhes.
+      var href = c.pagina || ("/produto.html?id=" + encodeURIComponent(c.id));
       var body = el("div", { "class": "card-body" }, [
         c.categoria ? el("p", { "class": "eyebrow", text: c.categoria }) : "",
         el("h3", { text: c.titulo }),
-        el("p", { text: c.resumo }),
-        c.publico ? el("p", { "class": "muted", text: c.publico }) : "",
-        brl(c.preco) ? el("p", { "class": "price", text: brl(c.preco) }) : "",
-        el("a", { "class": "btn btn-outline", href: c.pagina || ("/produto.html?id=" + encodeURIComponent(c.id)),
-                  "aria-label": "Ver detalhes: " + c.titulo, text: "Ver detalhes" })
+        el("p", { "class": "muted", text: c.resumo }),
+        c.publico ? el("p", { "class": "muted small", text: c.publico }) : "",
+        el("div", { "class": "card-foot" }, [
+          brl(c.preco) ? el("p", { "class": "price", text: brl(c.preco) }) : "",
+          el("a", { "class": "card-link", href: href, "aria-label": "Ver detalhes: " + c.titulo, text: "Ver detalhes" })
+        ])
       ]);
-      target.append(el("article", { "class": "card" }, [cover(c), body]));
+      // A imagem também leva ao produto. Fica fora da ordem do Tab e dos leitores de tela:
+      // o link "Ver detalhes" já é o caminho acessível (evita dois links iguais em sequência).
+      var coverLink = el("a", { "class": "card-cover", href: href, tabindex: "-1", "aria-hidden": "true" }, [cover(c)]);
+      target.append(el("article", { "class": "card" }, [coverLink, body]));
     });
   }
   
@@ -213,19 +219,37 @@
   }
   if (box) initDetail();
 
-  // Contato
+  // Contato: um cartão por canal (e-mail, WhatsApp, redes), a partir de data/site.js.
   var list = document.getElementById("contato-links");
   if (list) {
     var ct = S.contato || {}, items = [];
-    if (ct.email) items.push(["E-mail", "mailto:" + ct.email, false]);
-    if (ct.whatsapp) items.push(["WhatsApp", "https://wa.me/" + ct.whatsapp, true]);
-    (ct.redes || []).forEach(function (r) { if (isUrl(r.url)) items.push([r.nome, r.url, true]); });
+    if (ct.email) items.push(["E-mail", ct.email, "mailto:" + ct.email, false]);
+    if (ct.whatsapp) items.push(["WhatsApp", "Conversar pelo WhatsApp", "https://wa.me/" + ct.whatsapp, true]);
+    (ct.redes || []).forEach(function (r) { if (isUrl(r.url)) items.push([r.nome, r.url.replace(/^https:\/\/(www\.)?/, ""), r.url, true]); });
     items.forEach(function (i) {
-      var a = el("a", { "class": "btn btn-outline", href: i[1], text: i[0] });
-      if (i[2]) { a.setAttribute("target", "_blank"); a.setAttribute("rel", "noopener noreferrer");
-                  a.setAttribute("aria-label", i[0] + " (abre em nova aba)"); }
+      var a = el("a", { "class": "contact-card", href: i[2] }, [el("strong", { text: i[0] }), el("span", { text: i[1] })]);
+      if (i[3]) { a.setAttribute("target", "_blank"); a.setAttribute("rel", "noopener noreferrer");
+                  a.setAttribute("aria-label", i[0] + ": " + i[1] + " (abre em nova aba)"); }
       list.append(el("li", {}, [a]));
     });
+  }
+
+  // Sobre: texto em parágrafos, valores em cartões e quem ensina (só aparece com nome preenchido).
+  var aboutText = document.getElementById("sobre-texto"), values = document.getElementById("valores");
+  var about = S.sobre || {};
+  if (aboutText) (about.texto || "").split(/\n\s*\n/).forEach(function (t) { if (t.trim()) aboutText.append(el("p", { text: t.trim() })); });
+  if (values) (about.valores || []).forEach(function (v) {
+    values.append(el("article", { "class": "v-card" }, [el("h3", { text: v.titulo }), el("p", { text: v.texto })]));
+  });
+  var teacher = document.getElementById("professor");
+  if (teacher && S.professor && S.professor.nome) teacher.hidden = false;
+
+  // Menu flutuante: fica mais opaco depois que a página rola (ver site.css).
+  var header = document.querySelector(".site-header");
+  if (header) {
+    var onScroll = function () { header.classList.toggle("is-scrolled", window.scrollY > 24); };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
   }
 
   // Modo noturno: o botão é ligado por theme.js (compartilhado com o painel).

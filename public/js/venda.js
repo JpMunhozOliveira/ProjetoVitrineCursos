@@ -74,14 +74,6 @@
 
   [].forEach.call(document.querySelectorAll(".carousel"), setup);
 
-  // Menu flutuante: fica mais opaco depois que a página rola (ver venda.css).
-  var header = document.querySelector(".site-header");
-  if (header) {
-    var onScroll = function () { header.classList.toggle("is-scrolled", window.scrollY > 24); };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    onScroll();
-  }
-
   // Animações ao rolar: títulos, cartões e itens surgem suavemente ao entrar na tela.
   // Fora quando a pessoa pede menos movimento e dentro do editor do painel (<html data-editor>),
   // onde a página é redesenhada a cada mudança e nada pode ficar escondido.

@@ -326,6 +326,7 @@ function renderSalesPage(data, { baseUrl, preview = false }) {
   <link rel="preload" href="/fonts/inter/InterVariable-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/css/theme.css">
   <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/site.css">
   <link rel="stylesheet" href="/css/venda.css">
   ${themeLink(data.theme)}${live && html`
   <link rel="stylesheet" href="/css/venda-editor.css">`}
@@ -344,9 +345,9 @@ ${body}
   </main>
   <footer class="site-footer v-footer">
     <div class="container foot3">
-      <div><p><strong data-site="nome"></strong> © <span data-year></span></p></div>
-      <div><p><strong>Links úteis</strong></p><p><a href="/catalogo.html">Todos os produtos</a></p><p><a href="/index.html#contato">Suporte</a></p></div>
-      <div><p><strong>Contato</strong></p><p><a href="/index.html#contato">E-mail e redes sociais</a></p></div>
+      <div><p><strong data-site="nome"></strong> © <span data-year></span></p><p data-site="slogan"></p></div>
+      <div><p><strong>Navegação</strong></p><p><a href="/catalogo.html">Catálogo</a></p><p><a href="/sobre.html">Sobre</a></p><p><a href="/contato.html">Contato</a></p></div>
+      <div><p><strong>Compra segura</strong></p><p>Pagamentos e acesso aos cursos processados pela Kiwify.</p></div>
     </div>
   </footer>
 </body>
