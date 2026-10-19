@@ -41,23 +41,23 @@
 
 /* ==========================================================
    MODO NOTURNO — mesmas variáveis, valores para fundo escuro.
-   Fundo cinza neutro (menos cansativo que preto puro) e cores
-   mais claras para manter o contraste.
+   Azul-ardósia profundo (da mesma família do azul-marinho), menos
+   cansativo que preto puro, e cores mais claras para manter o
+   contraste. Vale para o site e para o painel.
    ========================================================== */
 :root[data-theme="dark"] {
-  --color-primary: #7cb3f0;
-  --color-primary-dark: #a3c9f5;     /* Hover dos botões (clareia no escuro) */
+  --color-primary: #8db7f2;
+  --color-primary-dark: #b0cdf6;     /* Hover dos botões (clareia no escuro) */
   --color-on-primary: #0b1220;
   --color-accent: #f59a4f;
   --color-accent-dark: #f8b27a;
   --color-on-accent: #1a1405;
-  /* Cinzas neutros em 3 níveis bem distintos: fundo, superfície (cartões/faixas) e borda.
-     O azul fica reservado para o que tem significado (links, botões, seleção). */
-  --color-bg: #1e1f22;
-  --color-surface: #2b2d31;
-  --color-text: #ececee;
-  --color-muted: #a9adb5;
-  --color-border: #45484f;
+  /* Três níveis bem distintos: fundo, superfície (cartões/faixas) e borda. */
+  --color-bg: #0c1527;
+  --color-surface: #13203a;
+  --color-text: #e8edf5;
+  --color-muted: #a3b1c6;
+  --color-border: #2c3c5c;
   --color-focus: #4cc9b0;
   --color-cover-start: #1d4e89;
   --color-cover-end: #0b2340;
@@ -65,10 +65,10 @@
   --color-hero-2: #10223f;
   --color-on-hero: #f4f6fa;
   --color-on-hero-muted: #b9c6d8;
-  --color-footer-bg: #141517;
-  --color-footer-text: #ececee;
-  --color-skeleton-base: #2f3237;
-  --color-skeleton-shine: #3b3e44;
+  --color-footer-bg: #081226;
+  --color-footer-text: #e8edf5;
+  --color-skeleton-base: #1a2844;
+  --color-skeleton-shine: #243556;
   --color-notice-bg: #332c1a;
   --color-notice-text: #f3d38a;
   --color-danger: #f28b82;
