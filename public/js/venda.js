@@ -114,8 +114,11 @@
 
   var SELECTOR = [
     ".v-section .v-eyebrow", ".v-section h2", ".v-section .v-intro", ".v-card", ".grid8 > li", ".who > li", ".v-quote",
-    ".faq", ".seals > li", ".banner", ".author-photo", ".carousel", ".v-strip-row", ".offer-panel",
+    ".faq", ".seals > li", ".banner", ".author-photo", ".carousel", ".v-strip-row", ".link-list > li",
+    ".offer-main > *", ".buy-card",
   ].join(",");
+  // O cartão de compra (preço e botão) entra sem esperar a cascata dos outros itens.
+  var NO_DELAY = ".buy-card";
   var STEP = 70, MAX_STEPS = 6; // itens de uma mesma grade entram em cascata
 
   var observer = new IntersectionObserver(function (entries) {
@@ -141,7 +144,7 @@
     if (el.getBoundingClientRect().top < fold) return;
     if (el.parentElement && el.parentElement.closest(SELECTOR)) return; // já entra junto com o cartão em volta
     var index = el.parentElement ? [].indexOf.call(el.parentElement.children, el) : 0;
-    if (index > 0) el.style.setProperty("--reveal-delay", Math.min(index, MAX_STEPS) * STEP + "ms");
+    if (index > 0 && !el.matches(NO_DELAY)) el.style.setProperty("--reveal-delay", Math.min(index, MAX_STEPS) * STEP + "ms");
     el.classList.add("reveal");
     el.addEventListener("transitionend", done);
     observer.observe(el);

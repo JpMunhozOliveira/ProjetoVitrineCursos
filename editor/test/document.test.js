@@ -2,7 +2,7 @@
 // Rodar: npm test (node --test)
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { withKeys, stripKeys, duplicateBlock, reducer, newBlock, hasText } from "../src/state/document.js";
+import { withKeys, stripKeys, duplicateBlock, reducer, newBlock, hasText, emptyValue } from "../src/state/document.js";
 import { historyReducer, initialHistory } from "../src/state/history.js";
 
 // Esquema mínimo, no mesmo formato que /api/admin/sales-blocks devolve.
@@ -98,4 +98,12 @@ test("hasText: só os campos de texto contam (o ícone padrão de um item novo, 
   const fields = { icon: { type: "icon" }, title: { type: "text" }, text: { type: "textarea" } };
   assert.equal(hasText({ icon: "check", title: "", text: " " }, fields), false);
   assert.equal(hasText({ icon: "check", title: "", text: "Algo" }, fields), true);
+});
+
+test("campo de link (url): começa vazio, e um item só com endereço não conta como texto digitado", () => {
+  const fields = { label: { type: "text" }, url: { type: "url" } };
+  const { _key, ...item } = emptyValue(fields);
+  assert.deepEqual(item, { label: "", url: "" });
+  assert.equal(hasText({ label: "", url: "https://x.com" }, fields), false);
+  assert.equal(hasText({ label: "LinkedIn", url: "" }, fields), true);
 });

@@ -1,7 +1,7 @@
 // Monta o HTML da página de vendas a partir dos blocos. A marcação segue a página original do
 // Manual (mesmas classes de public/css/venda.css), então o visual é o mesmo.
 const { html } = require("../lib/html");
-const { BLOCKS, ICONS, validateSections } = require("./blocks");
+const { BLOCKS, ICONS, NETWORKS, validateSections } = require("./blocks");
 const { normalizeTheme, themeHref, DEFAULT_THEME } = require("./theme");
 
 const brl = (cents) => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -13,9 +13,45 @@ const paragraphs = (text, cls) => (text || "").split(/\n\s*\n/).map((p) => p.tri
 const svg = (name, cls = "ico") => html`<svg class="${cls}" aria-hidden="true"><use href="#i-${name}"/></svg>`;
 const mark = (positive) => html`<svg aria-hidden="true"><use href="#i-${positive ? "check" : "x"}"/></svg>`;
 
-// Sprite com os ícones dos blocos (desenhos definidos em blocks.js, compartilhados com o editor).
-const SPRITE = html`<svg class="svg-sprite" aria-hidden="true">${Object.entries(ICONS).map(([name, icon]) =>
+// Sprite com os ícones dos blocos (desenhos definidos em blocks.js, compartilhados com o editor)
+// e os das redes sociais (#i-net-instagram, ...).
+const SPRITE = html`<svg class="svg-sprite" aria-hidden="true">${[
+  ...Object.entries(ICONS),
+  ...Object.entries(NETWORKS).map(([name, icon]) => [`net-${name}`, icon]),
+].map(([name, icon]) =>
   html`<symbol id="i-${name}" viewBox="0 0 24 24"><path d="${icon.d}" fill="none" stroke="currentColor" stroke-width="${icon.width || 1.8}" stroke-linecap="round" stroke-linejoin="round"/></symbol>`)}</svg>`;
+
+// Ícone e nome de um link, adivinhados pelo endereço (botões de link do autor).
+const LINK_HOSTS = [
+  [/(^|\.)linkedin\.com$/, "net-linkedin", "LinkedIn"],
+  [/(^|\.)lattes\.cnpq\.br$/, "cap", "Currículo Lattes"],
+  [/(^|\.)instagram\.com$/, "net-instagram", "Instagram"],
+  [/(^|\.)(youtube\.com|youtu\.be)$/, "net-youtube", "YouTube"],
+  [/(^|\.)(wa\.me|whatsapp\.com)$/, "net-whatsapp", "WhatsApp"],
+  [/(^|\.)facebook\.com$/, "net-facebook", "Facebook"],
+  [/(^|\.)tiktok\.com$/, "net-tiktok", "TikTok"],
+  [/(^|\.)(x\.com|twitter\.com)$/, "net-x", "X"],
+];
+function linkKind(url) {
+  if (url.startsWith("mailto:")) return { icon: "net-email", label: "E-mail" };
+  let host = "";
+  try { host = new URL(url).hostname.toLowerCase(); } catch { /* vazio ou incompleto: ícone de site */ }
+  const hit = LINK_HOSTS.find(([re]) => re.test(host));
+  return hit ? { icon: hit[1], label: hit[2] } : { icon: "net-site", label: "Site" };
+}
+
+// Botão de link de uma lista (links do autor, redes sociais). O texto é editável na página; o
+// endereço, no painel do bloco. Na página pública só entram links com endereço (filtrados antes).
+function linkItem(ctx, list, i, x, kind) {
+  const external = x.url && !x.url.startsWith("mailto:");
+  const label = ctx.live
+    ? html`<span${ctx.field(`${list}.${i}.label`, x.label, { fallback: true })}>${x.label || kind.label}</span>`
+    : x.label || kind.label;
+  const target = x.url
+    ? html` href="${x.url}"${external ? html` target="_blank" rel="noopener noreferrer"` : null}`
+    : html` data-no-url title="Defina o endereço em Configurar bloco ⚙"`;
+  return html`<li${ctx.item(list, i)}><a class="link-btn"${target}>${svg(kind.icon, "link-ico")}${label}${external ? html`<span class="sr-only"> (abre em nova aba)</span>` : null}</a>${ctx.remove(list, i)}</li>`;
+}
 
 // Campo do esquema pelo caminho ("items.0.question" -> o campo "Pergunta"): rótulo do texto de
 // exemplo e tamanho recomendado das imagens.
@@ -109,10 +145,11 @@ function createContext(data, { live = false } = {}) {
     },
     // Botão de compra: o link vem SEMPRE do cadastro do produto (fonte única).
     // label: texto do bloco (vazio = usa o fallback); path: o campo, para a edição no editor.
-    cta(label, fallback, path) {
+    // icon: ícone antes do texto (ex.: o cadeado do cartão de compra).
+    cta(label, fallback, path, { icon = null } = {}) {
       if (!data.checkout_url) return html`<span class="btn-cta is-disabled" aria-disabled="true">Em breve</span>`;
       const text = live ? html`<span${ctx.field(path, label, { fallback: true })}>${label || fallback}</span>` : label || fallback;
-      return html`<a class="btn-cta" href="${data.checkout_url}" target="_blank" rel="noopener noreferrer">${text}<span class="sr-only"> (abre em nova aba)</span></a>`;
+      return html`<a class="btn-cta" href="${data.checkout_url}" target="_blank" rel="noopener noreferrer">${icon && svg(icon, "cta-ico")}${text}<span class="sr-only"> (abre em nova aba)</span></a>`;
     },
     price(label, path) {
       if (data.price_cents === null || data.price_cents === undefined) return null;
@@ -133,6 +170,13 @@ function createContext(data, { live = false } = {}) {
     firstHero: () => heroCount++ === 0,
   };
   return ctx;
+}
+
+// Links do autor (Lattes, LinkedIn, site…) abaixo da biografia. Página pública: só os com endereço.
+function authorLinks(b, ctx) {
+  const links = b.links.map((x, i) => [x, i]).filter(([x]) => ctx.live || x.url);
+  if (!links.length && !ctx.live) return null;
+  return html`<ul class="link-list author-links">${links.map(([x, i]) => linkItem(ctx, "links", i, x, linkKind(x.url)))}${ctx.addItem("links", b.links)}</ul>`;
 }
 
 const RENDERERS = {
@@ -220,7 +264,7 @@ const RENDERERS = {
     const photo = ctx.img(b.photo, "author-photo", { path: "photo" });
     return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark()}><div class="container author${photo ? "" : " no-media"}">
   ${photo}
-  <div>${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("name", b.name)}>${b.name}</h2>${ctx.show(b.role) && html`<p class="muted"><strong${ctx.field("role", b.role)}>${b.role}</strong></p>`}${ctx.paras("bio", b.bio)}</div>
+  <div>${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("name", b.name)}>${b.name}</h2>${ctx.show(b.role) && html`<p class="muted"><strong${ctx.field("role", b.role)}>${b.role}</strong></p>`}${ctx.paras("bio", b.bio)}${authorLinks(b, ctx)}</div>
 </div></section>`;
   },
 
@@ -288,15 +332,43 @@ const RENDERERS = {
 </div></section>`;
   },
 
+  // Oferta final: texto, benefícios e credibilidade à esquerda; cartão de compra à direita.
+  // Os cartões opcionais (credibilidade, garantia) só aparecem preenchidos; no editor, vazios,
+  // levam data-empty (aparecem só com o bloco selecionado, como os textos vazios).
   offer(b, ctx) {
     const id = ctx.headingId();
-    const media = ctx.img(b.image, "v-media small", { path: "image" });
+    const card = (filled, cls, content) => (filled || ctx.live)
+      && html`<div class="${cls}"${!filled ? html` data-empty` : null}>${content}</div>`;
+    const pair = (titlePath, title, textPath, text) => html`<p>${ctx.show(title) && html`<strong${ctx.field(titlePath, title)}>${title}</strong>`}${ctx.show(text) && html`<span${ctx.field(textPath, text)}>${text}</span>`}</p>`;
     return html`<section class="v-final" aria-labelledby="${id}"${ctx.mark()}>
-  <div class="container v-hero-grid${media ? "" : " no-media"}">
-    ${media}
-    <div>${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title, { fallback: true })}>${b.title || ctx.product.title}</h2><div class="offer offer-panel">${ctx.price(b.price_label, "price_label")}${ctx.cta(b.cta_label, "Garantir agora", "cta_label")}</div></div>
+  <div class="container offer-grid">
+    <div class="offer-main">
+      ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title, { fallback: true })}>${b.title || ctx.product.title}</h2>
+      ${ctx.paras("text", b.text, "lead")}
+      ${(b.items.length > 0 || ctx.live) && html`<ul class="offer-benefits">${b.items.map((x, i) => html`<li${ctx.item("items", i)}>${ctx.icon(`items.${i}.icon`, x.icon)}${ctx.text(`items.${i}.text`, x.text)}${ctx.remove("items", i)}</li>`)}${ctx.addItem("items", b.items)}</ul>`}
+      ${card(b.proof_title || b.proof_text, "offer-proof", html`${ctx.icon("proof_icon", b.proof_icon)}${pair("proof_title", b.proof_title, "proof_text", b.proof_text)}`)}
+    </div>
+    <div class="buy-card">
+      ${ctx.img(b.image, "buy-media", { path: "image", optional: true })}
+      ${ctx.price(b.price_label, "price_label")}
+      ${(b.conditions.length > 0 || ctx.live) && html`<ul class="mini buy-conditions">${b.conditions.map((x, i) => html`<li class="yes"${ctx.item("conditions", i)}>${mark(true)}${ctx.text(`conditions.${i}.text`, x.text)}${ctx.remove("conditions", i)}</li>`)}${ctx.addItem("conditions", b.conditions)}</ul>`}
+      ${card(b.guarantee_title || b.guarantee_text, "buy-guarantee", html`${svg("shield")}${pair("guarantee_title", b.guarantee_title, "guarantee_text", b.guarantee_text)}`)}
+      ${ctx.cta(b.cta_label, "Garantir agora", "cta_label", { icon: "lock" })}
+      <p class="buy-note"${ctx.field("note", b.note, { fallback: true })}>${b.note || "Pagamento processado com segurança pela Kiwify."}</p>
+    </div>
   </div>
 </section>`;
+  },
+
+  // Redes sociais: botões em pílula centralizados. Página pública: só as redes com link.
+  social(b, ctx) {
+    const items = b.items.map((x, i) => [x, i]).filter(([x]) => ctx.live || x.url);
+    if (!items.length && !ctx.live) return null;
+    const id = ctx.headingId();
+    return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark({ hidden: !b.items.some((x) => x.url) })}><div class="container">
+  ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title, { fallback: true })}>${b.title || "Acompanhe nas redes"}</h2>${ctx.intro(b)}
+  <ul class="link-list social-links">${items.map(([x, i]) => linkItem(ctx, "items", i, x, { icon: `net-${x.network}`, label: NETWORKS[x.network].label }))}${ctx.addItem("items", b.items)}</ul>
+</div></section>`;
   },
 };
 
@@ -305,6 +377,7 @@ const HIDDEN_REASON = {
   testimonials: "escreva pelo menos um depoimento",
   gallery: "adicione imagens",
   author: "preencha o nome do autor",
+  social: "coloque o link de pelo menos uma rede",
 };
 
 // Blocos inválidos (ex.: dados antigos) são ignorados um a um, em vez de derrubar a página inteira.

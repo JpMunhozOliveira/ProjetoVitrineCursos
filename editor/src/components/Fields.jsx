@@ -24,6 +24,7 @@ function Help({ id, text }) {
 }
 
 // inline: item numa linha só — o rótulo fica só para leitores de tela e vira o texto de exemplo da caixa.
+// Campos "url" (endereço de link) usam a mesma caixa, do tipo url (teclado certo no celular).
 function TextField({ field, value, path, compact, inline }) {
   const { dispatch } = useEditor();
   const id = useId();
@@ -33,6 +34,9 @@ function TextField({ field, value, path, compact, inline }) {
       <label htmlFor={id} className={inline ? "sr-only" : undefined}>{field.label}</label>
       <Tag
         id={id}
+        type={field.type === "url" ? "url" : undefined}
+        inputMode={field.type === "url" ? "url" : undefined}
+        spellCheck={field.type === "url" ? false : undefined}
         value={value || ""}
         maxLength={field.max}
         placeholder={field.placeholder || (inline ? field.label : undefined)}
@@ -191,7 +195,7 @@ function ListItem({ item, index, total, field, path, onMove, onRemove }) {
   const { itemRef, itemStyle, isDragging, handleProps } = useSortableItem(item._key);
   // Itens só com campos curtos (texto de uma linha / liga-desliga) ficam numa linha só:
   // ⠿ [campos] [↑ ↓ ✕] — sem o título "Item N" ocupando uma linha a mais.
-  const inline = Object.values(field.item).every((f) => f.type === "text" || f.type === "bool");
+  const inline = Object.values(field.item).every((f) => f.type === "text" || f.type === "url" || f.type === "bool");
 
   const tools = (
     <div className="tools">

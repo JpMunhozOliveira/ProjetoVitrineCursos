@@ -41,17 +41,165 @@
   border-radius: 14px;
   filter: drop-shadow(0 28px 40px rgb(0 0 0 / 0.45));
 }
-/* Oferta final: preço e botão num painel com contorno sutil. */
-.offer-panel {
-  margin-top: 1.75rem;
-  padding: 1.5rem 1.75rem;
-  background: rgb(255 255 255 / 0.05);
-  border: 1px solid rgb(255 255 255 / 0.14);
-  border-radius: 20px;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06);
-}
+/* Oferta final: duas colunas — texto, benefícios e credibilidade à esquerda; cartão de compra à
+   direita. No celular, uma coluna (o cartão vem logo depois do texto, com o botão na largura toda). */
 .v-final h2 {
   font-size: clamp(1.9rem, 4vw, 2.8rem);
+}
+.offer-grid {
+  display: grid;
+  gap: 2.5rem;
+  align-items: center;
+}
+@media (min-width: 860px) {
+  .offer-grid {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+    gap: clamp(2.5rem, 5vw, 4.5rem);
+  }
+}
+.offer-main .lead {
+  margin-bottom: 1.75rem;
+}
+.offer-benefits {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 0.9rem 1.5rem;
+  margin: 0 0 1.75rem;
+  padding: 0;
+  list-style: none;
+}
+.offer-benefits li {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  font-weight: 600;
+}
+.offer-benefits .ico,
+.buy-guarantee .ico {
+  width: 42px;
+  height: 42px;
+  padding: 10px;
+  border-radius: 10px;
+}
+/* Cartões pequenos de texto: credibilidade (à esquerda) e garantia (no cartão de compra). */
+.offer-proof,
+.buy-guarantee {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 1rem 1.2rem;
+  border-radius: 14px;
+}
+.offer-proof {
+  max-width: 34rem;
+  background: rgb(255 255 255 / 0.05);
+  border: 1px solid rgb(255 255 255 / 0.12);
+}
+.offer-proof p,
+.buy-guarantee p {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin: 0;
+}
+.offer-proof strong,
+.buy-guarantee strong {
+  color: var(--color-text);
+}
+.offer-proof span,
+.buy-guarantee span {
+  font-size: 0.95rem;
+  color: var(--color-muted);
+}
+/* Cartão de compra: um tom acima do azul-marinho, borda sutil e sombra suave. */
+.buy-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: clamp(1.5rem, 3.5vw, 2.25rem);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--v-navy-2) 90%, #fff), var(--v-navy-2));
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-radius: 24px;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.07),
+    0 30px 60px -28px rgb(0 0 0 / 0.65);
+}
+.buy-media {
+  width: 100%;
+  max-width: 240px;
+  height: auto;
+  margin-inline: auto;
+}
+.buy-card .price-big {
+  font-size: clamp(2.6rem, 6vw, 3.4rem);
+  color: var(--v-on-navy);
+}
+.buy-card .muted-on-dark {
+  margin-bottom: 0.2rem;
+}
+.buy-conditions {
+  margin: 0;
+}
+.buy-guarantee {
+  background: color-mix(in srgb, var(--v-cta) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--v-cta) 42%, transparent);
+}
+.buy-card .btn-cta {
+  width: 100%;
+}
+.cta-ico {
+  flex: none;
+  width: 20px;
+  height: 20px;
+}
+.buy-note {
+  margin: -0.25rem 0 0;
+  font-size: 0.88rem;
+  text-align: center;
+  color: var(--color-muted);
+}
+
+/* Botões de link (autor: Lattes, LinkedIn, site…; bloco de redes sociais): pílulas com contorno
+   e ícone; ao passar o mouse, laranja. Funcionam em faixa clara e escura (usam os tokens da faixa). */
+.link-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 1.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+.link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 44px;
+  padding: 0.55rem 1.2rem 0.55rem 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+  text-decoration: none;
+  background: var(--v-card);
+  border: 1.5px solid color-mix(in srgb, var(--color-text) 22%, transparent);
+  border-radius: 999px;
+  transition:
+    transform 0.15s,
+    border-color 0.15s,
+    color 0.15s;
+}
+.link-btn:hover {
+  color: var(--v-accent-ink);
+  border-color: var(--v-cta);
+  transform: translateY(-2px);
+}
+.link-ico {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  color: var(--v-accent-ink);
+}
+.social-links {
+  justify-content: center;
+  margin: 0;
 }
 
 
@@ -434,29 +582,30 @@
     padding-inline: 18%;
   }
 }
+/* O slide é só o espaço (3:2), sem fundo nem moldura: imagens de outras proporções não ganham
+   faixas em volta. A imagem fica centralizada, inteira, com os próprios cantos e sombra. */
 .track > li.slide {
+  position: relative;
   aspect-ratio: 3/2;
-  border-radius: var(--v-radius);
-  overflow: hidden;
-  background: var(--v-card);
-  box-shadow: var(--v-shadow-hover);
   transition:
     transform 0.4s ease,
     opacity 0.4s ease;
-}
-.is-dark .track > li.slide {
-  background: rgb(255 255 255 / 0.06);
 }
 /* Capas laterais menores e mais apagadas: o olhar vai para a do centro. */
 .carousel.is-ready .slide:not(.is-current) {
   transform: scale(0.88);
   opacity: 0.55;
 }
-/* "contain": páginas do material aparecem inteiras, sem cortes. */
 .slide-img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
+  position: absolute;
+  inset: 0;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  margin: auto;
+  border-radius: var(--v-radius);
+  box-shadow: var(--v-shadow-hover);
 }
 .car-btn {
   position: absolute;
@@ -567,14 +716,9 @@
   height: auto;
   border-radius: var(--v-radius);
 }
-.v-media.small {
-  max-width: 420px;
-  margin-inline: auto;
-}
 /* Sem imagem: o texto ocupa a largura toda (em vez de deixar uma coluna vazia). */
 @media (min-width: 860px) {
-  .v-hero-grid.no-media,
-  .v-final .v-hero-grid.no-media {
+  .v-hero-grid.no-media {
     grid-template-columns: minmax(0, 820px);
   }
 }

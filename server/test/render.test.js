@@ -252,7 +252,7 @@ test("imagens: todo campo de imagem tem tamanho recomendado", () => {
 
 test("descrição abaixo do título: centralizada após o h2, só preenchida na página pública", () => {
   const types = Object.entries(BLOCKS).filter(([, b]) => b.fields.intro).map(([t]) => t);
-  assert.deepEqual(types.sort(), ["audience", "checklist", "comparison", "faq", "gallery", "guarantee", "testimonials", "topics"]);
+  assert.deepEqual(types.sort(), ["audience", "checklist", "comparison", "faq", "gallery", "guarantee", "social", "testimonials", "topics"]);
   const sections = [{ type: "faq", title: "Dúvidas", intro: "Tudo o que você precisa saber.", items: [{ question: "Q", answer: "A" }] }];
   assert.match(render(sections, false), /Dúvidas<\/h2><p class="v-intro">Tudo o que você precisa saber\.<\/p>/);
   assert.match(render(sections, "live"), /<p class="v-intro" data-field="intro">Tudo o que você precisa saber\.<\/p>/);
@@ -264,7 +264,7 @@ test("descrição abaixo do título: centralizada após o h2, só preenchida na 
 // Um bloco de cada tipo com listas, cada lista com um item preenchido.
 const listBlocks = () => Object.entries(BLOCKS).filter(([type, b]) => type !== "gallery" && Object.values(b.fields).some((f) => f.type === "list"))
   .map(([type, b]) => {
-    const block = { type, title: "T" };
+    const block = { type, [b.fields.title ? "title" : "name"]: "T" }; // o autor só aparece com nome
     for (const [name, field] of Object.entries(b.fields)) {
       if (field.type !== "list") continue;
       const item = {};
@@ -311,4 +311,74 @@ test("listas vazias: no editor o bloco continua, oculto, com o botão de adicion
   }
   assert.ok(render([{ type: "hero", badges: [] }], "live").includes('data-item-add="badges">+ Adicionar selo'));
   assert.ok(!render([{ type: "hero", badges: [] }], false).includes('class="badges"'));
+});
+
+/* ---------- Links (autor e redes sociais) ---------- */
+const { validateSections } = require("../sales/blocks");
+const link = (url) => validateSections([{ type: "social", items: [{ network: "site", url }] }]);
+
+test("endereço de link: completa https:// e mailto:, recusa esquemas perigosos", () => {
+  assert.equal(link("linkedin.com/in/fulano").sections[0].items[0].url, "https://linkedin.com/in/fulano");
+  assert.equal(link("  https://site.com.br/a?b=1 ").sections[0].items[0].url, "https://site.com.br/a?b=1");
+  assert.equal(link("fulano@email.com").sections[0].items[0].url, "mailto:fulano@email.com");
+  assert.equal(link("").sections[0].items[0].url, "");
+  for (const bad of ["javascript:alert(1)", "JavaScript:alert(1)", "data:text/html,x", "ftp://x.com", "https://"]) {
+    assert.match(link(bad).error || "", /endereço inválido/, bad);
+  }
+});
+
+test("autor: links com ícone pelo endereço; a página pública mostra só os que têm endereço", () => {
+  const sections = [{ type: "author", name: "Ana", links: [
+    { label: "", url: "lattes.cnpq.br/123" }, { label: "Meu LinkedIn", url: "https://www.linkedin.com/in/ana" },
+    { label: "Sem endereço", url: "" }] }];
+  const page = render(sections, false);
+  assert.match(page, /<ul class="link-list author-links"><li><a class="link-btn" href="https:\/\/lattes\.cnpq\.br\/123" target="_blank" rel="noopener noreferrer"><svg class="link-ico" aria-hidden="true"><use href="#i-cap"\/><\/svg>Currículo Lattes<span class="sr-only"> \(abre em nova aba\)<\/span><\/a><\/li>/);
+  assert.match(page, /#i-net-linkedin"\/><\/svg>Meu LinkedIn</);
+  assert.ok(!page.includes("Sem endereço"));
+  assert.ok(page.includes('<symbol id="i-net-linkedin"'));
+  const live = render(sections, "live");
+  assert.match(live, /<a class="link-btn" data-no-url title="Defina o endereço em Configurar bloco ⚙">.*<span data-field="links\.2\.label">Sem endereço<\/span>/);
+  assert.match(live, /<span data-field="links\.0\.label" data-fallback>Currículo Lattes<\/span>/);
+  assert.ok(!render([{ type: "author", name: "Ana" }], false).includes("author-links"));
+});
+
+test("redes sociais: botões com o ícone da rede; sem links, some da página e fica oculto no editor", () => {
+  const sections = [{ type: "social", title: "Siga", items: [
+    { network: "instagram", url: "instagram.com/perfil", label: "" }, { network: "email", url: "a@b.com", label: "Escreva" },
+    { network: "youtube", url: "", label: "" }] }];
+  const page = render(sections, false);
+  assert.match(page, /<a class="link-btn" href="https:\/\/instagram\.com\/perfil" target="_blank" rel="noopener noreferrer"><svg class="link-ico" aria-hidden="true"><use href="#i-net-instagram"\/><\/svg>Instagram</);
+  assert.match(page, /<a class="link-btn" href="mailto:a@b\.com"><svg class="link-ico" aria-hidden="true"><use href="#i-net-email"\/><\/svg>Escreva<\/a>/);
+  assert.ok(!page.includes("#i-net-youtube\"/></svg>YouTube"));
+  const empty = [{ type: "social", items: [{ network: "x", url: "" }] }];
+  assert.ok(!render(empty, false).includes("social-links"));
+  assert.match(render(empty, "live"), /data-block="0" data-hidden/);
+  assert.match(render(empty, "live"), /<h2 id="t-1" data-field="title" data-fallback>Acompanhe nas redes<\/h2>/);
+});
+
+/* ---------- Oferta final ---------- */
+test("oferta: texto à esquerda, cartão de compra com preço, garantia, cadeado e aviso da Kiwify", () => {
+  const page = render([{ type: "offer", title: "Garanta", text: "Desc.", items: [{ icon: "bolt", text: "Rápido" }],
+    proof_title: "Especialista", proof_text: "10 anos", price_label: "Por", conditions: [{ text: "Pagamento único" }],
+    guarantee_title: "Garantia de 7 dias", guarantee_text: "Devolvemos.", cta_label: "Quero me matricular agora" }], false);
+  assert.match(page, /<div class="container offer-grid">\s*<div class="offer-main">/);
+  assert.match(page, /<p class="lead">Desc\.<\/p>/);
+  assert.match(page, /<ul class="offer-benefits"><li><svg class="ico" aria-hidden="true"><use href="#i-bolt"\/><\/svg>Rápido<\/li><\/ul>/);
+  assert.match(page, /<div class="offer-proof">.*<strong>Especialista<\/strong><span>10 anos<\/span>/);
+  assert.match(page, /<div class="buy-card">[\s\S]*R\$\s49,90[\s\S]*Pagamento único[\s\S]*<div class="buy-guarantee"><svg class="ico" aria-hidden="true"><use href="#i-shield"\/><\/svg><p><strong>Garantia de 7 dias<\/strong>/);
+  assert.match(page, /<a class="btn-cta" href="https:\/\/pay\.example\.com\/x" target="_blank" rel="noopener noreferrer"><svg class="cta-ico" aria-hidden="true"><use href="#i-lock"\/><\/svg>Quero me matricular agora/);
+  assert.match(page, /<p class="buy-note">Pagamento processado com segurança pela Kiwify\.<\/p>/);
+});
+
+test("oferta antiga (só os campos de antes) continua válida: preço, botão, e sem cartões vazios", () => {
+  const old = [{ type: "offer", image: null, eyebrow: "Oferta", title: "Garanta", price_label: "Oferta especial", cta_label: "Garantir agora" }];
+  assert.ok(validateSections(old).sections);
+  const page = render(old, false);
+  assert.match(page, /Oferta especial<\/span> R\$\s49,90/);
+  assert.match(page, />Garantir agora<span class="sr-only">/);
+  for (const piece of ["offer-benefits", "offer-proof", "buy-conditions", "buy-guarantee"]) assert.ok(!page.includes(piece), piece);
+  const live = render(old, "live");
+  assert.match(live, /<div class="offer-proof" data-empty>/);
+  assert.match(live, /<div class="buy-guarantee" data-empty>/);
+  assert.match(live, /<p class="buy-note" data-field="note" data-fallback>/);
 });

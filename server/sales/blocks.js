@@ -3,6 +3,7 @@
 //
 // Tipos de campo:
 //   text / textarea  -> texto (com tamanho máximo)
+//   url              -> endereço de link (http, https ou mailto; sem esquema, ganha https://)
 //   icon             -> um dos ícones de ICONS
 //   image            -> ID de uma imagem da biblioteca (ou null)
 //   bool             -> true/false
@@ -69,6 +70,20 @@ const ICONS = {
   alert: { label: "Atenção", d: "M12 3l10 18H2zM12 10v4M12 17h.01" },
 };
 
+// Ícones das redes sociais (botões de link do autor e bloco "Redes sociais"). Ficam fora de ICONS:
+// não entram no seletor de ícones; o sprite os inclui como #i-net-<nome>.
+const NETWORKS = {
+  instagram: { label: "Instagram", d: "M7.5 3h9A4.5 4.5 0 0 1 21 7.5v9a4.5 4.5 0 0 1-4.5 4.5h-9A4.5 4.5 0 0 1 3 16.5v-9A4.5 4.5 0 0 1 7.5 3zM12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM17.3 6.7h.01" },
+  linkedin: { label: "LinkedIn", d: "M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM8 10.5V17M8 7.2v.01M12 17v-6.5M12 13.5a2.8 2.8 0 0 1 5.6 0V17" },
+  youtube: { label: "YouTube", d: "M2.6 7.6c.3-1.5 1.4-2.5 2.9-2.7C7.8 4.6 9.9 4.5 12 4.5s4.2.1 6.5.4c1.5.2 2.6 1.2 2.9 2.7.3 1.5.4 2.9.4 4.4s-.1 2.9-.4 4.4c-.3 1.5-1.4 2.5-2.9 2.7-2.3.3-4.4.4-6.5.4s-4.2-.1-6.5-.4c-1.5-.2-2.6-1.2-2.9-2.7C2.3 14.9 2.2 13.5 2.2 12s.1-2.9.4-4.4zM10 9l5 3-5 3z" },
+  whatsapp: { label: "WhatsApp", d: "M3.5 20.5l1.3-4.2A8.5 8.5 0 1 1 8 19.4zM9 8.2c-.4 2.8 3.9 7.1 6.8 6.8l.9-1.5-2.2-1.1-1 .9a5 5 0 0 1-2.8-2.8l.9-1-1.1-2.2z" },
+  facebook: { label: "Facebook", d: "M15.5 3H13a4 4 0 0 0-4 4v3H7v3.8h2V21h3.8v-7.2h2.4l.5-3.8h-2.9V7.6c0-.5.3-.8.8-.8h1.9z" },
+  tiktok: { label: "TikTok", d: "M13.5 3v12a3.5 3.5 0 1 1-3.5-3.5M13.5 3c.4 2.9 2.4 4.7 5.5 5" },
+  x: { label: "X (Twitter)", d: "M4 4h4.5L20 20h-4.5zM19.5 4l-6.6 7.3M4.5 20l6.6-7.3" },
+  site: { label: "Site", d: ICONS.globe.d },
+  email: { label: "E-mail", d: ICONS.mail.d },
+};
+
 // Grupos do seletor de ícones do editor (cada ícone em exatamente um grupo).
 const ICON_GROUPS = [
   ["Básicos", ["check", "x", "doc", "bolt", "shield", "user", "calc"]],
@@ -81,6 +96,7 @@ const ICON_GROUPS = [
 
 const text = (label, max, extra = {}) => ({ type: "text", label, max, ...extra });
 const textarea = (label, max, extra = {}) => ({ type: "textarea", label, max, ...extra });
+const url = (label, extra = {}) => ({ type: "url", label, max: 500, ...extra });
 const icon = (label = "Ícone") => ({ type: "icon", label });
 const image = (label, extra = {}) => ({ type: "image", label, ...extra });
 const bool = (label) => ({ type: "bool", label });
@@ -179,6 +195,10 @@ const BLOCKS = {
       name: text("Nome", 120),
       role: text("Especialidade / cargo", 160),
       bio: textarea("Biografia", 1500),
+      links: list("Links (Lattes, LinkedIn, site…)", 4, {
+        label: text("Texto do botão", 40),
+        url: url("Endereço", { help: "O ícone do botão é escolhido pelo endereço (LinkedIn, Lattes, Instagram…)." }),
+      }, "link"),
       background: background(),
     },
   },
@@ -251,18 +271,55 @@ const BLOCKS = {
       background: background(),
     },
   },
+  social: {
+    label: "Redes sociais",
+    help: "Botões com os links das suas redes. Só aparecem as redes com link; sem nenhuma, o bloco não aparece na página.",
+    fields: {
+      eyebrow: eyebrow(),
+      title: text("Título da seção", 120),
+      intro: intro(),
+      items: list("Redes", 9, {
+        network: choice("Rede", Object.fromEntries(Object.entries(NETWORKS).map(([k, n]) => [k, n.label])), "instagram"),
+        url: url("Link", { help: "Ex.: instagram.com/seu.perfil, wa.me/5511999999999 ou um e-mail." }),
+        label: text("Texto do botão (opcional)", 40, { help: "Vazio = o nome da rede." }),
+      }, "rede"),
+      background: background(),
+    },
+  },
   offer: {
     label: "Oferta final",
-    help: "Última chamada com preço e botão. Preço e link vêm do cadastro do produto.",
+    help: "Última chamada: texto e benefícios à esquerda, cartão de compra à direita. Preço e link vêm do cadastro do produto.",
     fields: {
-      image: image("Imagem", { size: "1000 × 750 px", tip: "PNG com fundo transparente fica melhor" }),
+      image: image("Imagem (topo do cartão de compra)", { size: "1000 × 750 px", tip: "PNG com fundo transparente fica melhor" }),
       eyebrow: eyebrow(),
       title: text("Título", 200),
+      text: textarea("Descrição", 600),
+      items: list("Benefícios", 4, { icon: icon(), text: text("Texto", 100) }, "benefício"),
+      proof_icon: icon("Ícone do cartão de credibilidade"),
+      proof_title: text("Credibilidade: destaque", 80),
+      proof_text: text("Credibilidade: texto", 200),
       price_label: text("Texto acima do preço", 40, { placeholder: "Oferta especial" }),
+      conditions: list("Condições de acesso", 6, { text: text("Texto", 120) }, "condição"),
+      guarantee_title: text("Garantia: título", 80, { placeholder: "Garantia de 7 dias" }),
+      guarantee_text: text("Garantia: texto", 300),
       cta_label: text("Texto do botão", 60, { placeholder: "Garantir agora" }),
+      note: text("Aviso abaixo do botão", 160, { help: "Vazio = \"Pagamento processado com segurança pela Kiwify.\"" }),
     },
   },
 };
+
+// Endereço digitado -> endereço seguro para href. Sem esquema: e-mail vira mailto:, o resto https://.
+// Só http, https e mailto (bloqueia javascript:, data: etc.). Devolve null se for inválido.
+function normalizeUrl(value) {
+  let v = value.trim();
+  if (!v) return "";
+  if (!/^[a-z][a-z0-9+.-]*:/i.test(v)) v = (/^[^\s/@]+@[^\s/@]+\.[^\s/@]+$/.test(v) ? "mailto:" : "https://") + v;
+  let parsed;
+  try { parsed = new URL(v); } catch { return null; }
+  if (!["http:", "https:", "mailto:"].includes(parsed.protocol)) return null;
+  if (parsed.protocol !== "mailto:" && !parsed.hostname) return null;
+  return v;
+}
 
 const MAX_BLOCKS = 30;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -289,6 +346,14 @@ function validateFields(input, fields, where) {
         if (value !== undefined && value !== null && typeof value !== "string") throw new ValidationError(`${at}: deve ser texto.`);
         const v = (value || "").trim();
         if (v.length > field.max) throw new ValidationError(`${at}: máximo de ${field.max} caracteres.`);
+        out[name] = v;
+        break;
+      }
+      case "url": {
+        if (value !== undefined && value !== null && typeof value !== "string") throw new ValidationError(`${at}: deve ser texto.`);
+        if ((value || "").trim().length > field.max) throw new ValidationError(`${at}: máximo de ${field.max} caracteres.`);
+        const v = normalizeUrl(value || "");
+        if (v === null) throw new ValidationError(`${at}: endereço inválido (use um link como https://site.com.br).`);
         out[name] = v;
         break;
       }
@@ -382,8 +447,16 @@ function defaultSections() {
     { type: "guarantee", title: "Compra segura e garantida", items: [
       { icon: "shield", text: "Pagamento 100% seguro" }, { icon: "check", text: "7 dias de garantia" },
       { icon: "bolt", text: "Acesso imediato" }] },
-    { type: "offer", eyebrow: "Oferta", title: "Garanta agora o seu acesso", price_label: "Oferta especial", cta_label: "Garantir agora" },
+    { type: "offer", eyebrow: "Oferta", title: "Garanta agora o seu acesso",
+      text: "Uma frase curta lembrando o que a pessoa leva e por que vale começar hoje.",
+      items: [{ icon: "bolt", text: "Acesso imediato" }, { icon: "doc", text: "Conteúdo prático" },
+        { icon: "refresh", text: "Atualizações incluídas" }, { icon: "headset", text: "Suporte por e-mail" }],
+      proof_icon: "award", proof_title: "Feito por especialista", proof_text: "Material criado por quem vive o assunto na prática.",
+      price_label: "Oferta especial",
+      conditions: [{ text: "Pagamento único" }, { text: "Acesso imediato após a compra" }],
+      guarantee_title: "Garantia de 7 dias", guarantee_text: "Se não gostar, devolvemos o seu dinheiro.",
+      cta_label: "Quero me matricular agora" },
   ].map((block) => validateSections([block]).sections[0]); // preenche os campos que faltam
 }
 
-module.exports = { ICONS, ICON_GROUPS, BLOCKS, MAX_BLOCKS, validateSections, mediaIds, defaultSections };
+module.exports = { ICONS, ICON_GROUPS, NETWORKS, BLOCKS, MAX_BLOCKS, validateSections, mediaIds, defaultSections };

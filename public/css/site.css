@@ -38,15 +38,9 @@
   --v-nav-space: 76px;               /* altura do menu flutuante sobre a primeira seção */
 }
 
-/* Modo noturno do site público: azul-ardósia profundo (da mesma família do marinho), em vez dos
-   cinzas neutros do theme.css. Só aqui: o painel não carrega este arquivo e não muda. */
+/* Modo noturno: as cores de base (azul-ardósia) vêm do theme.css, as mesmas do painel.
+   Aqui ficam só os tons próprios do site (faixas, linhas, cartões, sombras). */
 :root[data-theme="dark"] body {
-  --color-bg: #0c1527;
-  --color-surface: #13203a;
-  --color-text: #e8edf5;
-  --color-muted: #a3b1c6;
-  --color-border: #26344f;
-  --color-primary: #8db7f2;
   --v-soft: #0f1a30;
   --v-line: #1f2c47;
   --v-card: #111d35;
@@ -252,9 +246,6 @@ main p {
   .v-hero-grid {
     grid-template-columns: 1.1fr 0.9fr;
     gap: 3.5rem;
-  }
-  .v-final .v-hero-grid {
-    grid-template-columns: 0.8fr 1.2fr;
   }
 }
 .lead {
@@ -588,6 +579,10 @@ body .menu-btn[aria-expanded="true"] span {
 }
 body .menu-btn[aria-expanded="true"]::after {
   transform: translateY(-6px) rotate(-45deg);
+}
+/* Links internos (ex.: #oferta) param abaixo da pílula do menu, sem título ou cartão cobertos. */
+html {
+  scroll-padding-top: calc(var(--v-nav-space) + 1rem);
 }
 /* A primeira seção começa abaixo da pílula. */
 main > section:first-child {

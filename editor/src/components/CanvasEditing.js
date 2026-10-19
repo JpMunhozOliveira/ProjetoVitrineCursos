@@ -40,7 +40,9 @@ export function focusField(doc, at) {
   el.focus({ preventScroll: true });
   const range = doc.createRange();
   range.selectNodeContents(el);
-  range.collapse(false);
+  // Texto padrão (data-fallback, ex.: "Site" num link novo): fica todo selecionado, e digitar o
+  // substitui. Nos outros campos, o cursor vai para o fim.
+  if (!el.hasAttribute("data-fallback")) range.collapse(false);
   const selection = doc.getSelection();
   selection.removeAllRanges();
   selection.addRange(range);

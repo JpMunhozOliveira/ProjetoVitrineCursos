@@ -396,6 +396,17 @@
   padding: 0.45rem 1rem;
   border-radius: 999px;
 }
+/* Botões de link (autor, redes) também são pílulas. */
+.link-list .item-add-btn {
+  min-height: 44px;
+  padding: 0.55rem 1.2rem;
+  border-radius: 999px;
+}
+/* Link ainda sem endereço: contorno tracejado (o endereço se define em "Configurar bloco"). */
+.link-btn[data-no-url] {
+  border-style: dashed;
+  opacity: 0.75;
+}
 /* FAQ e depoimentos: o botão fica abaixo do último item. */
 .faq + .item-add,
 .faq ~ .item-add {
