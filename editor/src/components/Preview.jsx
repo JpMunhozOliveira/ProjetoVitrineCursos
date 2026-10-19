@@ -144,8 +144,13 @@ export function Preview({ productId, payload, renderKey, canvas, selectedIndex, 
       const section = doc.querySelector(`[data-block="${reveal.index}"]`);
       section?.scrollIntoView({ block: "nearest" });
       // O rótulo acima do título é opcional: o foco vai direto para o primeiro texto principal.
-      const first = reveal.edit && (section?.querySelector("[data-field]:not([data-field='eyebrow'])") || section?.querySelector("[data-field]"));
-      if (first) focusField(doc, { block: reveal.index, field: first.dataset.field });
+      // reveal.field: um campo específico (ex.: o 1º texto de um item recém-adicionado).
+      const first = reveal.edit && (reveal.field ? section?.querySelector(`[data-field="${CSS.escape(reveal.field)}"]`)
+        : section?.querySelector("[data-field]:not([data-field='eyebrow'])") || section?.querySelector("[data-field]"));
+      if (first) {
+        first.closest("[data-item]")?.scrollIntoView({ block: "nearest" });
+        focusField(doc, { block: reveal.index, field: first.dataset.field });
+      }
     }
     setFrameDoc(doc);
   }

@@ -3,7 +3,7 @@
 // e avisa as mudanças com dispatch({ type: "set", path, value }).
 import { useId, useState } from "react";
 import { useEditor } from "../state/context.js";
-import { emptyValue } from "../state/document.js";
+import { emptyValue, hasText } from "../state/document.js";
 import { SortableList, useSortableItem, DragHandle } from "../ui/dnd.jsx";
 import { IconMenu, IconGlyph } from "./IconMenu.jsx";
 
@@ -142,18 +142,13 @@ function ImageField({ field, value, path }) {
   );
 }
 
-// O item tem algum texto digitado? (_key é interna do editor e não conta)
-function hasText(item) {
-  return Object.entries(item).some(([k, v]) => k !== "_key" && typeof v === "string" && v.trim());
-}
-
 function ListField({ field, items, path }) {
   const { dispatch, focusLater } = useEditor();
   const full = items.length >= field.max;
 
   async function remove(index) {
     const item = items[index];
-    if (hasText(item) && !(await window.Admin.confirm({
+    if (hasText(item, field.item) &&!(await window.Admin.confirm({
       title: `Remover o item ${index + 1}?`, text: "O texto deste item será perdido.", action: "Remover", danger: true,
     }))) return;
     dispatch({ type: "remove", path, index });

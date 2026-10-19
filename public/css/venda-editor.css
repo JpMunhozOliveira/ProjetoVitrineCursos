@@ -302,3 +302,102 @@
 .img-slot.quote-photo small {
   display: none;
 }
+
+/* ---------- Itens das listas: adicionar e remover direto na página ----------
+   [data-item]      -> um item de lista (selo, tópico, pergunta…); o × dentro dele o remove
+   .item-add        -> "+ Adicionar …" no fim da lista
+   Os dois só aparecem no bloco selecionado (fora dele a prévia fica igual à página). */
+.is-editor-preview [data-item] {
+  position: relative;
+}
+.is-editor-preview [data-block]:not(.is-selected) :is(.item-add, .item-remove) {
+  display: none;
+}
+.item-remove {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  color: #fff;
+  background: #b42318;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.25);
+  cursor: pointer;
+  opacity: 0;
+  transform: scale(0.8);
+  transition: opacity 0.12s, transform 0.12s;
+}
+[data-item]:hover > .item-remove,
+[data-item]:focus-within > .item-remove,
+.item-remove:focus-visible {
+  opacity: 1;
+  transform: none;
+}
+.item-remove:focus-visible {
+  outline: 3px solid var(--color-focus, #2563eb);
+  outline-offset: 2px;
+}
+.item-remove-ico {
+  display: block;
+  width: 12px;
+  height: 12px;
+}
+/* Galeria: o slide corta o que passa da borda; o × fica dentro da imagem. */
+.slide > .item-remove {
+  top: 10px;
+  right: 10px;
+}
+
+/* O "+" ocupa o lugar de um item, sem o visual de cartão dos itens de verdade. */
+.is-editor-preview li.item-add,
+.is-editor-preview div.item-add {
+  display: flex;
+  min-width: 0;
+  padding: 0;
+  list-style: none;
+  background: none;
+  border: 0;
+  box-shadow: none;
+}
+.is-editor-preview li.item-add::before,
+.is-editor-preview li.item-add::after {
+  content: none;
+}
+.item-add-btn {
+  flex: 1;
+  min-height: 44px;
+  padding: 0.6rem 1rem;
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--color-muted);
+  background: transparent;
+  border: 2px dashed color-mix(in srgb, var(--color-muted) 45%, transparent);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s, background 0.12s;
+}
+.item-add-btn:hover,
+.item-add-btn:focus-visible {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 8%, transparent);
+  outline: none;
+}
+/* Selos da abertura são pílulas: o botão acompanha. */
+.badges .item-add-btn {
+  min-height: 40px;
+  padding: 0.45rem 1rem;
+  border-radius: 999px;
+}
+/* FAQ e depoimentos: o botão fica abaixo do último item. */
+.faq + .item-add,
+.faq ~ .item-add {
+  margin-top: 0.75rem;
+}

@@ -53,6 +53,12 @@ export function emptyValue(fields) {
   return out;
 }
 
+// O item tem algum texto digitado? Só contam os campos de texto (o ícone padrão de um item novo,
+// por exemplo, não é algo que a pessoa escreveu).
+export function hasText(item, fields) {
+  return Object.entries(fields).some(([k, f]) => (f.type === "text" || f.type === "textarea") && item[k]?.trim());
+}
+
 // Listas começam com um item vazio, exceto as que exigem imagem (o item vazio seria inválido).
 export function newBlock(type, schema) {
   const fields = schema.blocks[type].fields;

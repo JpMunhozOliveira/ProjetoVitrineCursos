@@ -5,7 +5,7 @@
 // Este arquivo coordena: carregamento, estado da página, seleção, salvar e publicar.
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { EditorContext } from "./state/context.js";
-import { withKeys, stripKeys, carryKeys, newBlock, duplicateBlock, emptyValue, getIn } from "./state/document.js";
+import { withKeys, stripKeys, carryKeys, newBlock, duplicateBlock, emptyValue, getIn, hasText } from "./state/document.js";
 import { historyReducer, initialHistory } from "./state/history.js";
 import { PRODUCT_STATUS } from "./labels.js";
 import { EditorHeader } from "./components/EditorHeader.jsx";
@@ -211,6 +211,29 @@ export default function App({ productId }) {
       setMedia((prev) => new Map(prev).set(chosen.id, chosen));
       const [name] = Object.entries(field.item).find(([, f]) => f.type === "image");
       dispatch({ type: "insert", path: ["sections", index, list], value: { ...emptyValue(field.item), [name]: chosen.id } });
+    },
+    // "+ Adicionar …" no fim de uma lista da página: item novo no fim, já com o cursor no 1º texto.
+    addItem(index, list) {
+      const block = sections[index];
+      const field = block && schema.blocks[block.type].fields[list];
+      if (field?.type !== "list" || block[list].length >= field.max) return;
+      revealBlock(index, "canvas");
+      dispatch({ type: "insert", path: ["sections", index, list], value: emptyValue(field.item) });
+      const first = Object.entries(field.item).find(([, f]) => f.type === "text" || f.type === "textarea");
+      reveal.current = { index, edit: true, field: first && `${list}.${block[list].length}.${first[0]}` };
+    },
+    // × num item da página. Com texto digitado, pede confirmação (como no painel); Ctrl+Z desfaz.
+    async removeItem(index, item) {
+      const [list, n] = item.split(".");
+      const block = sections[index];
+      const value = block?.[list]?.[Number(n)];
+      if (!value) return;
+      revealBlock(index, "canvas");
+      const field = schema.blocks[block.type].fields[list];
+      if (hasText(value, field.item) &&!(await window.Admin.confirm({
+        title: `Remover ${field.noun} ${Number(n) + 1}?`, text: "O texto será perdido.", action: "Remover", danger: true,
+      }))) return;
+      dispatch({ type: "remove", path: ["sections", index, list], index: Number(n) });
     },
   };
 

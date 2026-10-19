@@ -160,6 +160,17 @@ export function attachCanvas(doc, apiRef) {
     if (image.dataset.imageAdd) api().addImage(block, image.dataset.imageAdd);
     else api().pickImage(block, image.dataset.imageField);
   });
+  // Itens das listas: "+ Adicionar …" no fim da lista (data-item-add = a lista) e × em cada item
+  // (data-item-remove = o item, ex.: "items.3").
+  doc.addEventListener("click", (e) => {
+    const button = e.target.closest?.("[data-item-add], [data-item-remove]");
+    const section = button?.closest("[data-block]");
+    if (!section) return;
+    e.preventDefault(); // dentro de <summary>/<details> o clique não abre nem fecha nada
+    const block = Number(section.dataset.block);
+    if (button.dataset.itemAdd) api().addItem(block, button.dataset.itemAdd);
+    else api().removeItem(block, button.dataset.itemRemove);
+  });
   doc.addEventListener("toggle", (e) => {
     if (e.target.matches?.("details") && !e.target.open) e.target.open = true;
   }, true);

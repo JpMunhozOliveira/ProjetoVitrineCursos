@@ -2,7 +2,7 @@
 // Rodar: npm test (node --test)
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { withKeys, stripKeys, duplicateBlock, reducer, newBlock } from "../src/state/document.js";
+import { withKeys, stripKeys, duplicateBlock, reducer, newBlock, hasText } from "../src/state/document.js";
 import { historyReducer, initialHistory } from "../src/state/history.js";
 
 // Esquema mínimo, no mesmo formato que /api/admin/sales-blocks devolve.
@@ -92,4 +92,10 @@ test("bloco novo começa com a opção padrão dos campos de escolha (ex.: fundo
     background: { type: "choice", options: { auto: "Automático", dark: "Escuro" }, default: "auto" },
   } } } };
   assert.equal(newBlock("faq", withChoice).background, "auto");
+});
+
+test("hasText: só os campos de texto contam (o ícone padrão de um item novo, não)", () => {
+  const fields = { icon: { type: "icon" }, title: { type: "text" }, text: { type: "textarea" } };
+  assert.equal(hasText({ icon: "check", title: "", text: " " }, fields), false);
+  assert.equal(hasText({ icon: "check", title: "", text: "Algo" }, fields), true);
 });

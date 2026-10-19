@@ -119,7 +119,7 @@ test("texto longo: parágrafos dentro de um único campo editável", () => {
 
 test("FAQ fica aberto no editor e fechado na página pública", () => {
   const sections = [{ type: "faq", items: [{ question: "Q", answer: "A" }] }];
-  assert.match(render(sections, "live"), /<details class="faq" open>/);
+  assert.match(render(sections, "live"), /<details class="faq" open data-item="items\.0">/);
   assert.match(render(sections, false), /<details class="faq">/);
 });
 
@@ -137,7 +137,10 @@ test("depoimentos: sem nenhum texto, some da página e aparece marcado no editor
   const live = render(sections, "live");
   assert.match(live, /data-block="0" data-hidden/);
   assert.match(live, /data-field="items\.0\.quote" data-empty data-placeholder="Depoimento" data-multiline/);
-  assert.match(render([{ type: "testimonials", items: [] }], "live"), /Depoimentos<\/strong> — não aparece na página: escreva pelo menos um depoimento/);
+  // Lista vazia: no editor a seção continua (oculta), com o botão de adicionar o primeiro.
+  const empty = render([{ type: "testimonials", items: [] }], "live");
+  assert.match(empty, /data-block="0" data-hidden/);
+  assert.match(empty, /data-item-add="items">\+ Adicionar depoimento</);
 });
 
 test("depoimentos: foto da biblioteca vira <img> redonda com texto alternativo", () => {
@@ -256,4 +259,56 @@ test("descrição abaixo do título: centralizada após o h2, só preenchida na 
   const empty = [{ type: "faq", title: "Dúvidas", items: [{ question: "Q", answer: "A" }] }];
   assert.ok(!render(empty, false).includes("v-intro"));
   assert.match(render(empty, "live"), /<p class="v-intro" data-field="intro" data-empty data-placeholder="Descrição abaixo do título">/);
+});
+
+// Um bloco de cada tipo com listas, cada lista com um item preenchido.
+const listBlocks = () => Object.entries(BLOCKS).filter(([type, b]) => type !== "gallery" && Object.values(b.fields).some((f) => f.type === "list"))
+  .map(([type, b]) => {
+    const block = { type, title: "T" };
+    for (const [name, field] of Object.entries(b.fields)) {
+      if (field.type !== "list") continue;
+      const item = {};
+      for (const [n, f] of Object.entries(field.item)) if (f.type === "text" || f.type === "textarea") item[n] = "x";
+      block[name] = [item];
+    }
+    return block;
+  });
+
+test("listas: no editor, cada item tem × e cada lista tem '+ Adicionar …'", () => {
+  for (const block of listBlocks()) {
+    const live = render([block], "live");
+    for (const [name, field] of Object.entries(BLOCKS[block.type].fields)) {
+      if (field.type !== "list") continue;
+      assert.ok(live.includes(`data-item="${name}.0"`), `${block.type}.${name}: item`);
+      assert.ok(live.includes(`data-item-remove="${name}.0" aria-label="Remover ${field.noun} 1"`), `${block.type}.${name}: ×`);
+      assert.ok(live.includes(`data-item-add="${name}">+ Adicionar ${field.noun}</button>`), `${block.type}.${name}: +`);
+    }
+  }
+});
+
+test("listas: a página pública não leva os botões de adicionar e remover", () => {
+  const page = render(listBlocks(), false);
+  assert.ok(!/data-item|item-add|item-remove/.test(page));
+});
+
+test("listas: cheia, sem '+ Adicionar'; galeria com × em cada imagem", () => {
+  const full = Array.from({ length: BLOCKS.guarantee.fields.items.max }, () => ({ icon: "check", text: "Selo" }));
+  const live = render([{ type: "guarantee", title: "G", items: full }], "live");
+  assert.ok(!live.includes("data-item-add"));
+  assert.ok(live.includes(`data-item-remove="items.${full.length - 1}"`));
+  const data = product([{ type: "gallery", title: "G", images: [{ image: M1 }] }]);
+  data.media = new Map([[M1, { url: "/uploads/a.webp", alt_text: "", width: 1500, height: 1000 }]]);
+  const gallery = renderSalesPage(data, { baseUrl: "http://localhost", preview: "live" });
+  assert.match(gallery, /<li class="slide" aria-label="Slide 1 de 2" data-item="images\.0"><img[^>]*><button type="button" class="item-remove" data-item-remove="images\.0"/);
+});
+
+test("listas vazias: no editor o bloco continua, oculto, com o botão de adicionar", () => {
+  for (const type of ["benefits", "topics", "checklist", "audience", "faq"]) {
+    const live = render([{ type, title: "T", items: [] }], "live");
+    assert.match(live, /data-block="0" data-hidden/, type);
+    assert.ok(live.includes('data-item-add="items"'), type);
+    assert.ok(!render([{ type, title: "T", items: [] }], false).includes("v-section"), type);
+  }
+  assert.ok(render([{ type: "hero", badges: [] }], "live").includes('data-item-add="badges">+ Adicionar selo'));
+  assert.ok(!render([{ type: "hero", badges: [] }], false).includes('class="badges"'));
 });

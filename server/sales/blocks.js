@@ -84,7 +84,8 @@ const textarea = (label, max, extra = {}) => ({ type: "textarea", label, max, ..
 const icon = (label = "Ícone") => ({ type: "icon", label });
 const image = (label, extra = {}) => ({ type: "image", label, ...extra });
 const bool = (label) => ({ type: "bool", label });
-const list = (label, max, item) => ({ type: "list", label, max, item });
+// noun: nome de UM item (no editor, o botão "Adicionar <noun>" no fim da lista, direto na página).
+const list = (label, max, item, noun = "item") => ({ type: "list", label, max, item, noun });
 const choice = (label, options, fallback, extra = {}) => ({ type: "choice", label, options, default: fallback, ...extra });
 
 // Campos de aparência, comuns a vários blocos.
@@ -104,7 +105,7 @@ const BLOCKS = {
       eyebrow: eyebrow(),
       title: text("Título", 200, { help: "Vazio = usa o título do produto." }),
       lead: textarea("Chamada", 600),
-      badges: list("Selos", 6, { strong: text("Destaque", 30), text: text("Complemento", 40) }),
+      badges: list("Selos", 6, { strong: text("Destaque", 30), text: text("Complemento", 40) }, "selo"),
       price_label: text("Texto acima do preço", 40, { placeholder: "Por apenas" }),
       cta_label: text("Texto do botão", 60, { placeholder: "Comprar agora" }),
       image: image("Imagem (mockup do produto)", { size: "1200 × 900 px", tip: "PNG com fundo transparente fica melhor" }),
@@ -117,7 +118,7 @@ const BLOCKS = {
       title: text("Título da seção (só para leitores de tela)", 120),
       items: list("Cartões", 4, {
         icon: icon(), title: text("Título", 80), text: textarea("Texto", 400), callout: text("Destaque", 200),
-      }),
+      }, "cartão"),
       background: background(),
     },
   },
@@ -128,7 +129,7 @@ const BLOCKS = {
       eyebrow: eyebrow(),
       title: text("Título da seção", 120),
       intro: intro(),
-      items: list("Tópicos", 12, { icon: icon(), title: text("Título", 80), text: textarea("Texto", 300) }),
+      items: list("Tópicos", 12, { icon: icon(), title: text("Título", 80), text: textarea("Texto", 300) }, "tópico"),
       background: background(),
     },
   },
@@ -139,7 +140,7 @@ const BLOCKS = {
       eyebrow: eyebrow(),
       title: text("Título da seção", 120),
       intro: intro(),
-      images: list("Imagens", 12, { image: image("Imagem", { required: true, size: "1500 × 1000 px" }) }),
+      images: list("Imagens", 12, { image: image("Imagem", { required: true, size: "1500 × 1000 px" }) }, "imagem"),
       background: background(),
     },
   },
@@ -188,7 +189,7 @@ const BLOCKS = {
       eyebrow: eyebrow(),
       title: text("Título da seção", 120),
       intro: intro(),
-      items: list("Perfis", 8, { icon: icon(), text: text("Texto", 60) }),
+      items: list("Perfis", 8, { icon: icon(), text: text("Texto", 60) }, "perfil"),
       background: background(),
     },
   },
@@ -224,7 +225,7 @@ const BLOCKS = {
         name: text("Nome", 80),
         role: text("Profissão / cidade (opcional)", 80),
         photo: image("Foto (opcional)", { size: "200 × 200 px", tip: "quadrada" }),
-      }),
+      }, "depoimento"),
       background: background(),
     },
   },
@@ -235,7 +236,7 @@ const BLOCKS = {
       eyebrow: eyebrow(),
       title: text("Título da seção", 120),
       intro: intro(),
-      items: list("Perguntas", 20, { question: text("Pergunta", 200), answer: textarea("Resposta", 1500) }),
+      items: list("Perguntas", 20, { question: text("Pergunta", 200), answer: textarea("Resposta", 1500) }, "pergunta"),
       background: background(),
     },
   },
@@ -246,7 +247,7 @@ const BLOCKS = {
       eyebrow: eyebrow(),
       title: text("Título", 120),
       intro: intro(),
-      items: list("Selos", 4, { icon: icon(), text: text("Texto", 80) }),
+      items: list("Selos", 4, { icon: icon(), text: text("Texto", 80) }, "selo"),
       background: background(),
     },
   },
