@@ -103,6 +103,8 @@ function createContext(data, { live = false } = {}) {
     },
     // Rótulo curto em caixa alta acima do título (opcional).
     eyebrow: (b) => ctx.show(b.eyebrow) && html`<p class="v-eyebrow"${ctx.field("eyebrow", b.eyebrow)}>${b.eyebrow}</p>`,
+    // Descrição curta e centralizada abaixo do título da seção (opcional).
+    intro: (b) => ctx.show(b.intro) && html`<p class="v-intro"${ctx.field("intro", b.intro)}>${b.intro}</p>`,
     headingId: () => `t-${++headingCount}`,
     // Fundo da seção: o escolhido no bloco ou, em "auto", o padrão do tipo. Sem padrão, claro e
     // cinza se alternam na ordem em que aparecem (contando só as seções automáticas).
@@ -150,7 +152,7 @@ const RENDERERS = {
     if (!b.items.length) return null;
     const id = ctx.headingId();
     return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark()}><div class="container">
-  ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>
+  ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
   <ul class="grid8">${b.items.map((x, i) => html`<li>${ctx.icon(`items.${i}.icon`, x.icon)}<strong${ctx.field(`items.${i}.title`, x.title)}>${x.title}</strong><span${ctx.field(`items.${i}.text`, x.text)}>${x.text}</span></li>`)}</ul>
 </div></section>`;
   },
@@ -164,7 +166,7 @@ const RENDERERS = {
     if (!slides.length) return null;
     const id = ctx.headingId();
     return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark({ hidden: !filled })}><div class="container">
-  ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>
+  ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
   <div class="carousel" role="region" aria-roledescription="carrossel" aria-labelledby="${id}">
     <button class="car-btn prev" type="button" aria-label="Slide anterior" hidden>‹</button>
     <ul class="track">${slides.map((img, i) => html`<li class="slide" aria-label="Slide ${i + 1} de ${slides.length}">${img}</li>`)}</ul>
@@ -178,7 +180,7 @@ const RENDERERS = {
     if (!b.items.length) return null;
     const id = ctx.headingId();
     return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark()}><div class="container narrow">
-  <div class="v-card center">${ctx.icon("icon", b.icon, "ico big")}${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>
+  <div class="v-card center">${ctx.icon("icon", b.icon, "ico big")}${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
     <ul class="mini">${b.items.map((x, i) => html`<li class="${x.positive ? "yes" : "no"}">${mark(x.positive)}${ctx.text(`items.${i}.text`, x.text)}</li>`)}</ul>
   </div>
 </div></section>`;
@@ -189,7 +191,7 @@ const RENDERERS = {
     const side = (prefix, title, items, positive) => html`<article class="v-card${positive ? " dark" : ""}"><h3${ctx.field(`${prefix}_title`, title)}>${title}</h3>
       <ul class="mini">${items.map((x, i) => html`<li class="${positive ? "yes" : "no"}">${mark(positive)}${ctx.text(`${prefix}_items.${i}.text`, x.text)}</li>`)}</ul></article>`;
     return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark()}><div class="container">
-  ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>
+  ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
   <div class="versus">${side("left", b.left_title, b.left_items, false)}<div class="vs" aria-hidden="true">VS</div>${side("right", b.right_title, b.right_items, true)}</div>
 </div></section>`;
   },
@@ -208,7 +210,7 @@ const RENDERERS = {
     if (!b.items.length) return null;
     const id = ctx.headingId();
     return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark()}><div class="container">
-  ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>
+  ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
   <ul class="who">${b.items.map((x, i) => html`<li>${ctx.icon(`items.${i}.icon`, x.icon)}${ctx.text(`items.${i}.text`, x.text)}</li>`)}</ul>
 </div></section>`;
   },
@@ -241,7 +243,7 @@ const RENDERERS = {
     if (!items.length) return null;
     const id = ctx.headingId();
     return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark({ hidden: !filled })}><div class="container">
-  ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>
+  ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
   <div class="quotes">${items.map(([x, i]) => html`<figure class="v-quote">
     <blockquote>${ctx.paras(`items.${i}.quote`, x.quote)}</blockquote>
     <figcaption>${ctx.img(x.photo, "quote-photo", { path: `items.${i}.photo`, optional: true })}<span>${ctx.show(x.name) && html`<strong${ctx.field(`items.${i}.name`, x.name)}>${x.name}</strong>`}${ctx.show(x.role) && html`<span class="muted"${ctx.field(`items.${i}.role`, x.role)}>${x.role}</span>`}</span></figcaption>
@@ -254,7 +256,7 @@ const RENDERERS = {
     const id = ctx.headingId();
     // No editor as respostas ficam abertas, para serem editáveis.
     return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark()}><div class="container narrow">
-  ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>
+  ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
   ${b.items.map((x, i) => html`<details class="faq"${ctx.live ? html` open` : null}><summary>${ctx.text(`items.${i}.question`, x.question)}</summary>${ctx.paras(`items.${i}.answer`, x.answer)}</details>`)}
 </div></section>`;
   },
@@ -262,7 +264,7 @@ const RENDERERS = {
   guarantee(b, ctx) {
     const id = ctx.headingId();
     return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark()}><div class="container narrow">
-  <div class="v-card center">${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>
+  <div class="v-card center">${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
     ${b.items.length > 0 && html`<ul class="seals">${b.items.map((x, i) => html`<li>${ctx.icon(`items.${i}.icon`, x.icon)}${ctx.text(`items.${i}.text`, x.text)}</li>`)}</ul>`}
   </div>
 </div></section>`;

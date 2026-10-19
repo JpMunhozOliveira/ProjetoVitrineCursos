@@ -246,3 +246,14 @@ test("imagens: todo campo de imagem tem tamanho recomendado", () => {
     }
   }
 });
+
+test("descrição abaixo do título: centralizada após o h2, só preenchida na página pública", () => {
+  const types = Object.entries(BLOCKS).filter(([, b]) => b.fields.intro).map(([t]) => t);
+  assert.deepEqual(types.sort(), ["audience", "checklist", "comparison", "faq", "gallery", "guarantee", "testimonials", "topics"]);
+  const sections = [{ type: "faq", title: "Dúvidas", intro: "Tudo o que você precisa saber.", items: [{ question: "Q", answer: "A" }] }];
+  assert.match(render(sections, false), /Dúvidas<\/h2><p class="v-intro">Tudo o que você precisa saber\.<\/p>/);
+  assert.match(render(sections, "live"), /<p class="v-intro" data-field="intro">Tudo o que você precisa saber\.<\/p>/);
+  const empty = [{ type: "faq", title: "Dúvidas", items: [{ question: "Q", answer: "A" }] }];
+  assert.ok(!render(empty, false).includes("v-intro"));
+  assert.match(render(empty, "live"), /<p class="v-intro" data-field="intro" data-empty data-placeholder="Descrição abaixo do título">/);
+});

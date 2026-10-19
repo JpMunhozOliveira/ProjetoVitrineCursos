@@ -11,7 +11,7 @@ test("aceita o modelo padrão inteiro", () => {
 
 test("preenche campos ausentes com valores padrão", () => {
   const { sections } = validateSections([{ type: "faq" }]);
-  assert.deepEqual(sections[0], { type: "faq", eyebrow: "", title: "", items: [], background: "auto" });
+  assert.deepEqual(sections[0], { type: "faq", eyebrow: "", title: "", intro: "", items: [], background: "auto" });
 });
 
 test("recusa tipo desconhecido, inclusive nomes herdados de Object", () => {

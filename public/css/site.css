@@ -152,6 +152,23 @@ main p {
 .v-section > .container > .v-eyebrow {
   margin-inline: auto;
 }
+/* Descrição curta abaixo do título: centralizada, em tom secundário. Com ela, o espaço grande
+   fica depois da descrição (e não entre o título e ela). */
+.v-intro {
+  max-width: 62ch;
+  margin: 0 auto 2.5rem;
+  font-size: 1.1rem;
+  line-height: 1.6;
+  text-align: center;
+  color: var(--color-muted);
+}
+.v-section > .container > h2:has(+ .v-intro:not([data-empty])),
+.v-card.center h2:has(+ .v-intro:not([data-empty])) {
+  margin-bottom: 0.85rem;
+}
+.v-card.center .v-intro {
+  margin-bottom: 1.5rem;
+}
 .narrow {
   max-width: 780px;
 }

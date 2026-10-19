@@ -113,7 +113,7 @@
   if (reduce || !("IntersectionObserver" in window) || document.documentElement.hasAttribute("data-editor")) return;
 
   var SELECTOR = [
-    ".v-section .v-eyebrow", ".v-section h2", ".v-card", ".grid8 > li", ".who > li", ".v-quote",
+    ".v-section .v-eyebrow", ".v-section h2", ".v-section .v-intro", ".v-card", ".grid8 > li", ".who > li", ".v-quote",
     ".faq", ".seals > li", ".banner", ".author-photo", ".carousel", ".v-strip-row", ".offer-panel",
   ].join(",");
   var STEP = 70, MAX_STEPS = 6; // itens de uma mesma grade entram em cascata

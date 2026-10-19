@@ -90,6 +90,8 @@ const choice = (label, options, fallback, extra = {}) => ({ type: "choice", labe
 // Campos de aparência, comuns a vários blocos.
 // Rótulo: texto curto em caixa alta acima do título (ex.: "CONTEÚDO DO CURSO").
 const eyebrow = () => text("Rótulo acima do título", 40, { help: "Opcional. Texto curto que aparece em caixa alta acima do título." });
+// Descrição curta e centralizada logo abaixo do título da seção.
+const intro = () => text("Descrição abaixo do título", 280, { help: "Opcional. Texto curto e centralizado que apresenta a seção." });
 // Fundo da seção. "Automático": o padrão do bloco (claro e cinza se alternam; o Autor é escuro).
 const background = () => choice("Fundo da seção", { auto: "Automático", light: "Claro", soft: "Cinza", dark: "Escuro" }, "auto");
 
@@ -125,6 +127,7 @@ const BLOCKS = {
     fields: {
       eyebrow: eyebrow(),
       title: text("Título da seção", 120),
+      intro: intro(),
       items: list("Tópicos", 12, { icon: icon(), title: text("Título", 80), text: textarea("Texto", 300) }),
       background: background(),
     },
@@ -135,6 +138,7 @@ const BLOCKS = {
     fields: {
       eyebrow: eyebrow(),
       title: text("Título da seção", 120),
+      intro: intro(),
       images: list("Imagens", 12, { image: image("Imagem", { required: true, size: "1500 × 1000 px" }) }),
       background: background(),
     },
@@ -146,6 +150,7 @@ const BLOCKS = {
       icon: icon(),
       eyebrow: eyebrow(),
       title: text("Título", 120),
+      intro: intro(),
       items: list("Itens", 10, { text: text("Texto", 160), positive: bool("Positivo (✓)") }),
       background: background(),
     },
@@ -156,6 +161,7 @@ const BLOCKS = {
     fields: {
       eyebrow: eyebrow(),
       title: text("Título da seção", 120),
+      intro: intro(),
       left_title: text("Título do lado ✗", 80),
       left_items: list("Itens do lado ✗", 8, { text: text("Texto", 160) }),
       right_title: text("Título do lado ✓", 80),
@@ -181,6 +187,7 @@ const BLOCKS = {
     fields: {
       eyebrow: eyebrow(),
       title: text("Título da seção", 120),
+      intro: intro(),
       items: list("Perfis", 8, { icon: icon(), text: text("Texto", 60) }),
       background: background(),
     },
@@ -211,6 +218,7 @@ const BLOCKS = {
     fields: {
       eyebrow: eyebrow(),
       title: text("Título da seção", 120),
+      intro: intro(),
       items: list("Depoimentos", 9, {
         quote: textarea("Depoimento", 600),
         name: text("Nome", 80),
@@ -226,6 +234,7 @@ const BLOCKS = {
     fields: {
       eyebrow: eyebrow(),
       title: text("Título da seção", 120),
+      intro: intro(),
       items: list("Perguntas", 20, { question: text("Pergunta", 200), answer: textarea("Resposta", 1500) }),
       background: background(),
     },
@@ -236,6 +245,7 @@ const BLOCKS = {
     fields: {
       eyebrow: eyebrow(),
       title: text("Título", 120),
+      intro: intro(),
       items: list("Selos", 4, { icon: icon(), text: text("Texto", 80) }),
       background: background(),
     },
