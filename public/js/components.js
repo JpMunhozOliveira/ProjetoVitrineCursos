@@ -11,7 +11,7 @@
   var HEADER = `<a class="skip" href="#conteudo">Pular para o conteúdo</a>
 <header class="site-header">
   <div class="container header-row">
-    <a class="brand" href="/index.html"><span class="brand-mark" aria-hidden="true">E</span><span data-site="nome">Estratégia Contábil Digital</span></a>
+    <a class="brand" href="/index.html"><img class="brand-mark" src="/assets/favicon/favicon.png" alt="" width="32" height="32"><span data-site="nome">Estratégia Contábil Digital</span></a>
     <div class="header-actions">
       <nav id="nav" class="nav" aria-label="Principal">
         <ul>

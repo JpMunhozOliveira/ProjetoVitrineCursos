@@ -669,7 +669,7 @@ main > section.v-hero:last-child::before {
   overflow: hidden;
 }
 
-/* Marca no menu: quadradinho laranja com a inicial + nome. */
+/* Marca no menu: ícone do site (favicon) + nome. */
 .brand {
   display: inline-flex;
   align-items: center;
@@ -677,15 +677,11 @@ main > section.v-hero:last-child::before {
   font-size: 1.05rem;
 }
 .brand-mark {
-  display: grid;
-  place-items: center;
+  display: block;
   flex: none;
   width: 32px;
   height: 32px;
   border-radius: 9px;
-  font-weight: 800;
-  color: var(--v-cta-text);
-  background: var(--v-cta);
 }
 @media (max-width: 420px) {
   .brand {

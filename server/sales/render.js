@@ -423,7 +423,7 @@ function renderSalesPage(data, { baseUrl, preview = false }) {
   <title>${title}</title>
   ${description && html`<meta name="description" content="${description}">`}
   ${preview ? html`<meta name="robots" content="noindex, nofollow">` : html`<link rel="canonical" href="${url}">`}
-  <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg">
+  <link rel="icon" type="image/png" href="/assets/favicon/favicon.png">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <!-- Prévia do link em WhatsApp, Instagram, Facebook etc. (lidas sem executar JavaScript) -->
   <meta property="og:type" content="product">
