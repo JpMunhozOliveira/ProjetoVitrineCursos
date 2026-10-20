@@ -1,7 +1,8 @@
 // Testes do esquema de blocos (validação do que chega na API). Rodar: npm test (node --test)
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const { BLOCKS, MAX_BLOCKS, validateSections, defaultSections } = require("../sales/blocks");
+const { BLOCKS, MAX_BLOCKS, validateSections, validBlocks, mediaIds, defaultSections } = require("../sales/blocks");
+const { createLimiter } = require("../lib/security");
 
 test("aceita o modelo padrão inteiro", () => {
   const { sections, error } = validateSections(defaultSections());
@@ -102,4 +103,27 @@ test("ícones: cada um está em exatamente um grupo do seletor", () => {
   const listed = ICON_GROUPS.flatMap(([, keys]) => keys);
   assert.deepEqual([...listed].sort(), Object.keys(ICONS).sort());
   assert.equal(new Set(listed).size, listed.length);
+});
+
+test("validBlocks descarta só o bloco inválido e mantém as imagens dos outros", () => {
+  const photo = "11111111-1111-4111-8111-111111111111", cover = "22222222-2222-4222-8222-222222222222";
+  const stored = [
+    { type: "author", name: "Ana", photo },
+    { type: "faq", campo_antigo: "removido do esquema" }, // inválido: invalidaria a lista inteira
+    null,
+    { type: "hero", image: cover },
+  ];
+  assert.ok(validateSections(stored).error);
+  const valid = validBlocks(stored);
+  assert.deepEqual(valid.map((x) => x.index), [0, 3]); // posição ORIGINAL de cada bloco
+  assert.deepEqual(mediaIds(valid.map((x) => x.block)).sort(), [photo, cover].sort());
+  assert.deepEqual(validBlocks(undefined), []);
+});
+
+test("limitador de tentativas não passa do número máximo de chaves", () => {
+  const limiter = createLimiter({ max: 2, windowMs: 60_000, maxKeys: 3 });
+  for (const key of ["a", "b", "c", "d", "e"]) limiter.hit(key);
+  limiter.hit("e"); limiter.hit("e");
+  assert.equal(limiter.isBlocked("e"), true);
+  assert.equal(limiter.isBlocked("a"), false); // a mais antiga foi descartada para caber a nova
 });

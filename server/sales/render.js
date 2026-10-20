@@ -1,7 +1,7 @@
 // Monta o HTML da página de vendas a partir dos blocos. A marcação segue a página original do
 // Manual (mesmas classes de public/css/venda.css), então o visual é o mesmo.
 const { html } = require("../lib/html");
-const { BLOCKS, ICONS, NETWORKS, validateSections } = require("./blocks");
+const { BLOCKS, ICONS, NETWORKS, validBlocks } = require("./blocks");
 const { normalizeTheme, themeHref, DEFAULT_THEME } = require("./theme");
 
 const brl = (cents) => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -380,14 +380,6 @@ const HIDDEN_REASON = {
   social: "coloque o link de pelo menos uma rede",
 };
 
-// Blocos inválidos (ex.: dados antigos) são ignorados um a um, em vez de derrubar a página inteira.
-// Cada bloco guarda a posição ORIGINAL, para o editor saber a que bloco cada seção corresponde.
-function cleanBlocks(sections) {
-  return (Array.isArray(sections) ? sections : [])
-    .map((block, index) => ({ index, block: block && BLOCKS[block.type] ? validateSections([block]).sections?.[0] : null }))
-    .filter((x) => x.block);
-}
-
 // Cores da página: só inclui a folha de estilo quando não é a paleta padrão (que já está no venda.css).
 // Tema inválido (dado antigo/estragado) cai na paleta padrão em vez de derrubar a página.
 function themeLink(stored) {
@@ -402,7 +394,8 @@ function themeLink(stored) {
 function renderSalesPage(data, { baseUrl, preview = false }) {
   const live = preview === "live";
   const ctx = createContext(data, { live });
-  const body = cleanBlocks(data.sections).map(({ block, index }) => {
+  // Blocos inválidos são ignorados um a um; index (posição original) liga a seção ao bloco do editor.
+  const body = validBlocks(data.sections).map(({ block, index }) => {
     // Na pré-visualização, cada seção leva data-block="N" (clicar nela abre o bloco N no editor).
     // hidden: a seção só aparece no editor (ex.: depoimentos ainda sem texto) — marcada como oculta.
     ctx.mark = ({ hidden = false } = {}) => (preview ? html` data-block="${index}"${live && hidden ? html` data-hidden` : null}` : null);

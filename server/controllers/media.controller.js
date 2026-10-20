@@ -105,18 +105,24 @@ async function updateMedia(req, res) {
 }
 
 // Exclusão bloqueada se a imagem estiver em uso: apagar em silêncio deixaria o produto sem capa
-// ou a página de vendas com um buraco. (O banco também recusa, via ON DELETE RESTRICT.)
+// ou a página de vendas com um buraco. (O banco também recusa, via ON DELETE RESTRICT: é o que
+// barra a corrida em que a imagem passa a ser usada entre a conferência e a exclusão.)
 async function deleteMedia(req, res) {
   if (!isValidId(req.params.id)) return res.status(404).json(NOT_FOUND);
 
-  const { rows } = await pool.query(
-    `DELETE FROM media m
-      WHERE m.id = $1
-        AND NOT EXISTS (SELECT 1 FROM products p WHERE p.image_id = m.id)
-        AND NOT EXISTS (SELECT 1 FROM sales_page_media spm WHERE spm.media_id = m.id)
-      RETURNING m.storage_key`,
-    [req.params.id]
-  );
+  let rows = [];
+  try {
+    ({ rows } = await pool.query(
+      `DELETE FROM media m
+        WHERE m.id = $1
+          AND NOT EXISTS (SELECT 1 FROM products p WHERE p.image_id = m.id)
+          AND NOT EXISTS (SELECT 1 FROM sales_page_media spm WHERE spm.media_id = m.id)
+        RETURNING m.storage_key`,
+      [req.params.id]
+    ));
+  } catch (error) {
+    if (error.code !== "23503") throw error; // 23503: passou a ser usada no meio do caminho -> 409 abaixo
+  }
   if (rows.length) {
     await storage.remove(rows[0].storage_key);
     return res.status(204).end();

@@ -6,6 +6,10 @@ const SESSION_HOURS = Math.max(1, Math.round(Number(process.env.SESSION_HOURS) |
 const WINDOW = 15 * 60 * 1000;
 const byIpEmail = sec.createLimiter({ max: 5, windowMs: WINDOW });
 const byIp = sec.createLimiter({ max: 30, windowMs: WINDOW });
+// Conferir a senha (scrypt) custa ~32 MB e ~100 ms na threadpool do Node, que também processa
+// os uploads. Vários IPs ao mesmo tempo não podem ocupá-la toda: acima disso, "tente de novo".
+const MAX_CONCURRENT_CHECKS = 4;
+let checking = 0;
 
 // Secure (cookie só trafega em HTTPS): COOKIE_SECURE=true, ou automático quando a requisição chegou
 // por HTTPS (req.secure; atrás de proxy, depende de TRUST_PROXY).
@@ -29,12 +33,22 @@ async function login(req, res) {
     res.set("Retry-After", String(WINDOW / 1000));
     return res.status(429).json({ error: "Muitas tentativas. Aguarde alguns minutos e tente de novo." });
   }
+  if (checking >= MAX_CONCURRENT_CHECKS) {
+    res.set("Retry-After", "2");
+    return res.status(429).json({ error: "Servidor ocupado. Tente de novo em alguns segundos." });
+  }
   // A tentativa conta já aqui, antes de conferir a senha (ver createLimiter); o acerto zera a contagem.
   byIpEmail.hit(keyPair); byIp.hit(req.ip);
 
-  const { rows } = await pool.query(
-    "SELECT id, email, password_hash FROM admin_users WHERE lower(email) = $1", [mail]);
-  const ok = await sec.verifyPassword(password, rows[0]?.password_hash);
+  let ok, rows;
+  checking += 1; // na mesma passagem do teste acima (antes de qualquer await)
+  try {
+    ({ rows } = await pool.query(
+      "SELECT id, email, password_hash FROM admin_users WHERE lower(email) = $1", [mail]));
+    ok = await sec.verifyPassword(password, rows[0]?.password_hash);
+  } finally {
+    checking -= 1;
+  }
   if (!ok) return res.status(401).json({ error: "E-mail ou senha incorretos." });
   byIpEmail.clear(keyPair);
 

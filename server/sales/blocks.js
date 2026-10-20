@@ -407,6 +407,15 @@ function validateSections(sections) {
   }
 }
 
+// Blocos já gravados, validados UM A UM: um bloco inválido (ex.: dado antigo, de antes de uma
+// mudança no esquema) é descartado sozinho, em vez de invalidar a página inteira. Cada item
+// guarda a posição ORIGINAL do bloco: { index, block }.
+function validBlocks(sections) {
+  return (Array.isArray(sections) ? sections : [])
+    .map((block, index) => ({ index, block: isObject(block) && has(BLOCKS, block.type) ? validateSections([block]).sections?.[0] : null }))
+    .filter((x) => x.block);
+}
+
 // IDs de todas as imagens usadas nos blocos (para buscar URLs e registrar o uso).
 function mediaIds(sections) {
   const ids = new Set();
@@ -459,4 +468,4 @@ function defaultSections() {
   ].map((block) => validateSections([block]).sections[0]); // preenche os campos que faltam
 }
 
-module.exports = { ICONS, ICON_GROUPS, NETWORKS, BLOCKS, MAX_BLOCKS, validateSections, mediaIds, defaultSections };
+module.exports = { ICONS, ICON_GROUPS, NETWORKS, BLOCKS, MAX_BLOCKS, validateSections, validBlocks, mediaIds, defaultSections };

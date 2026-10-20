@@ -26,11 +26,18 @@ if (process.env.TRUST_PROXY) {
 app.use(express.json({ limit: "300kb" })); // páginas de vendas com muitos blocos passam de 100 KB
 
 // Cabeçalhos básicos de todas as respostas; o painel e as páginas de vendas reforçam abaixo.
+// A CSP vale também para as páginas estáticas do site (catálogo, produto...): só recursos do
+// próprio site, como rede de segurança caso algum dado escape para o HTML.
+// HSTS só com HTTPS confirmado (COOKIE_SECURE=true): o navegador passa a recusar http:// no domínio.
+const HSTS = process.env.COOKIE_SECURE === "true" ? { "Strict-Transport-Security": "max-age=31536000" } : {};
 app.use((_req, res, next) => {
   res.set({
     "X-Content-Type-Options": "nosniff",
     "X-Frame-Options": "SAMEORIGIN",
     "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Content-Security-Policy":
+      "default-src 'self'; img-src 'self' data:; base-uri 'self'; form-action 'self'; frame-ancestors 'self'",
+    ...HSTS,
   });
   next();
 });

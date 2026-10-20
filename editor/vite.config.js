@@ -10,7 +10,10 @@ export default defineConfig({
     outDir: "../public/admin/editor",
     emptyOutDir: true,
     cssCodeSplit: false,
-    sourcemap: true, // facilita depurar no navegador (F12 mostra o código original)
+    // Mapas do código-fonte (F12 mostra o código original) só no modo dev (npm run dev = --watch):
+    // no build de produção, /admin/editor/*.map publicaria o código do editor para qualquer
+    // visitante (a pasta é estática, sem login).
+    sourcemap: process.argv.includes("--watch"),
     // Pastas do Windows montadas no Docker não avisam quando um arquivo muda: no modo dev
     // (docker-compose.override.yml) o observador confere os arquivos periodicamente.
     // (o Vite converte estas opções no formato do chokidar para o observador do Rolldown).
