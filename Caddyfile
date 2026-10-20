@@ -1,0 +1,23 @@
+# Proxy reverso de produção (usado por docker-compose.prod.yml).
+# O Caddy emite e renova sozinho o certificado HTTPS (Let's Encrypt) e redireciona http -> https.
+# DOMAIN e ACME_EMAIL vêm do arquivo .env (ver docs/DEPLOY.md).
+
+{
+	email {$ACME_EMAIL}
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+	# Repassa ao app o IP do visitante e o "https" (X-Forwarded-For/Proto); o app confia em
+	# exatamente 1 proxy (TRUST_PROXY=1), então o limite de tentativas de login vê o IP real.
+	reverse_proxy app:3000
+	# Log de acesso no stdout do container (o Docker faz a rotação, ver docker-compose.prod.yml).
+	log {
+		format json
+	}
+}
+
+# Endereço com www -> sem www (um endereço só, melhor para o Google e para os links).
+www.{$DOMAIN} {
+	redir https://{$DOMAIN}{uri} permanent
+}
