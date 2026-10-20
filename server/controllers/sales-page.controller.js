@@ -1,8 +1,9 @@
 const pool = require("../config/database");
-const { BLOCKS, ICONS, MAX_BLOCKS, defaultSections } = require("../sales/blocks");
+const { BLOCKS, ICONS, ICON_GROUPS, MAX_BLOCKS, defaultSections } = require("../sales/blocks");
 const { THEMES, DEFAULT_THEME } = require("../sales/theme");
 const { PageInputError, savePage, publishPage, getPage, loadDraftForRender } = require("../sales/pages");
 const { renderSalesPage } = require("../sales/render");
+const { baseUrl } = require("../lib/base-url");
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const INVALID_ID = { error: "ID de produto inválido." };
@@ -16,7 +17,7 @@ async function productExists(id) {
 // Esquema dos blocos para o editor do painel montar os formulários (fonte única: sales/blocks.js).
 function getBlockSchema(_req, res) {
   return res.json({ data: {
-    blocks: BLOCKS, icons: ICONS, maxBlocks: MAX_BLOCKS, defaultSections: defaultSections(),
+    blocks: BLOCKS, icons: ICONS, iconGroups: ICON_GROUPS, maxBlocks: MAX_BLOCKS, defaultSections: defaultSections(),
     themes: THEMES, defaultTheme: DEFAULT_THEME,
   } });
 }
@@ -54,8 +55,7 @@ async function previewAdminSalesPage(req, res) {
   try {
     const data = await loadDraftForRender(req.params.id, req.body);
     if (!data) return res.status(404).json(NOT_FOUND);
-    const baseUrl = `${req.protocol}://${req.get("host")}`;
-    return res.type("html").send(renderSalesPage(data, { baseUrl, preview: "live" }));
+    return res.type("html").send(renderSalesPage(data, { baseUrl: baseUrl(req), preview: "live" }));
   } catch (error) {
     if (error instanceof PageInputError) return res.status(400).json({ error: error.message });
     throw error;

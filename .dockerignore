@@ -18,3 +18,5 @@ Thumbs.db
 public/admin/editor
 # Imagens enviadas com a API rodando fora do Docker: não entram na imagem
 server/uploads
+# Backups (scripts/backup.sh): podem ser grandes e têm todos os dados
+backups

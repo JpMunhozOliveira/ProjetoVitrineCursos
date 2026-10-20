@@ -3,13 +3,10 @@ const { html } = require("../lib/html");
 const { loadForRender } = require("../sales/pages");
 const { renderSalesPage } = require("../sales/render");
 const { findSession } = require("../middleware/admin-auth");
+const { baseUrl } = require("../lib/base-url"); // prévias de link: og:url e og:image precisam ser absolutos
 
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-// Endereço público do site, usado nas prévias de link (og:url, og:image precisam ser absolutos).
-// Em produção, defina PUBLIC_URL (ex.: https://www.seusite.com.br); sem ela, usa o endereço da requisição.
-const baseUrl = (req) => (process.env.PUBLIC_URL || `${req.protocol}://${req.get("host")}`).replace(/\/+$/, "");
 
 function notFound(res, message = "A página que você procurou não existe ou não está mais disponível.") {
   res.status(404).type("html").send(html`<!DOCTYPE html>

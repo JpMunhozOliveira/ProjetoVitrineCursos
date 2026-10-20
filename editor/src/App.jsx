@@ -5,19 +5,22 @@
 // Este arquivo coordena: carregamento, estado da página, seleção, salvar e publicar.
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { EditorContext } from "./state/context.js";
-import { withKeys, stripKeys, carryKeys, newBlock, duplicateBlock } from "./state/document.js";
+import { withKeys, stripKeys, carryKeys, newBlock, duplicateBlock, emptyValue, getIn, hasText } from "./state/document.js";
 import { historyReducer, initialHistory } from "./state/history.js";
 import { PRODUCT_STATUS } from "./labels.js";
-import { EditorHeader } from "./components/EditorHeader.jsx";
+import { TopBar, ToolDock } from "./components/EditorHeader.jsx";
 import { StartScreen, UnsupportedNotice } from "./components/StartScreen.jsx";
 import { BlockList } from "./components/BlockList.jsx";
 import { BlockPicker } from "./components/BlockPicker.jsx";
+import { IconMenu } from "./components/IconMenu.jsx";
 import { ThemePicker, resolveTheme } from "./components/ThemePicker.jsx";
 import { SeoFields } from "./components/SeoFields.jsx";
 import { SidePanel } from "./components/SidePanel.jsx";
 import { Preview } from "./components/Preview.jsx";
 
 const api = (...args) => window.Admin.api(...args);
+// Caminho completo de um campo clicado na página: bloco 2, "items.0.icon" -> ["sections", 2, "items", 0, "icon"].
+const fieldPath = ({ index, field }) => ["sections", index, ...field.split(".").map((p) => (/^\d+$/.test(p) ? Number(p) : p))];
 
 export default function App({ productId }) {
   const [boot, setBoot] = useState({ status: "loading" });  // loading | error | ready
@@ -40,19 +43,10 @@ export default function App({ productId }) {
   const [hovered, setHovered] = useState(null);               // cartão sob o mouse (destaca na página)
   const [visible, setVisible] = useState(null);               // índices que aparecem na página (da prévia)
   const [picker, setPicker] = useState(null);                 // { index, anchor } onde inserir (null = fechado)
+  const [iconPick, setIconPick] = useState(null);             // { index, field, anchor } ícone clicado na página
   const pendingFocus = useRef(null);
   const reveal = useRef(null);                                // bloco a mostrar quando a página redesenhar
 
-  // Altura do cabeçalho fixo do painel -> variável CSS. Com ela, a tela do editor ocupa exatamente
-  // o resto da janela: a página e o painel rolam por dentro.
-  useEffect(() => {
-    const top = document.querySelector(".admin-top");
-    if (!top) return;
-    const observer = new ResizeObserver(() =>
-      document.documentElement.style.setProperty("--top-offset", `${top.offsetHeight}px`));
-    observer.observe(top);
-    return () => observer.disconnect();
-  }, []);
   const dirtyRef = useRef(false);
   dirtyRef.current = dirty;
 
@@ -148,6 +142,9 @@ export default function App({ productId }) {
   // Ações chamadas de dentro da página (CanvasEditing e CanvasOverlay).
   const canvas = {
     schema, sections, undo, redo,
+    // Largura (na tela) ocupada à direita pela janela flutuante aberta: os controles da página desviam dela.
+    // (Mesmas medidas do .floating-panel em editor.css: largura até 460 px, a 16 px da borda.)
+    panelInset: panel ? Math.min(460, window.innerWidth - 32) + 16 + 8 : 0,
     save: () => saveRef.current?.(),
     edit(path, value) {
       fromCanvas.current = true;
@@ -179,6 +176,57 @@ export default function App({ productId }) {
     },
     insert(index, anchor) {
       if (!full) setPicker({ index, anchor });
+    },
+    // Clique num ícone da página: seleciona o bloco e abre a lista de ícones junto dele.
+    pickIcon(index, field, anchor) {
+      if (!sections[index]) return;
+      revealBlock(index, "canvas");
+      setIconPick({ index, field, anchor });
+    },
+    // Clique numa imagem da página (ou no espaço vazio dela): escolhe na biblioteca (ou envia nova).
+    async pickImage(index, field) {
+      if (!sections[index]) return;
+      revealBlock(index, "canvas");
+      const path = fieldPath({ index, field });
+      const chosen = await window.Admin.pickImage({ currentId: getIn(doc, path) });
+      if (!chosen) return;
+      setMedia((prev) => new Map(prev).set(chosen.id, chosen));
+      dispatch({ type: "set", path, value: chosen.id });
+    },
+    // "Adicionar imagem" no fim da galeria: a imagem escolhida vira um item novo da lista.
+    async addImage(index, list) {
+      const block = sections[index];
+      const field = block && schema.blocks[block.type].fields[list];
+      if (field?.type !== "list" || block[list].length >= field.max) return;
+      revealBlock(index, "canvas");
+      const chosen = await window.Admin.pickImage({});
+      if (!chosen) return;
+      setMedia((prev) => new Map(prev).set(chosen.id, chosen));
+      const [name] = Object.entries(field.item).find(([, f]) => f.type === "image");
+      dispatch({ type: "insert", path: ["sections", index, list], value: { ...emptyValue(field.item), [name]: chosen.id } });
+    },
+    // "+ Adicionar …" no fim de uma lista da página: item novo no fim, já com o cursor no 1º texto.
+    addItem(index, list) {
+      const block = sections[index];
+      const field = block && schema.blocks[block.type].fields[list];
+      if (field?.type !== "list" || block[list].length >= field.max) return;
+      revealBlock(index, "canvas");
+      dispatch({ type: "insert", path: ["sections", index, list], value: emptyValue(field.item) });
+      const first = Object.entries(field.item).find(([, f]) => f.type === "text" || f.type === "textarea");
+      reveal.current = { index, edit: true, field: first && `${list}.${block[list].length}.${first[0]}` };
+    },
+    // × num item da página. Com texto digitado, pede confirmação (como no painel); Ctrl+Z desfaz.
+    async removeItem(index, item) {
+      const [list, n] = item.split(".");
+      const block = sections[index];
+      const value = block?.[list]?.[Number(n)];
+      if (!value) return;
+      revealBlock(index, "canvas");
+      const field = schema.blocks[block.type].fields[list];
+      if (hasText(value, field.item) &&!(await window.Admin.confirm({
+        title: `Remover ${field.noun} ${Number(n) + 1}?`, text: "O texto será perdido.", action: "Remover", danger: true,
+      }))) return;
+      dispatch({ type: "remove", path: ["sections", index, list], index: Number(n) });
     },
   };
 
@@ -328,10 +376,8 @@ export default function App({ productId }) {
 
   const productUrl = `produto.html?id=${encodeURIComponent(productId)}`;
   const header = (
-    <EditorHeader product={product} productId={productId} productUrl={productUrl} page={page} dirty={dirty} editing={!!doc}
-      canUndo={history.past.length > 0} canRedo={history.future.length > 0} onUndo={undo} onRedo={redo}
-      device={device} onDevice={setDevice} saving={saving} onSave={save} onPublish={publish}
-      panel={panel} onPanel={setPanel} message={message} />
+    <TopBar product={product} productId={productId} productUrl={productUrl} page={page} dirty={dirty} editing={!!doc}
+      saving={saving} onSave={save} onPublish={publish} message={message} />
   );
   const unsupported = <UnsupportedNotice productId={productId} productUrl={productUrl} hasPage={!!page} />;
 
@@ -369,24 +415,29 @@ export default function App({ productId }) {
         {unsupported}
         <div className="editor-main">
           {header}
-          <div className={`editor-layout${panel ? " has-panel" : ""}`}>
-            <section className="preview-pane" aria-label="Página (clique num texto para editar)">
-              <Preview productId={productId} payload={previewPayload} renderKey={renderKey} canvas={canvas} device={device}
-                selectedIndex={selectedIndex >= 0 ? selectedIndex : null}
-                scrollToSelected={selected.from === "editor"}
-                onSelectBlock={(index) => revealBlock(index, "preview")}
-                hoveredIndex={hovered} onVisibleChange={setVisible} />
-            </section>
-            {panel && (
-              <SidePanel mode={panel} onMode={setPanel} onClose={() => setPanel(null)}
-                block={sections[selectedIndex]} blockIndex={selectedIndex}
-                blockHidden={visible !== null && selectedIndex >= 0 && !visible.has(selectedIndex)}
-                structure={structure}
-                page={<><ThemePicker theme={doc.theme} /><SeoFields title={doc.seo_title} description={doc.seo_description} /></>} />
-            )}
-          </div>
+          {/* A página ocupa a tela inteira; barras e painel flutuam por cima dela. */}
+          <section className="preview-pane" aria-label="Página (clique num texto para editar)">
+            <Preview productId={productId} payload={previewPayload} renderKey={renderKey} canvas={canvas} device={device}
+              selectedIndex={selectedIndex >= 0 ? selectedIndex : null}
+              scrollToSelected={selected.from === "editor"}
+              onSelectBlock={(index) => revealBlock(index, "preview")}
+              hoveredIndex={hovered} onVisibleChange={setVisible} />
+          </section>
+          {panel && (
+            <SidePanel mode={panel} onMode={setPanel} onClose={() => setPanel(null)}
+              block={sections[selectedIndex]} blockIndex={selectedIndex}
+              blockHidden={visible !== null && selectedIndex >= 0 && !visible.has(selectedIndex)}
+              structure={structure}
+              page={<><ThemePicker theme={doc.theme} /><SeoFields title={doc.seo_title} description={doc.seo_description} /></>} />
+          )}
+          <ToolDock canUndo={history.past.length > 0} canRedo={history.future.length > 0} onUndo={undo} onRedo={redo}
+            device={device} onDevice={setDevice} panel={panel} onPanel={setPanel} />
           <BlockPicker position={picker?.index ?? null} anchor={picker?.anchor} total={sections.length}
             onPick={(type) => addBlock(type, picker.index)} onClose={() => setPicker(null)} />
+          <IconMenu open={!!iconPick} anchor={iconPick?.anchor} title="Trocar ícone"
+            value={iconPick ? fieldPath(iconPick).reduce((v, k) => v?.[k], doc) : null}
+            onPick={(key) => { dispatch({ type: "set", path: fieldPath(iconPick), value: key }); setIconPick(null); }}
+            onClose={() => setIconPick(null)} />
         </div>
       </div>
     </EditorContext.Provider>

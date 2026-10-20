@@ -3,9 +3,11 @@
 //
 // Tipos de campo:
 //   text / textarea  -> texto (com tamanho máximo)
+//   url              -> endereço de link (http, https ou mailto; sem esquema, ganha https://)
 //   icon             -> um dos ícones de ICONS
 //   image            -> ID de uma imagem da biblioteca (ou null)
 //   bool             -> true/false
+//   choice           -> uma das opções de "options" ({ valor: rótulo }); vazio = "default"
 //   list             -> lista de itens; cada item tem seus próprios campos (item: {...})
 
 // Ícones disponíveis nos blocos: nome, desenho (SVG 24×24) e espessura do traço. Fonte única:
@@ -18,27 +20,111 @@ const ICONS = {
   shield: { label: "Escudo", d: "M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" },
   user: { label: "Pessoa", d: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c0-4 3.5-6 8-6s8 2 8 6" },
   calc: { label: "Calculadora", d: "M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM8 7h8M8 12h2M12 12h2M8 16h2M12 16h2" },
+  // Estudo e conteúdo
+  book: { label: "Livro", d: "M4 19V5a2 2 0 0 1 2-2h14v15H6a2 2 0 0 0-2 2 2 2 0 0 0 2 2h14M8 7h8" },
+  cap: { label: "Formatura", d: "M2 9l10-5 10 5-10 5zM6 11v5c0 1.5 3 3 6 3s6-1.5 6-3v-5M22 9v6" },
+  video: { label: "Vídeo", d: "M3 5h18v14H3zM10 9l5 3-5 3z" },
+  layers: { label: "Módulos", d: "M12 3l9 5-9 5-9-5zM3 13l9 5 9-5M3 17l9 5 9-5" },
+  clipboard: { label: "Lista de tarefas", d: "M9 3h6v3H9zM7 4H5v17h14V4h-2M9 13l2 2 4-4" },
+  folder: { label: "Pasta", d: "M3 6h6l2 2h10v11H3z" },
+  pencil: { label: "Lápis", d: "M4 20l4-1L19 8l-3-3L5 16zM14 7l3 3" },
+  bulb: { label: "Ideia", d: "M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0 0 12 3z" },
+  search: { label: "Lupa", d: "M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM21 21l-5-5" },
+  download: { label: "Download", d: "M12 4v11M7 10l5 5 5-5M5 20h14" },
+  laptop: { label: "Computador", d: "M5 5h14v10H5zM2 19h20" },
+  mobile: { label: "Celular", d: "M8 3h8v18H8zM11 18h2" },
+  // Tempo e progresso
+  clock: { label: "Relógio", d: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2" },
+  calendar: { label: "Calendário", d: "M4 5h16v16H4zM4 10h16M8 3v4M16 3v4" },
+  refresh: { label: "Atualização", d: "M20 11a8 8 0 0 0-14-5L4 8M4 3v5h5M4 13a8 8 0 0 0 14 5l2-2M20 21v-5h-5" },
+  target: { label: "Alvo", d: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM12 12h.01" },
+  trend: { label: "Crescimento", d: "M3 17l6-6 4 4 8-8M15 7h6v6" },
+  chart: { label: "Gráfico de barras", d: "M4 20h16M7 16v-5M12 16V7M17 16v-8" },
+  pie: { label: "Gráfico de pizza", d: "M12 3v9h9a9 9 0 1 1-9-9zM15 3.5A9 9 0 0 1 20.5 9H15z" },
+  flag: { label: "Bandeira", d: "M5 21V4M5 4h12l-2 4 2 4H5" },
+  // Contabilidade, tributos e dinheiro
+  money: { label: "Dinheiro", d: "M3 7h18v10H3zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM6 10v4M18 10v4" },
+  card: { label: "Cartão", d: "M3 6h18v12H3zM3 10h18M7 15h4" },
+  percent: { label: "Porcentagem", d: "M19 5L5 19M7 9a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM17 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" },
+  receipt: { label: "Nota fiscal", d: "M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6M9 16h3" },
+  scale: { label: "Balança (legislação)", d: "M12 3v18M7 21h10M5 7h14M5 7l-3 6a3 3 0 0 0 6 0zM19 7l-3 6a3 3 0 0 0 6 0z" },
+  building: { label: "Empresa", d: "M4 21V5l8-2v18M12 8h8v13M8 8v.01M8 12v.01M8 16v.01M16 12v.01M16 16v.01M2 21h20" },
+  briefcase: { label: "Maleta", d: "M3 8h18v12H3zM8 8V5h8v3M3 13h18" },
+  // Pessoas e contato
+  users: { label: "Grupo", d: "M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM2 20c0-3 3-5 7-5s7 2 7 5M17 4a3 3 0 0 1 0 6M19 15c2 .7 3 2.3 3 5" },
+  chat: { label: "Conversa", d: "M4 5h16v11H10l-5 4v-4H4zM8 9h8M8 12h5" },
+  mail: { label: "E-mail", d: "M3 5h18v14H3zM3 7l9 6 9-6" },
+  phone: { label: "Telefone", d: "M5 3h4l2 5-2.5 1.5a11 11 0 0 0 6 6L16 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 5a2 2 0 0 1 2-2z" },
+  headset: { label: "Suporte", d: "M4 15v-3a8 8 0 0 1 16 0v3M4 14h3v6H4zM17 14h3v6h-3zM20 20a2 2 0 0 1-2 2h-4" },
+  globe: { label: "Internet", d: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM3 12h18M12 3c2.5 2.5 3.5 5.5 3.5 9s-1 6.5-3.5 9c-2.5-2.5-3.5-5.5-3.5-9s1-6.5 3.5-9z" },
+  pin: { label: "Local", d: "M12 21s-7-6-7-12a7 7 0 0 1 14 0c0 6-7 12-7 12zM12 11a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" },
+  // Confiança e destaque
+  lock: { label: "Cadeado", d: "M6 11h12v10H6zM8 11V8a4 4 0 0 1 8 0v3M12 15v2" },
+  star: { label: "Estrela", d: "M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3l-5.5 2.9 1-6.2L3 9.6l6.2-.9z" },
+  award: { label: "Medalha", d: "M12 15a6 6 0 1 0 0-12 6 6 0 0 0 0 12zM8.5 14l-1.5 7 5-3 5 3-1.5-7" },
+  heart: { label: "Coração", d: "M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10z" },
+  thumb: { label: "Aprovado", d: "M7 10v11H3V10zM7 10l4-7c1.5 0 2.5 1 2 3l-1 4h6a2 2 0 0 1 2 2.3l-1.3 7A2 2 0 0 1 16.7 21H7" },
+  gift: { label: "Bônus", d: "M4 11h16v10H4zM3 7h18v4H3zM12 7v14M12 7c-1.5-3-5-3.5-5-1.2C7 7 9 7 12 7zM12 7c1.5-3 5-3.5 5-1.2C17 7 15 7 12 7z" },
+  eye: { label: "Visão", d: "M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" },
+  info: { label: "Informação", d: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 11v5M12 8h.01" },
+  alert: { label: "Atenção", d: "M12 3l10 18H2zM12 10v4M12 17h.01" },
 };
+
+// Ícones das redes sociais (botões de link do autor e bloco "Redes sociais"). Ficam fora de ICONS:
+// não entram no seletor de ícones; o sprite os inclui como #i-net-<nome>.
+const NETWORKS = {
+  instagram: { label: "Instagram", d: "M7.5 3h9A4.5 4.5 0 0 1 21 7.5v9a4.5 4.5 0 0 1-4.5 4.5h-9A4.5 4.5 0 0 1 3 16.5v-9A4.5 4.5 0 0 1 7.5 3zM12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM17.3 6.7h.01" },
+  linkedin: { label: "LinkedIn", d: "M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM8 10.5V17M8 7.2v.01M12 17v-6.5M12 13.5a2.8 2.8 0 0 1 5.6 0V17" },
+  youtube: { label: "YouTube", d: "M2.6 7.6c.3-1.5 1.4-2.5 2.9-2.7C7.8 4.6 9.9 4.5 12 4.5s4.2.1 6.5.4c1.5.2 2.6 1.2 2.9 2.7.3 1.5.4 2.9.4 4.4s-.1 2.9-.4 4.4c-.3 1.5-1.4 2.5-2.9 2.7-2.3.3-4.4.4-6.5.4s-4.2-.1-6.5-.4c-1.5-.2-2.6-1.2-2.9-2.7C2.3 14.9 2.2 13.5 2.2 12s.1-2.9.4-4.4zM10 9l5 3-5 3z" },
+  whatsapp: { label: "WhatsApp", d: "M3.5 20.5l1.3-4.2A8.5 8.5 0 1 1 8 19.4zM9 8.2c-.4 2.8 3.9 7.1 6.8 6.8l.9-1.5-2.2-1.1-1 .9a5 5 0 0 1-2.8-2.8l.9-1-1.1-2.2z" },
+  facebook: { label: "Facebook", d: "M15.5 3H13a4 4 0 0 0-4 4v3H7v3.8h2V21h3.8v-7.2h2.4l.5-3.8h-2.9V7.6c0-.5.3-.8.8-.8h1.9z" },
+  tiktok: { label: "TikTok", d: "M13.5 3v12a3.5 3.5 0 1 1-3.5-3.5M13.5 3c.4 2.9 2.4 4.7 5.5 5" },
+  x: { label: "X (Twitter)", d: "M4 4h4.5L20 20h-4.5zM19.5 4l-6.6 7.3M4.5 20l6.6-7.3" },
+  site: { label: "Site", d: ICONS.globe.d },
+  email: { label: "E-mail", d: ICONS.mail.d },
+};
+
+// Grupos do seletor de ícones do editor (cada ícone em exatamente um grupo).
+const ICON_GROUPS = [
+  ["Básicos", ["check", "x", "doc", "bolt", "shield", "user", "calc"]],
+  ["Estudo e conteúdo", ["book", "cap", "video", "layers", "clipboard", "folder", "pencil", "bulb", "search", "download", "laptop", "mobile"]],
+  ["Tempo e progresso", ["clock", "calendar", "refresh", "target", "trend", "chart", "pie", "flag"]],
+  ["Contabilidade e dinheiro", ["money", "card", "percent", "receipt", "scale", "building", "briefcase"]],
+  ["Pessoas e contato", ["users", "chat", "mail", "phone", "headset", "globe", "pin"]],
+  ["Confiança e destaque", ["lock", "star", "award", "heart", "thumb", "gift", "eye", "info", "alert"]],
+];
 
 const text = (label, max, extra = {}) => ({ type: "text", label, max, ...extra });
 const textarea = (label, max, extra = {}) => ({ type: "textarea", label, max, ...extra });
+const url = (label, extra = {}) => ({ type: "url", label, max: 500, ...extra });
 const icon = (label = "Ícone") => ({ type: "icon", label });
 const image = (label, extra = {}) => ({ type: "image", label, ...extra });
 const bool = (label) => ({ type: "bool", label });
-const list = (label, max, item) => ({ type: "list", label, max, item });
+// noun: nome de UM item (no editor, o botão "Adicionar <noun>" no fim da lista, direto na página).
+const list = (label, max, item, noun = "item") => ({ type: "list", label, max, item, noun });
+const choice = (label, options, fallback, extra = {}) => ({ type: "choice", label, options, default: fallback, ...extra });
+
+// Campos de aparência, comuns a vários blocos.
+// Rótulo: texto curto em caixa alta acima do título (ex.: "CONTEÚDO DO CURSO").
+const eyebrow = () => text("Rótulo acima do título", 40, { help: "Opcional. Texto curto que aparece em caixa alta acima do título." });
+// Descrição curta e centralizada logo abaixo do título da seção.
+const intro = () => text("Descrição abaixo do título", 280, { help: "Opcional. Texto curto e centralizado que apresenta a seção." });
+// Fundo da seção. "Automático": o padrão do bloco (claro e cinza se alternam; o Autor é escuro).
+const background = () => choice("Fundo da seção", { auto: "Automático", light: "Claro", soft: "Cinza", dark: "Escuro" }, "auto");
 
 const BLOCKS = {
   hero: {
     label: "Abertura",
     help: "Primeira dobra da página: título, chamada, selos, preço e botão de compra. Preço e link de checkout vêm do cadastro do produto.",
     fields: {
-      logo: image("Logotipo (opcional)"),
+      logo: image("Logotipo (opcional)", { size: "400 × 120 px", tip: "PNG com fundo transparente" }),
+      eyebrow: eyebrow(),
       title: text("Título", 200, { help: "Vazio = usa o título do produto." }),
       lead: textarea("Chamada", 600),
-      badges: list("Selos", 6, { strong: text("Destaque", 30), text: text("Complemento", 40) }),
+      badges: list("Selos", 6, { strong: text("Destaque", 30), text: text("Complemento", 40) }, "selo"),
       price_label: text("Texto acima do preço", 40, { placeholder: "Por apenas" }),
       cta_label: text("Texto do botão", 60, { placeholder: "Comprar agora" }),
-      image: image("Imagem (mockup do produto)"),
+      image: image("Imagem (mockup do produto)", { size: "1200 × 900 px", tip: "PNG com fundo transparente fica melhor" }),
     },
   },
   benefits: {
@@ -48,23 +134,30 @@ const BLOCKS = {
       title: text("Título da seção (só para leitores de tela)", 120),
       items: list("Cartões", 4, {
         icon: icon(), title: text("Título", 80), text: textarea("Texto", 400), callout: text("Destaque", 200),
-      }),
+      }, "cartão"),
+      background: background(),
     },
   },
   topics: {
     label: "Grade de tópicos",
-    help: "O que a pessoa vai encontrar no produto (módulos, capítulos, temas).",
+    help: "O que a pessoa vai encontrar no produto (módulos, capítulos, temas). Com fundo escuro, vira um painel de conteúdo.",
     fields: {
+      eyebrow: eyebrow(),
       title: text("Título da seção", 120),
-      items: list("Tópicos", 12, { icon: icon(), title: text("Título", 80), text: textarea("Texto", 300) }),
+      intro: intro(),
+      items: list("Tópicos", 12, { icon: icon(), title: text("Título", 80), text: textarea("Texto", 300) }, "tópico"),
+      background: background(),
     },
   },
   gallery: {
     label: "Galeria (carrossel)",
     help: "Imagens do produto por dentro. Sem imagens, o bloco não aparece na página.",
     fields: {
+      eyebrow: eyebrow(),
       title: text("Título da seção", 120),
-      images: list("Imagens", 12, { image: image("Imagem", { required: true }) }),
+      intro: intro(),
+      images: list("Imagens", 12, { image: image("Imagem", { required: true, size: "1500 × 1000 px" }) }, "imagem"),
+      background: background(),
     },
   },
   checklist: {
@@ -72,88 +165,161 @@ const BLOCKS = {
     help: "O que o produto é e o que não é.",
     fields: {
       icon: icon(),
+      eyebrow: eyebrow(),
       title: text("Título", 120),
+      intro: intro(),
       items: list("Itens", 10, { text: text("Texto", 160), positive: bool("Positivo (✓)") }),
+      background: background(),
     },
   },
   comparison: {
     label: "Comparativo",
     help: "Dois lados: a alternativa comum (✗) e o seu produto (✓).",
     fields: {
+      eyebrow: eyebrow(),
       title: text("Título da seção", 120),
+      intro: intro(),
       left_title: text("Título do lado ✗", 80),
       left_items: list("Itens do lado ✗", 8, { text: text("Texto", 160) }),
       right_title: text("Título do lado ✓", 80),
       right_items: list("Itens do lado ✓", 8, { text: text("Texto", 160) }),
+      background: background(),
     },
   },
   author: {
     label: "Autor",
     help: "Quem criou o produto.",
     fields: {
-      photo: image("Foto"),
+      photo: image("Foto", { size: "600 × 700 px" }),
+      eyebrow: eyebrow(),
       name: text("Nome", 120),
       role: text("Especialidade / cargo", 160),
       bio: textarea("Biografia", 1500),
+      links: list("Links (Lattes, LinkedIn, site…)", 4, {
+        label: text("Texto do botão", 40),
+        url: url("Endereço", { help: "O ícone do botão é escolhido pelo endereço (LinkedIn, Lattes, Instagram…)." }),
+      }, "link"),
+      background: background(),
     },
   },
   audience: {
     label: "Público-alvo",
     help: "Para quem é o produto.",
     fields: {
+      eyebrow: eyebrow(),
       title: text("Título da seção", 120),
-      items: list("Perfis", 8, { icon: icon(), text: text("Texto", 60) }),
+      intro: intro(),
+      items: list("Perfis", 8, { icon: icon(), text: text("Texto", 60) }, "perfil"),
+      background: background(),
     },
   },
   highlight: {
     label: "Destaque",
-    help: "Faixa escura com chamada e lista (ex.: bônus, conteúdo extra).",
+    help: "Cartão escuro com chamada e lista (ex.: bônus, conteúdo extra).",
     fields: {
+      eyebrow: eyebrow(),
       title: text("Título", 120),
       text: textarea("Texto", 600),
       items: list("Itens", 8, { text: text("Texto", 160) }),
+      background: background(),
+    },
+  },
+  cta: {
+    label: "Chamada intermediária",
+    help: "Faixa escura e compacta com o botão de compra, para usar no meio da página. Preço e link vêm do cadastro do produto.",
+    fields: {
+      eyebrow: eyebrow(),
+      title: text("Texto", 160),
+      cta_label: text("Texto do botão", 60, { placeholder: "Quero garantir" }),
     },
   },
   testimonials: {
     label: "Depoimentos",
     help: "O que clientes dizem do produto. Use só depoimentos reais. Depoimentos sem texto não aparecem.",
     fields: {
+      eyebrow: eyebrow(),
       title: text("Título da seção", 120),
+      intro: intro(),
       items: list("Depoimentos", 9, {
         quote: textarea("Depoimento", 600),
         name: text("Nome", 80),
         role: text("Profissão / cidade (opcional)", 80),
-        photo: image("Foto (opcional)"),
-      }),
+        photo: image("Foto (opcional)", { size: "200 × 200 px", tip: "quadrada" }),
+      }, "depoimento"),
+      background: background(),
     },
   },
   faq: {
     label: "Perguntas frequentes",
     help: "Funciona sem JavaScript (cada pergunta abre e fecha).",
     fields: {
+      eyebrow: eyebrow(),
       title: text("Título da seção", 120),
-      items: list("Perguntas", 20, { question: text("Pergunta", 200), answer: textarea("Resposta", 1500) }),
+      intro: intro(),
+      items: list("Perguntas", 20, { question: text("Pergunta", 200), answer: textarea("Resposta", 1500) }, "pergunta"),
+      background: background(),
     },
   },
   guarantee: {
     label: "Garantia",
-    help: "Selos de compra segura.",
+    help: "Faixa de confiança: selos de compra segura, suporte e condições.",
     fields: {
+      eyebrow: eyebrow(),
       title: text("Título", 120),
-      items: list("Selos", 4, { icon: icon(), text: text("Texto", 80) }),
+      intro: intro(),
+      items: list("Selos", 4, { icon: icon(), text: text("Texto", 80) }, "selo"),
+      background: background(),
+    },
+  },
+  social: {
+    label: "Redes sociais",
+    help: "Botões com os links das suas redes. Só aparecem as redes com link; sem nenhuma, o bloco não aparece na página.",
+    fields: {
+      eyebrow: eyebrow(),
+      title: text("Título da seção", 120),
+      intro: intro(),
+      items: list("Redes", 9, {
+        network: choice("Rede", Object.fromEntries(Object.entries(NETWORKS).map(([k, n]) => [k, n.label])), "instagram"),
+        url: url("Link", { help: "Ex.: instagram.com/seu.perfil, wa.me/5511999999999 ou um e-mail." }),
+        label: text("Texto do botão (opcional)", 40, { help: "Vazio = o nome da rede." }),
+      }, "rede"),
+      background: background(),
     },
   },
   offer: {
     label: "Oferta final",
-    help: "Última chamada com preço e botão. Preço e link vêm do cadastro do produto.",
+    help: "Última chamada: texto e benefícios à esquerda, cartão de compra à direita. Preço e link vêm do cadastro do produto.",
     fields: {
-      image: image("Imagem"),
+      image: image("Imagem (topo do cartão de compra)", { size: "1000 × 750 px", tip: "PNG com fundo transparente fica melhor" }),
+      eyebrow: eyebrow(),
       title: text("Título", 200),
+      text: textarea("Descrição", 600),
+      items: list("Benefícios", 4, { icon: icon(), text: text("Texto", 100) }, "benefício"),
+      proof_icon: icon("Ícone do cartão de credibilidade"),
+      proof_title: text("Credibilidade: destaque", 80),
+      proof_text: text("Credibilidade: texto", 200),
       price_label: text("Texto acima do preço", 40, { placeholder: "Oferta especial" }),
+      conditions: list("Condições de acesso", 6, { text: text("Texto", 120) }, "condição"),
+      guarantee_title: text("Garantia: título", 80, { placeholder: "Garantia de 7 dias" }),
+      guarantee_text: text("Garantia: texto", 300),
       cta_label: text("Texto do botão", 60, { placeholder: "Garantir agora" }),
+      note: text("Aviso abaixo do botão", 160, { help: "Vazio = \"Pagamento processado com segurança pela Kiwify.\"" }),
     },
   },
 };
+
+// Endereço digitado -> endereço seguro para href. Sem esquema: e-mail vira mailto:, o resto https://.
+// Só http, https e mailto (bloqueia javascript:, data: etc.). Devolve null se for inválido.
+function normalizeUrl(value) {
+  let v = value.trim();
+  if (!v) return "";
+  if (!/^[a-z][a-z0-9+.-]*:/i.test(v)) v = (/^[^\s/@]+@[^\s/@]+\.[^\s/@]+$/.test(v) ? "mailto:" : "https://") + v;
+  let parsed;
+  try { parsed = new URL(v); } catch { return null; }
+  if (!["http:", "https:", "mailto:"].includes(parsed.protocol)) return null;
+  if (parsed.protocol !== "mailto:" && !parsed.hostname) return null;
+  return v;
+}
 
 const MAX_BLOCKS = 30;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -183,6 +349,14 @@ function validateFields(input, fields, where) {
         out[name] = v;
         break;
       }
+      case "url": {
+        if (value !== undefined && value !== null && typeof value !== "string") throw new ValidationError(`${at}: deve ser texto.`);
+        if ((value || "").trim().length > field.max) throw new ValidationError(`${at}: máximo de ${field.max} caracteres.`);
+        const v = normalizeUrl(value || "");
+        if (v === null) throw new ValidationError(`${at}: endereço inválido (use um link como https://site.com.br).`);
+        out[name] = v;
+        break;
+      }
       case "icon":
         if (value !== undefined && value !== null && value !== "" && !has(ICONS, value)) throw new ValidationError(`${at}: ícone inválido.`);
         out[name] = value || "check";
@@ -197,6 +371,10 @@ function validateFields(input, fields, where) {
       case "bool":
         if (value !== undefined && typeof value !== "boolean") throw new ValidationError(`${at}: deve ser verdadeiro ou falso.`);
         out[name] = !!value;
+        break;
+      case "choice":
+        if (value !== undefined && value !== null && value !== "" && !has(field.options, value)) throw new ValidationError(`${at}: opção inválida.`);
+        out[name] = value || field.default;
         break;
       case "list": {
         if (value !== undefined && !Array.isArray(value)) throw new ValidationError(`${at}: deve ser uma lista.`);
@@ -229,6 +407,15 @@ function validateSections(sections) {
   }
 }
 
+// Blocos já gravados, validados UM A UM: um bloco inválido (ex.: dado antigo, de antes de uma
+// mudança no esquema) é descartado sozinho, em vez de invalidar a página inteira. Cada item
+// guarda a posição ORIGINAL do bloco: { index, block }.
+function validBlocks(sections) {
+  return (Array.isArray(sections) ? sections : [])
+    .map((block, index) => ({ index, block: isObject(block) && has(BLOCKS, block.type) ? validateSections([block]).sections?.[0] : null }))
+    .filter((x) => x.block);
+}
+
 // IDs de todas as imagens usadas nos blocos (para buscar URLs e registrar o uso).
 function mediaIds(sections) {
   const ids = new Set();
@@ -245,31 +432,40 @@ function mediaIds(sections) {
 // Modelo padrão de uma página nova: a estrutura do Manual, com textos de orientação.
 function defaultSections() {
   return [
-    { type: "hero", lead: "Uma frase que resume a transformação que o produto entrega.",
+    { type: "hero", eyebrow: "Material profissional", lead: "Uma frase que resume a transformação que o produto entrega.",
       badges: [{ strong: "PDF", text: "Prático" }, { strong: "Acesso", text: "Imediato" }],
       price_label: "Por apenas", cta_label: "Comprar agora" },
     { type: "benefits", title: "Benefícios", items: [
       { icon: "bolt", title: "Primeiro benefício", text: "Explique o benefício em uma ou duas frases.", callout: "" },
       { icon: "doc", title: "Segundo benefício", text: "Explique o benefício em uma ou duas frases.", callout: "" }] },
-    { type: "topics", title: "O que você vai encontrar", items: [
+    { type: "topics", eyebrow: "Conteúdo", title: "O que você vai encontrar", items: [
       { icon: "doc", title: "Tópico 1", text: "Resumo do tópico." },
       { icon: "check", title: "Tópico 2", text: "Resumo do tópico." }] },
-    { type: "gallery", title: "Conheça por dentro", images: [] },
+    { type: "gallery", eyebrow: "Por dentro", title: "Conheça por dentro", images: [] },
+    { type: "cta", title: "Pronto para começar? O acesso é imediato.", cta_label: "Quero garantir" },
     { type: "checklist", icon: "shield", title: "Conteúdo focado no que importa", items: [
       { text: "O que o produto não é", positive: false }, { text: "O que o produto entrega", positive: true }] },
-    { type: "comparison", title: "Diferenciais", left_title: "Alternativa comum",
+    { type: "comparison", eyebrow: "Diferenciais", title: "Por que este material", left_title: "Alternativa comum",
       left_items: [{ text: "Ponto fraco da alternativa" }], right_title: "Este produto",
       right_items: [{ text: "Ponto forte do produto" }] },
-    { type: "author", name: "Nome do autor", role: "Especialidade", bio: "Breve biografia." },
+    { type: "author", eyebrow: "Quem ensina", name: "Nome do autor", role: "Especialidade", bio: "Breve biografia." },
     { type: "audience", title: "Para quem é este material?", items: [{ icon: "user", text: "Perfil 1" }] },
-    { type: "faq", title: "Dúvidas mais frequentes", items: [
+    { type: "faq", eyebrow: "Dúvidas", title: "Dúvidas mais frequentes", items: [
       { question: "Em que formato recebo o produto?", answer: "Explique o formato e como acessar." },
       { question: "Tem garantia?", answer: "Explique a política de garantia." }] },
     { type: "guarantee", title: "Compra segura e garantida", items: [
       { icon: "shield", text: "Pagamento 100% seguro" }, { icon: "check", text: "7 dias de garantia" },
       { icon: "bolt", text: "Acesso imediato" }] },
-    { type: "offer", title: "Garanta agora o seu acesso", price_label: "Oferta especial", cta_label: "Garantir agora" },
+    { type: "offer", eyebrow: "Oferta", title: "Garanta agora o seu acesso",
+      text: "Uma frase curta lembrando o que a pessoa leva e por que vale começar hoje.",
+      items: [{ icon: "bolt", text: "Acesso imediato" }, { icon: "doc", text: "Conteúdo prático" },
+        { icon: "refresh", text: "Atualizações incluídas" }, { icon: "headset", text: "Suporte por e-mail" }],
+      proof_icon: "award", proof_title: "Feito por especialista", proof_text: "Material criado por quem vive o assunto na prática.",
+      price_label: "Oferta especial",
+      conditions: [{ text: "Pagamento único" }, { text: "Acesso imediato após a compra" }],
+      guarantee_title: "Garantia de 7 dias", guarantee_text: "Se não gostar, devolvemos o seu dinheiro.",
+      cta_label: "Quero me matricular agora" },
   ].map((block) => validateSections([block]).sections[0]); // preenche os campos que faltam
 }
 
-module.exports = { ICONS, BLOCKS, MAX_BLOCKS, validateSections, mediaIds, defaultSections };
+module.exports = { ICONS, ICON_GROUPS, NETWORKS, BLOCKS, MAX_BLOCKS, validateSections, validBlocks, mediaIds, defaultSections };

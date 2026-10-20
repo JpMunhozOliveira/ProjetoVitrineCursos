@@ -3,7 +3,7 @@
 // sobre o fundo, texto do botão), garantindo contraste legível (WCAG AA) em qualquer escolha.
 
 const THEMES = {
-  marinho: { label: "Azul-marinho", hero: "#0f2440", accent: "#d4a73a" },
+  marinho: { label: "Azul-marinho", hero: "#07152a", accent: "#f28a35" },
   floresta: { label: "Verde-floresta", hero: "#0f3326", accent: "#e8b94a" },
   vinho: { label: "Vinho", hero: "#3a0f1d", accent: "#e8b94a" },
   grafite: { label: "Grafite", hero: "#1d2026", accent: "#f2c14e" },

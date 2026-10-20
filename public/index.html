@@ -3,11 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Nome da Marca</title>
-  <meta name="description" content="Cursos e materiais digitais. Conheça o catálogo.">
+  <title>Estratégia Contábil Digital</title>
+  <link rel="icon" type="image/png" href="/assets/favicon/favicon.png">
+  <meta name="description" content="Cursos e materiais digitais para contadores e profissionais da área fiscal.">
   <meta name="referrer" content="strict-origin-when-cross-origin">
+  <link rel="preload" href="/fonts/inter/InterVariable-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="css/theme.css">
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/site.css">
   <script src="js/theme.js"></script>
   <script src="data/site.js" defer></script>
   <script src="js/components.js" defer></script>
@@ -15,40 +18,60 @@
 </head>
 <body data-page="home">
 <noscript><div class="noscript-banner" role="alert"><strong>JavaScript desativado.</strong> Este site precisa do JavaScript para mostrar o menu, os produtos e o rodapé. Ative-o nas configurações do navegador e recarregue a página.</div></noscript>
+<svg class="svg-sprite" aria-hidden="true">
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 3L5 14h6l-1 7 8-11h-6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-doc" viewBox="0 0 24 24"><path d="M7 3h7l4 4v14H7zM14 3v4h4M10 12h5M10 16h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-calc" viewBox="0 0 24 24"><path d="M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM8 7h8M8 12h2M12 12h2M8 16h2M12 16h2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</svg>
 <div id="site-header"></div>
 <main id="conteudo">
-  <section class="hero">
-    <div class="container">
-      <p class="eyebrow">Cursos e materiais digitais</p>
-      <h1 data-site="slogan">Slogan do projeto</h1>
-      <p data-site="descricao"></p>
-      <a class="btn" href="#produtos">Ver produtos</a>
-    </div>
-  </section>
-
-  <section class="section" id="produtos" aria-labelledby="t-produtos">
-    <div class="container">
-      <h2 id="t-produtos">Destaques</h2>
-      <div id="catalogo" class="grid"><div class="skeleton-card" aria-hidden="true"></div><div class="skeleton-card" aria-hidden="true"></div><div class="skeleton-card" aria-hidden="true"></div></div>
-      <p class="more" id="ver-todos"><a class="btn" href="/catalogo.html">Ver todos os produtos</a></p>
-    </div>
-  </section>
-
-  <section class="section alt" id="sobre" aria-labelledby="t-sobre">
-    <div class="container about">
-      <div id="foto-professor" class="photo"></div>
+  <section class="v-hero" aria-labelledby="t-inicio">
+    <div class="container v-hero-grid">
       <div>
-        <h2 id="t-sobre">Sobre <span data-site="professor.nome"></span></h2>
-        <p data-site="professor.bio"></p>
+        <p class="v-eyebrow">Educação contábil e tributária</p>
+        <h1 id="t-inicio" data-site="slogan">Atualização contábil e tributária, direto ao ponto</h1>
+        <p class="lead" data-site="descricao"></p>
+        <div class="hero-actions">
+          <a class="btn-cta" href="/catalogo.html">Ver o catálogo</a>
+          <a class="btn-ghost" href="/sobre.html">Conheça a empresa</a>
+        </div>
+      </div>
+      <ul class="hero-panel" aria-label="O que você encontra">
+        <li><svg class="ico" aria-hidden="true"><use href="#i-doc"/></svg><span><strong>Materiais para consulta</strong>Resumos, quadros e exemplos práticos.</span></li>
+        <li><svg class="ico" aria-hidden="true"><use href="#i-shield"/></svg><span><strong>Conteúdo fundamentado</strong>Baseado na legislação vigente.</span></li>
+        <li><svg class="ico" aria-hidden="true"><use href="#i-bolt"/></svg><span><strong>Acesso imediato</strong>Comece a estudar logo após a compra.</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="v-section is-light" id="produtos" aria-labelledby="t-produtos">
+    <div class="container">
+      <p class="v-eyebrow">Catálogo</p>
+      <h2 id="t-produtos">Produtos em destaque</h2>
+      <div id="catalogo" class="grid"><div class="skeleton-card" aria-hidden="true"></div><div class="skeleton-card" aria-hidden="true"></div><div class="skeleton-card" aria-hidden="true"></div></div>
+      <p class="more" id="ver-todos"><a class="btn-ghost" href="/catalogo.html">Ver todos os produtos</a></p>
+    </div>
+  </section>
+
+  <section class="v-section is-soft" aria-labelledby="t-por-que">
+    <div class="container">
+      <p class="v-eyebrow">Por que estudar com a gente</p>
+      <h2 id="t-por-que">Feito para quem precisa aplicar no trabalho</h2>
+      <div class="features">
+        <article class="v-card"><svg class="ico" aria-hidden="true"><use href="#i-bolt"/></svg><h3>Direto ao ponto</h3><p>Conteúdo organizado em etapas curtas, para estudar no seu ritmo.</p></article>
+        <article class="v-card"><svg class="ico" aria-hidden="true"><use href="#i-shield"/></svg><h3>Fundamentado</h3><p>Explicações baseadas na legislação e na regulamentação.</p></article>
+        <article class="v-card"><svg class="ico" aria-hidden="true"><use href="#i-calc"/></svg><h3>Exemplos práticos</h3><p>Casos e simulações para entender o impacto no dia a dia.</p></article>
+        <article class="v-card"><svg class="ico" aria-hidden="true"><use href="#i-doc"/></svg><h3>Para consultar sempre</h3><p>Materiais pensados para voltar sempre que surgir uma dúvida.</p></article>
       </div>
     </div>
   </section>
 
-  <section class="section" id="contato" aria-labelledby="t-contato">
-    <div class="container">
-      <h2 id="t-contato">Contato</h2>
-      <p>Tem alguma dúvida? Fale com a gente.</p>
-      <ul id="contato-links" class="contact-list"></ul>
+  <section class="v-strip" aria-label="Fale com a gente">
+    <div class="container v-strip-row">
+      <div><p class="v-eyebrow">Dúvidas?</p><p class="v-strip-text">Quer saber qual material é o certo para você? Fale com a gente.</p></div>
+      <div class="v-strip-action"><a class="btn-cta" href="/contato.html">Entrar em contato</a></div>
     </div>
   </section>
 </main>

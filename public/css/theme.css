@@ -1,6 +1,6 @@
 /* ==========================================================
    TEMA — único arquivo a editar para trocar cores e fontes.
-   Paleta: azul-marinho (confiança, autoridade) + dourado (destaque
+   Paleta: azul-marinho (confiança, autoridade) + laranja (destaque
    e compra), com neutros levemente azulados. Contrastes de texto
    seguem o WCAG AA (mínimo 4,5:1).
    ========================================================== */
@@ -8,9 +8,9 @@
   --color-primary: #1d4e89;          /* Azul-marinho: links, botões, destaques (8,4:1 com branco) */
   --color-primary-dark: #163d6b;     /* Hover dos botões */
   --color-on-primary: #ffffff;       /* Texto sobre a cor primária */
-  --color-accent: #d4a73a;           /* Dourado: botões de compra (CTA) */
-  --color-accent-dark: #b98d24;      /* Hover do CTA */
-  --color-on-accent: #1a1405;        /* Texto sobre o dourado (8:1) */
+  --color-accent: #f28a35;           /* Laranja: botões de compra (CTA) e detalhes de destaque */
+  --color-accent-dark: #d0772e;      /* Hover do CTA */
+  --color-on-accent: #1a1405;        /* Texto sobre o laranja (7,7:1) */
   --color-bg: #ffffff;
   --color-surface: #eef1f5;          /* Faixas alternadas, cards, cabeçalho de tabela (distinto do branco) */
   --color-text: #172033;
@@ -19,8 +19,8 @@
   --color-focus: #0f766e;            /* Contorno de foco, sucesso e "publicado" */
   --color-cover-start: #1d4e89;      /* Gradiente de capas sem imagem */
   --color-cover-end: #0f2a4a;
-  --color-hero: #0f2440;             /* Faixas escuras das páginas de venda */
-  --color-hero-2: #183a63;
+  --color-hero: #07152a;             /* Faixas escuras das páginas de venda */
+  --color-hero-2: #13294a;
   --color-on-hero: #f4f6fa;
   --color-on-hero-muted: #b9c6d8;
   --color-footer-bg: #0f1d33;
@@ -41,34 +41,34 @@
 
 /* ==========================================================
    MODO NOTURNO — mesmas variáveis, valores para fundo escuro.
-   Fundo cinza neutro (menos cansativo que preto puro) e cores
-   mais claras para manter o contraste.
+   Azul-ardósia profundo (da mesma família do azul-marinho), menos
+   cansativo que preto puro, e cores mais claras para manter o
+   contraste. Vale para o site e para o painel.
    ========================================================== */
 :root[data-theme="dark"] {
-  --color-primary: #7cb3f0;
-  --color-primary-dark: #a3c9f5;     /* Hover dos botões (clareia no escuro) */
+  --color-primary: #8db7f2;
+  --color-primary-dark: #b0cdf6;     /* Hover dos botões (clareia no escuro) */
   --color-on-primary: #0b1220;
-  --color-accent: #e0b44e;
-  --color-accent-dark: #f0c869;
+  --color-accent: #f59a4f;
+  --color-accent-dark: #f8b27a;
   --color-on-accent: #1a1405;
-  /* Cinzas neutros em 3 níveis bem distintos: fundo, superfície (cartões/faixas) e borda.
-     O azul fica reservado para o que tem significado (links, botões, seleção). */
-  --color-bg: #1e1f22;
-  --color-surface: #2b2d31;
-  --color-text: #ececee;
-  --color-muted: #a9adb5;
-  --color-border: #45484f;
+  /* Três níveis bem distintos: fundo, superfície (cartões/faixas) e borda. */
+  --color-bg: #0c1527;
+  --color-surface: #13203a;
+  --color-text: #e8edf5;
+  --color-muted: #a3b1c6;
+  --color-border: #2c3c5c;
   --color-focus: #4cc9b0;
   --color-cover-start: #1d4e89;
   --color-cover-end: #0b2340;
-  --color-hero: #0a1830;
-  --color-hero-2: #13294a;
+  --color-hero: #050f20;
+  --color-hero-2: #10223f;
   --color-on-hero: #f4f6fa;
   --color-on-hero-muted: #b9c6d8;
-  --color-footer-bg: #141517;
-  --color-footer-text: #ececee;
-  --color-skeleton-base: #2f3237;
-  --color-skeleton-shine: #3b3e44;
+  --color-footer-bg: #081226;
+  --color-footer-text: #e8edf5;
+  --color-skeleton-base: #1a2844;
+  --color-skeleton-shine: #243556;
   --color-notice-bg: #332c1a;
   --color-notice-text: #f3d38a;
   --color-danger: #f28b82;

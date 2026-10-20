@@ -2,7 +2,7 @@
 // Rodar: npm test (node --test)
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { withKeys, stripKeys, duplicateBlock, reducer } from "../src/state/document.js";
+import { withKeys, stripKeys, duplicateBlock, reducer, newBlock, hasText, emptyValue } from "../src/state/document.js";
 import { historyReducer, initialHistory } from "../src/state/history.js";
 
 // Esquema mínimo, no mesmo formato que /api/admin/sales-blocks devolve.
@@ -84,4 +84,26 @@ test("saved: edição feita durante o salvamento não se perde", () => {
   assert.equal(state.doc.sections[0].title, "Digitado depois");
   assert.equal(state.saved, sent);
   assert.notEqual(state.doc, state.saved); // continua "alterações não salvas"
+});
+
+test("bloco novo começa com a opção padrão dos campos de escolha (ex.: fundo automático)", () => {
+  const withChoice = { ...schema, blocks: { ...schema.blocks, faq: { fields: {
+    ...schema.blocks.faq.fields,
+    background: { type: "choice", options: { auto: "Automático", dark: "Escuro" }, default: "auto" },
+  } } } };
+  assert.equal(newBlock("faq", withChoice).background, "auto");
+});
+
+test("hasText: só os campos de texto contam (o ícone padrão de um item novo, não)", () => {
+  const fields = { icon: { type: "icon" }, title: { type: "text" }, text: { type: "textarea" } };
+  assert.equal(hasText({ icon: "check", title: "", text: " " }, fields), false);
+  assert.equal(hasText({ icon: "check", title: "", text: "Algo" }, fields), true);
+});
+
+test("campo de link (url): começa vazio, e um item só com endereço não conta como texto digitado", () => {
+  const fields = { label: { type: "text" }, url: { type: "url" } };
+  const { _key, ...item } = emptyValue(fields);
+  assert.deepEqual(item, { label: "", url: "" });
+  assert.equal(hasText({ label: "", url: "https://x.com" }, fields), false);
+  assert.equal(hasText({ label: "LinkedIn", url: "" }, fields), true);
 });

@@ -7,7 +7,10 @@
 // "Publicar" copia o rascunho para a versão publicada. Salvar nunca muda o site.
 const pool = require("../config/database");
 const storage = require("../lib/storage");
-const { validateSections, mediaIds } = require("./blocks");
+const { validateSections, validBlocks, mediaIds } = require("./blocks");
+
+// Blocos válidos de uma lista gravada (os inválidos são ignorados um a um, ver validBlocks).
+const storedBlocks = (sections) => validBlocks(sections).map((x) => x.block);
 const { normalizeTheme, ThemeError } = require("./theme");
 
 // has_unpublished_changes: o rascunho difere do que está publicado (ou nunca foi publicado).
@@ -58,8 +61,10 @@ function normalizeInput(body) {
 // uma é editada, a outra está no ar). O banco recusa excluir qualquer uma delas.
 async function syncPageMedia(client, pageId) {
   const { rows } = await client.query("SELECT sections, published_sections FROM sales_pages WHERE id = $1", [pageId]);
-  const ids = new Set(mediaIds(rows[0].sections));
-  mediaIds(validateSections(rows[0].published_sections || []).sections || []).forEach((id) => ids.add(id));
+  // Bloco a bloco: um bloco antigo inválido não pode "esconder" as imagens dos outros (elas
+  // ficariam sem registro de uso e poderiam ser excluídas com a página no ar).
+  const ids = new Set(mediaIds(storedBlocks(rows[0].sections)));
+  mediaIds(storedBlocks(rows[0].published_sections)).forEach((id) => ids.add(id));
   await client.query("DELETE FROM sales_page_media WHERE sales_page_id = $1", [pageId]);
   if (ids.size) {
     await client.query("INSERT INTO sales_page_media (sales_page_id, media_id) SELECT $1, unnest($2::uuid[])", [pageId, [...ids]]);
@@ -69,19 +74,20 @@ async function syncPageMedia(client, pageId) {
 // Executa fn(client) numa transação; traduz "imagem não existe mais" para mensagem do painel.
 async function inTransaction(fn) {
   const client = await pool.connect();
+  let broken; // ROLLBACK falhou (conexão caiu): o cliente é descartado em vez de voltar ao pool
   try {
     await client.query("BEGIN");
     const result = await fn(client);
     await client.query("COMMIT");
     return result;
   } catch (error) {
-    await client.query("ROLLBACK");
+    await client.query("ROLLBACK").catch((rollbackError) => { broken = rollbackError; }); // mantém o erro original
     if (error.code === "23503" && error.constraint === "sales_page_media_media_fkey") {
       throw new PageInputError("Uma das imagens escolhidas não existe mais. Escolha outra.");
     }
     throw error;
   } finally {
-    client.release();
+    client.release(broken);
   }
 }
 
@@ -173,7 +179,7 @@ async function loadForRender({ slug, productId, version }) {
   );
   if (!rows.length) return null;
   const data = rows[0];
-  const media = await loadMedia(validateSections(data.sections).sections || [], data.image_id);
+  const media = await loadMedia(storedBlocks(data.sections), data.image_id);
   return { ...data, media };
 }
 

@@ -39,5 +39,8 @@ secrets/
 # Imagens enviadas pelo painel (quando a API roda fora do Docker)
 server/uploads/
 
+# Backups do banco e das imagens (scripts/backup.sh)
+backups/
+
 # Editor React compilado (gerado pelo Vite a partir de editor/)
 public/admin/editor/

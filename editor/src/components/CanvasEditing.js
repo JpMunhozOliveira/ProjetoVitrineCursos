@@ -40,7 +40,9 @@ export function focusField(doc, at) {
   el.focus({ preventScroll: true });
   const range = doc.createRange();
   range.selectNodeContents(el);
-  range.collapse(false);
+  // Texto padrão (data-fallback, ex.: "Site" num link novo): fica todo selecionado, e digitar o
+  // substitui. Nos outros campos, o cursor vai para o fim.
+  if (!el.hasAttribute("data-fallback")) range.collapse(false);
   const selection = doc.getSelection();
   selection.removeAllRanges();
   selection.addRange(range);
@@ -142,6 +144,35 @@ export function attachCanvas(doc, apiRef) {
   doc.addEventListener("click", (e) => {
     if (fieldOf(e) && e.target.closest("summary")) e.preventDefault();
   }, true);
+  // Clicar num ícone da página abre a lista de ícones logo abaixo dele (o servidor marca cada
+  // ícone editável com data-icon-field = caminho do campo dentro do bloco).
+  doc.addEventListener("click", (e) => {
+    const icon = e.target.closest?.("[data-icon-field]");
+    const section = icon?.closest("[data-block]");
+    if (!section) return;
+    api().pickIcon(Number(section.dataset.block), icon.dataset.iconField, icon.getBoundingClientRect());
+  });
+  // Imagens: clicar numa imagem (ou no espaço "Adicionar imagem") abre a biblioteca de imagens.
+  // data-image-field = campo da imagem; data-image-add = lista onde entra uma imagem nova (galeria).
+  doc.addEventListener("click", (e) => {
+    const image = e.target.closest?.("[data-image-field], [data-image-add]");
+    const section = image?.closest("[data-block]");
+    if (!section) return;
+    const block = Number(section.dataset.block);
+    if (image.dataset.imageAdd) api().addImage(block, image.dataset.imageAdd);
+    else api().pickImage(block, image.dataset.imageField);
+  });
+  // Itens das listas: "+ Adicionar …" no fim da lista (data-item-add = a lista) e × em cada item
+  // (data-item-remove = o item, ex.: "items.3").
+  doc.addEventListener("click", (e) => {
+    const button = e.target.closest?.("[data-item-add], [data-item-remove]");
+    const section = button?.closest("[data-block]");
+    if (!section) return;
+    e.preventDefault(); // dentro de <summary>/<details> o clique não abre nem fecha nada
+    const block = Number(section.dataset.block);
+    if (button.dataset.itemAdd) api().addItem(block, button.dataset.itemAdd);
+    else api().removeItem(block, button.dataset.itemRemove);
+  });
   doc.addEventListener("toggle", (e) => {
     if (e.target.matches?.("details") && !e.target.open) e.target.open = true;
   }, true);

@@ -1,0 +1,51 @@
+# Produção (servidor público): soma-se ao docker-compose.yml, sem o override de desenvolvimento.
+# Ativado pela linha COMPOSE_FILE do .env do servidor:
+#   COMPOSE_FILE=docker-compose.yml:docker-compose.prod.yml
+# Acrescenta o Caddy (HTTPS automático na frente do app) e limita o tamanho dos logs.
+# Passo a passo completo: docs/DEPLOY.md
+
+# Logs do Docker com rotação: sem isso eles crescem até encher o disco do servidor.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  db:
+    logging: *logging
+
+  migrate:
+    logging: *logging
+
+  app:
+    environment:
+      # O app fica atrás de exatamente 1 proxy (o Caddy abaixo), sempre em HTTPS.
+      COOKIE_SECURE: "true"
+      TRUST_PROXY: "1"
+      PUBLIC_URL: "https://${DOMAIN:?Defina DOMAIN no arquivo .env (ex.: seusite.com.br)}"
+    logging: *logging
+
+  caddy:
+    image: caddy:2.10-alpine
+    container_name: vitrine-cursos-caddy
+    restart: unless-stopped
+    environment:
+      DOMAIN: "${DOMAIN:?Defina DOMAIN no arquivo .env (ex.: seusite.com.br)}"
+      ACME_EMAIL: "${ACME_EMAIL:?Defina ACME_EMAIL no arquivo .env (avisos do certificado HTTPS)}"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp" # HTTP/3
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data     # certificados: não apague este volume (o Let's Encrypt limita reemissões)
+      - caddy_config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+    logging: *logging
+
+volumes:
+  caddy_data:
+  caddy_config:

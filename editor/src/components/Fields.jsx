@@ -1,10 +1,11 @@
 // Campos do formulário, gerados a partir do esquema do servidor (sales/blocks.js).
 // Cada campo recebe o "caminho" do valor que edita (ex.: ["sections", 2, "items", 0, "question"])
 // e avisa as mudanças com dispatch({ type: "set", path, value }).
-import { useId } from "react";
+import { useId, useState } from "react";
 import { useEditor } from "../state/context.js";
-import { emptyValue } from "../state/document.js";
+import { emptyValue, hasText } from "../state/document.js";
 import { SortableList, useSortableItem, DragHandle } from "../ui/dnd.jsx";
+import { IconMenu, IconGlyph } from "./IconMenu.jsx";
 
 // compact: dentro de itens de lista (textos longos começam com 2 linhas em vez de 3).
 export function Field({ field, value, path, compact, inline }) {
@@ -13,6 +14,7 @@ export function Field({ field, value, path, compact, inline }) {
     case "image": return <ImageField field={field} value={value} path={path} />;
     case "bool": return <BoolField field={field} value={value} path={path} />;
     case "icon": return <IconField field={field} value={value} path={path} />;
+    case "choice": return <ChoiceField field={field} value={value} path={path} />;
     default: return <TextField field={field} value={value} path={path} compact={compact} inline={inline} />;
   }
 }
@@ -22,6 +24,7 @@ function Help({ id, text }) {
 }
 
 // inline: item numa linha só — o rótulo fica só para leitores de tela e vira o texto de exemplo da caixa.
+// Campos "url" (endereço de link) usam a mesma caixa, do tipo url (teclado certo no celular).
 function TextField({ field, value, path, compact, inline }) {
   const { dispatch } = useEditor();
   const id = useId();
@@ -31,6 +34,9 @@ function TextField({ field, value, path, compact, inline }) {
       <label htmlFor={id} className={inline ? "sr-only" : undefined}>{field.label}</label>
       <Tag
         id={id}
+        type={field.type === "url" ? "url" : undefined}
+        inputMode={field.type === "url" ? "url" : undefined}
+        spellCheck={field.type === "url" ? false : undefined}
         value={value || ""}
         maxLength={field.max}
         placeholder={field.placeholder || (inline ? field.label : undefined)}
@@ -43,26 +49,49 @@ function TextField({ field, value, path, compact, inline }) {
   );
 }
 
-// Escolha visual do ícone: os mesmos desenhos da página (vêm do esquema do servidor).
-// São radios por baixo: setas do teclado trocam a opção e o leitor de tela lê o nome.
+// Ícone: botão com o ícone atual que abre a lista suspensa (busca + grupos, ver IconMenu.jsx).
+// Os desenhos são os mesmos da página (vêm do esquema do servidor).
 function IconField({ field, value, path }) {
   const { dispatch, schema } = useEditor();
-  const name = useId();
+  const id = useId();
+  const [anchor, setAnchor] = useState(null);
   const current = value || "check";
+  const icon = schema.icons[current];
   return (
-    <fieldset className="field icon-field">
+    <div className="field icon-field">
+      <span id={id} className="field-label">{field.label}</span>
+      <button type="button" className="icon-select" aria-haspopup="dialog" aria-labelledby={`${id} ${id}-value`}
+        onClick={(e) => setAnchor(e.currentTarget.getBoundingClientRect())}>
+        <IconGlyph icon={icon} />
+        <span id={`${id}-value`}>{icon?.label || current}</span>
+        <svg className="caret" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+      </button>
+      <IconMenu open={!!anchor} anchor={anchor} value={current} title={field.label}
+        onPick={(key) => { dispatch({ type: "set", path, value: key }); setAnchor(null); }}
+        onClose={() => setAnchor(null)} />
+    </div>
+  );
+}
+
+// Uma opção entre poucas (ex.: fundo da seção): botões lado a lado, radios por baixo.
+// Cada opção leva data-option, que o CSS usa para mostrar uma amostra (ex.: a cor do fundo).
+function ChoiceField({ field, value, path }) {
+  const { dispatch } = useEditor();
+  const name = useId();
+  const current = value || field.default;
+  return (
+    <fieldset className="field choice-field">
       <legend>{field.label}</legend>
-      <div className="icon-options">
-        {Object.entries(schema.icons).map(([key, icon]) => (
-          <label key={key} className="icon-option" title={icon.label}>
-            <input type="radio" name={name} value={key} checked={current === key} aria-label={icon.label}
+      <div className="choice-options">
+        {Object.entries(field.options).map(([key, label]) => (
+          <label key={key} className="choice-option" data-option={key}>
+            <input type="radio" name={name} value={key} checked={current === key}
               onChange={() => dispatch({ type: "set", path, value: key })} />
-            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <path d={icon.d} fill="none" stroke="currentColor" strokeWidth={icon.width || 1.8} strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+            <span>{label}</span>
           </label>
         ))}
       </div>
+      <Help text={field.help} />
     </fieldset>
   );
 }
@@ -110,15 +139,11 @@ function ImageField({ field, value, path }) {
             <button type="button" className="btn btn-sm btn-danger" onClick={() => dispatch({ type: "set", path, value: null })}>Remover</button>
           )}
         </div>
+        {field.size && <p className="hint">Tamanho recomendado: {field.size}{field.tip ? ` (${field.tip})` : ""}</p>}
         {image && !image.alt_text && <p className="hint warn">Sem texto alternativo: descreva esta imagem na página Imagens.</p>}
       </div>
     </div>
   );
-}
-
-// O item tem algum texto digitado? (_key é interna do editor e não conta)
-function hasText(item) {
-  return Object.entries(item).some(([k, v]) => k !== "_key" && typeof v === "string" && v.trim());
 }
 
 function ListField({ field, items, path }) {
@@ -127,7 +152,7 @@ function ListField({ field, items, path }) {
 
   async function remove(index) {
     const item = items[index];
-    if (hasText(item) && !(await window.Admin.confirm({
+    if (hasText(item, field.item) &&!(await window.Admin.confirm({
       title: `Remover o item ${index + 1}?`, text: "O texto deste item será perdido.", action: "Remover", danger: true,
     }))) return;
     dispatch({ type: "remove", path, index });
@@ -170,7 +195,7 @@ function ListItem({ item, index, total, field, path, onMove, onRemove }) {
   const { itemRef, itemStyle, isDragging, handleProps } = useSortableItem(item._key);
   // Itens só com campos curtos (texto de uma linha / liga-desliga) ficam numa linha só:
   // ⠿ [campos] [↑ ↓ ✕] — sem o título "Item N" ocupando uma linha a mais.
-  const inline = Object.values(field.item).every((f) => f.type === "text" || f.type === "bool");
+  const inline = Object.values(field.item).every((f) => f.type === "text" || f.type === "url" || f.type === "bool");
 
   const tools = (
     <div className="tools">

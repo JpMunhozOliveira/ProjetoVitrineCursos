@@ -47,9 +47,16 @@ export function emptyValue(fields) {
   const out = { _key: newKey() };
   for (const [name, field] of Object.entries(fields)) {
     out[name] = field.type === "list" ? [] : field.type === "bool" ? false
-      : field.type === "image" ? null : field.type === "icon" ? "check" : "";
+      : field.type === "image" ? null : field.type === "icon" ? "check"
+      : field.type === "choice" ? field.default : "";
   }
   return out;
+}
+
+// O item tem algum texto digitado? Só contam os campos de texto (o ícone padrão de um item novo,
+// por exemplo, não é algo que a pessoa escreveu).
+export function hasText(item, fields) {
+  return Object.entries(fields).some(([k, f]) => (f.type === "text" || f.type === "textarea") && item[k]?.trim());
 }
 
 // Listas começam com um item vazio, exceto as que exigem imagem (o item vazio seria inválido).

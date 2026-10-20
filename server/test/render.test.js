@@ -41,7 +41,7 @@ function schemaField(type, path) {
 test("página pública não tem nenhuma marcação do editor", () => {
   for (const preview of [false, true]) {
     const page = render(sample(), preview);
-    for (const marker of ["data-field", "data-empty", "data-hidden", "data-fallback", "data-multiline", "venda-editor.css", "editor-hidden-block"]) {
+    for (const marker of ["data-field", "data-empty", "data-hidden", "data-fallback", "data-multiline", "venda-editor.css", "editor-hidden-block", "data-editor", "data-icon-field"]) {
       assert.ok(!page.includes(marker), `"${marker}" apareceu com preview=${preview}`);
     }
   }
@@ -81,8 +81,8 @@ test("cada texto preenchido do modelo padrão é editável na página", () => {
     walk(block, BLOCKS[block.type].fields, "");
   });
   // Exceções conhecidas: o título dos benefícios é só para leitores de tela, e a galeria do modelo
-  // não tem imagens (não aparece; o editor mostra o aviso e o título fica no painel).
-  assert.deepEqual(missing.filter((m) => !["benefits:title", "gallery:title"].includes(m)), []);
+  // não tem imagens (não aparece; o editor mostra o aviso e o título e o rótulo ficam no painel).
+  assert.deepEqual(missing.filter((m) => !["benefits:title", "gallery:title", "gallery:eyebrow"].includes(m)), []);
 });
 
 test("campos vazios ganham texto de exemplo com o rótulo do esquema", () => {
@@ -119,7 +119,7 @@ test("texto longo: parágrafos dentro de um único campo editável", () => {
 
 test("FAQ fica aberto no editor e fechado na página pública", () => {
   const sections = [{ type: "faq", items: [{ question: "Q", answer: "A" }] }];
-  assert.match(render(sections, "live"), /<details class="faq" open>/);
+  assert.match(render(sections, "live"), /<details class="faq" open data-item="items\.0">/);
   assert.match(render(sections, false), /<details class="faq">/);
 });
 
@@ -137,7 +137,10 @@ test("depoimentos: sem nenhum texto, some da página e aparece marcado no editor
   const live = render(sections, "live");
   assert.match(live, /data-block="0" data-hidden/);
   assert.match(live, /data-field="items\.0\.quote" data-empty data-placeholder="Depoimento" data-multiline/);
-  assert.match(render([{ type: "testimonials", items: [] }], "live"), /Depoimentos<\/strong> — não aparece na página: escreva pelo menos um depoimento/);
+  // Lista vazia: no editor a seção continua (oculta), com o botão de adicionar o primeiro.
+  const empty = render([{ type: "testimonials", items: [] }], "live");
+  assert.match(empty, /data-block="0" data-hidden/);
+  assert.match(empty, /data-item-add="items">\+ Adicionar depoimento</);
 });
 
 test("depoimentos: foto da biblioteca vira <img> redonda com texto alternativo", () => {
@@ -146,4 +149,236 @@ test("depoimentos: foto da biblioteca vira <img> redonda com texto alternativo",
   data.media = new Map([[photo, { url: "/uploads/ana.webp", alt_text: "Foto de Ana", width: 200, height: 200 }]]);
   const page = renderSalesPage(data, { baseUrl: "http://localhost", preview: false });
   assert.match(page, /<figcaption><img class="quote-photo" src="\/uploads\/ana\.webp" alt="Foto de Ana" width="200" height="200" loading="lazy" decoding="async"><span><strong>Ana<\/strong><\/span><\/figcaption>/);
+});
+
+test("fundo: automático alterna claro e cinza; o autor é escuro; a escolha do bloco vale", () => {
+  const page = render([
+    { type: "faq", items: [{ question: "Q", answer: "A" }] },
+    { type: "author", name: "Ana" },
+    { type: "faq", items: [{ question: "Q", answer: "A" }] },
+    { type: "faq", items: [{ question: "Q", answer: "A" }], background: "dark" },
+    { type: "faq", items: [{ question: "Q", answer: "A" }], background: "light" },
+  ], false);
+  const tones = [...page.matchAll(/<section class="v-section is-(\w+)"/g)].map((m) => m[1]);
+  assert.deepEqual(tones, ["light", "dark", "soft", "dark", "light"]);
+});
+
+test("rótulo acima do título: só aparece preenchido na página pública; no editor, editável", () => {
+  assert.match(render([{ type: "faq", eyebrow: "Dúvidas", title: "T", items: [{ question: "Q" }] }], false), /<p class="v-eyebrow">Dúvidas<\/p><h2/);
+  assert.ok(!render([{ type: "faq", eyebrow: "", title: "T", items: [{ question: "Q" }] }], false).includes("v-eyebrow"));
+  assert.match(render([{ type: "faq", eyebrow: "", title: "T", items: [{ question: "Q" }] }], "live"),
+    /<p class="v-eyebrow" data-field="eyebrow" data-empty data-placeholder="Rótulo acima do título"><\/p>/);
+});
+
+test("chamada intermediária: texto, preço e botão com o link do produto", () => {
+  const page = render([{ type: "cta", title: "Pronto para começar?", cta_label: "" }], false);
+  assert.match(page, /<section class="v-strip" aria-label="Chamada para compra">/);
+  assert.match(page, /<p class="v-strip-text">Pronto para começar\?<\/p>/);
+  assert.match(page, /<span class="v-strip-price">R\$\s49,90<\/span>/);
+  assert.match(page, /<a class="btn-cta" href="https:\/\/pay\.example\.com\/x"[^>]*>Quero garantir<span class="sr-only">/);
+});
+
+test("editor: <html data-editor> desliga as animações; fonte Inter pré-carregada do próprio site", () => {
+  assert.match(render(sample(), "live"), /<html lang="pt-BR" data-editor>/);
+  assert.match(render(sample(), false), /<html lang="pt-BR">/);
+  assert.match(render(sample(), false), /<link rel="preload" href="\/fonts\/inter\/InterVariable-latin\.woff2" as="font" type="font\/woff2" crossorigin>/);
+});
+
+test("ícones: no editor levam o caminho do campo (clique troca o ícone); na página pública, não", () => {
+  const sections = [{ type: "benefits", items: [{ icon: "gift", title: "T" }] }, { type: "checklist", icon: "shield", title: "C", items: [{ text: "x", positive: true }] }];
+  const live = render(sections, "live");
+  assert.match(live, /<svg class="ico" aria-hidden="true" data-icon-field="items\.0\.icon"><use href="#i-gift"\/><\/svg>/);
+  assert.match(live, /<svg class="ico big" aria-hidden="true" data-icon-field="icon"><use href="#i-shield"\/><\/svg>/);
+  assert.match(render(sections, false), /<svg class="ico" aria-hidden="true"><use href="#i-gift"\/><\/svg>/);
+});
+
+test("todo data-icon-field aponta para um campo de ícone do bloco certo", () => {
+  const sections = [...defaultSections(), { type: "benefits", items: [{ icon: "gift", title: "T" }] }];
+  let count = 0;
+  for (const [index, chunk] of sectionsOf(render(sections, "live"))) {
+    for (const [, path] of chunk.matchAll(/data-icon-field="([^"]+)"/g)) {
+      assert.equal(schemaField(sections[index].type, path)?.type, "icon", `bloco ${index}: ${path}`);
+      count++;
+    }
+  }
+  assert.ok(count > 8, `poucos ícones marcados (${count})`);
+});
+
+const M1 = "0b6f7a52-9c1e-4d3a-8f2b-5e6c7d8e9f01";
+test("imagens: no editor, clicáveis e com espaço vazio mostrando o tamanho recomendado", () => {
+  const media = new Map([[M1, { url: "/uploads/a.webp", alt_text: "Capa", width: 1200, height: 900 }]]);
+  const sections = [
+    { type: "hero", title: "T", image: null, logo: null },
+    { type: "author", name: "Ana", photo: M1 },
+    { type: "gallery", title: "G", images: [{ image: M1 }] },
+    { type: "testimonials", items: [{ quote: "Q", name: "N", photo: null }] },
+  ];
+  const live = renderSalesPage({ ...product(sections), media }, { baseUrl: "http://localhost", preview: "live" });
+  assert.match(live, /<span class="img-slot v-media" data-image-field="image" title="[^"]*1200 × 900 px[^"]*">/);
+  assert.match(live, /Tamanho recomendado: 1200 × 900 px/);
+  assert.ok(!/v-hero-grid no-media/.test(live), "no editor a abertura reserva o espaço da imagem");
+  assert.match(live, /class="img-slot v-logo" data-image-field="logo" data-empty/); // opcional: só no bloco selecionado
+  assert.match(live, /<img class="author-photo"[^>]* data-image-field="photo">/);
+  assert.match(live, /<img class="slide-img"[^>]* data-image-field="images\.0\.image">/);
+  assert.match(live, /data-image-add="images"/);
+  assert.match(live, /class="img-slot quote-photo" data-image-field="items\.0\.photo" data-empty/);
+  // Todo data-image-field aponta para um campo de imagem do esquema.
+  for (const [index, chunk] of sectionsOf(live)) {
+    for (const [, path] of chunk.matchAll(/data-image-field="([^"]+)"/g)) {
+      assert.equal(schemaField(sections[index].type, path)?.type, "image", `${sections[index].type}:${path}`);
+    }
+  }
+  const pub = renderSalesPage({ ...product(sections), media }, { baseUrl: "http://localhost", preview: false });
+  assert.ok(!/img-slot|data-image-field|data-image-add|Tamanho recomendado/.test(pub));
+  assert.match(pub, /v-hero-grid no-media/);
+});
+
+test("galeria sem imagens: no editor só o espaço para adicionar, marcada como oculta", () => {
+  const live = render([{ type: "gallery", title: "G", images: [] }], "live");
+  assert.match(live, /data-block="0" data-hidden/);
+  assert.match(live, /<li class="slide"[^>]*><span class="img-slot slide-img" data-image-add="images"/);
+  assert.match(live, /1500 × 1000 px/);
+  assert.ok(!render([{ type: "gallery", title: "G", images: [] }], false).includes("carousel"));
+});
+
+test("imagens: todo campo de imagem tem tamanho recomendado", () => {
+  for (const [type, block] of Object.entries(BLOCKS)) {
+    for (const [name, field] of Object.entries(block.fields)) {
+      const fields = field.type === "list" ? Object.entries(field.item) : [[name, field]];
+      for (const [n, f] of fields) if (f.type === "image") assert.match(f.size || "", /^\d+ × \d+ px$/, `${type}.${n}`);
+    }
+  }
+});
+
+test("descrição abaixo do título: centralizada após o h2, só preenchida na página pública", () => {
+  const types = Object.entries(BLOCKS).filter(([, b]) => b.fields.intro).map(([t]) => t);
+  assert.deepEqual(types.sort(), ["audience", "checklist", "comparison", "faq", "gallery", "guarantee", "social", "testimonials", "topics"]);
+  const sections = [{ type: "faq", title: "Dúvidas", intro: "Tudo o que você precisa saber.", items: [{ question: "Q", answer: "A" }] }];
+  assert.match(render(sections, false), /Dúvidas<\/h2><p class="v-intro">Tudo o que você precisa saber\.<\/p>/);
+  assert.match(render(sections, "live"), /<p class="v-intro" data-field="intro">Tudo o que você precisa saber\.<\/p>/);
+  const empty = [{ type: "faq", title: "Dúvidas", items: [{ question: "Q", answer: "A" }] }];
+  assert.ok(!render(empty, false).includes("v-intro"));
+  assert.match(render(empty, "live"), /<p class="v-intro" data-field="intro" data-empty data-placeholder="Descrição abaixo do título">/);
+});
+
+// Um bloco de cada tipo com listas, cada lista com um item preenchido.
+const listBlocks = () => Object.entries(BLOCKS).filter(([type, b]) => type !== "gallery" && Object.values(b.fields).some((f) => f.type === "list"))
+  .map(([type, b]) => {
+    const block = { type, [b.fields.title ? "title" : "name"]: "T" }; // o autor só aparece com nome
+    for (const [name, field] of Object.entries(b.fields)) {
+      if (field.type !== "list") continue;
+      const item = {};
+      for (const [n, f] of Object.entries(field.item)) if (f.type === "text" || f.type === "textarea") item[n] = "x";
+      block[name] = [item];
+    }
+    return block;
+  });
+
+test("listas: no editor, cada item tem × e cada lista tem '+ Adicionar …'", () => {
+  for (const block of listBlocks()) {
+    const live = render([block], "live");
+    for (const [name, field] of Object.entries(BLOCKS[block.type].fields)) {
+      if (field.type !== "list") continue;
+      assert.ok(live.includes(`data-item="${name}.0"`), `${block.type}.${name}: item`);
+      assert.ok(live.includes(`data-item-remove="${name}.0" aria-label="Remover ${field.noun} 1"`), `${block.type}.${name}: ×`);
+      assert.ok(live.includes(`data-item-add="${name}">+ Adicionar ${field.noun}</button>`), `${block.type}.${name}: +`);
+    }
+  }
+});
+
+test("listas: a página pública não leva os botões de adicionar e remover", () => {
+  const page = render(listBlocks(), false);
+  assert.ok(!/data-item|item-add|item-remove/.test(page));
+});
+
+test("listas: cheia, sem '+ Adicionar'; galeria com × em cada imagem", () => {
+  const full = Array.from({ length: BLOCKS.guarantee.fields.items.max }, () => ({ icon: "check", text: "Selo" }));
+  const live = render([{ type: "guarantee", title: "G", items: full }], "live");
+  assert.ok(!live.includes("data-item-add"));
+  assert.ok(live.includes(`data-item-remove="items.${full.length - 1}"`));
+  const data = product([{ type: "gallery", title: "G", images: [{ image: M1 }] }]);
+  data.media = new Map([[M1, { url: "/uploads/a.webp", alt_text: "", width: 1500, height: 1000 }]]);
+  const gallery = renderSalesPage(data, { baseUrl: "http://localhost", preview: "live" });
+  assert.match(gallery, /<li class="slide" aria-label="Slide 1 de 2" data-item="images\.0"><img[^>]*><button type="button" class="item-remove" data-item-remove="images\.0"/);
+});
+
+test("listas vazias: no editor o bloco continua, oculto, com o botão de adicionar", () => {
+  for (const type of ["benefits", "topics", "checklist", "audience", "faq"]) {
+    const live = render([{ type, title: "T", items: [] }], "live");
+    assert.match(live, /data-block="0" data-hidden/, type);
+    assert.ok(live.includes('data-item-add="items"'), type);
+    assert.ok(!render([{ type, title: "T", items: [] }], false).includes("v-section"), type);
+  }
+  assert.ok(render([{ type: "hero", badges: [] }], "live").includes('data-item-add="badges">+ Adicionar selo'));
+  assert.ok(!render([{ type: "hero", badges: [] }], false).includes('class="badges"'));
+});
+
+/* ---------- Links (autor e redes sociais) ---------- */
+const { validateSections } = require("../sales/blocks");
+const link = (url) => validateSections([{ type: "social", items: [{ network: "site", url }] }]);
+
+test("endereço de link: completa https:// e mailto:, recusa esquemas perigosos", () => {
+  assert.equal(link("linkedin.com/in/fulano").sections[0].items[0].url, "https://linkedin.com/in/fulano");
+  assert.equal(link("  https://site.com.br/a?b=1 ").sections[0].items[0].url, "https://site.com.br/a?b=1");
+  assert.equal(link("fulano@email.com").sections[0].items[0].url, "mailto:fulano@email.com");
+  assert.equal(link("").sections[0].items[0].url, "");
+  for (const bad of ["javascript:alert(1)", "JavaScript:alert(1)", "data:text/html,x", "ftp://x.com", "https://"]) {
+    assert.match(link(bad).error || "", /endereço inválido/, bad);
+  }
+});
+
+test("autor: links com ícone pelo endereço; a página pública mostra só os que têm endereço", () => {
+  const sections = [{ type: "author", name: "Ana", links: [
+    { label: "", url: "lattes.cnpq.br/123" }, { label: "Meu LinkedIn", url: "https://www.linkedin.com/in/ana" },
+    { label: "Sem endereço", url: "" }] }];
+  const page = render(sections, false);
+  assert.match(page, /<ul class="link-list author-links"><li><a class="link-btn" href="https:\/\/lattes\.cnpq\.br\/123" target="_blank" rel="noopener noreferrer"><svg class="link-ico" aria-hidden="true"><use href="#i-cap"\/><\/svg>Currículo Lattes<span class="sr-only"> \(abre em nova aba\)<\/span><\/a><\/li>/);
+  assert.match(page, /#i-net-linkedin"\/><\/svg>Meu LinkedIn</);
+  assert.ok(!page.includes("Sem endereço"));
+  assert.ok(page.includes('<symbol id="i-net-linkedin"'));
+  const live = render(sections, "live");
+  assert.match(live, /<a class="link-btn" data-no-url title="Defina o endereço em Configurar bloco ⚙">.*<span data-field="links\.2\.label">Sem endereço<\/span>/);
+  assert.match(live, /<span data-field="links\.0\.label" data-fallback>Currículo Lattes<\/span>/);
+  assert.ok(!render([{ type: "author", name: "Ana" }], false).includes("author-links"));
+});
+
+test("redes sociais: botões com o ícone da rede; sem links, some da página e fica oculto no editor", () => {
+  const sections = [{ type: "social", title: "Siga", items: [
+    { network: "instagram", url: "instagram.com/perfil", label: "" }, { network: "email", url: "a@b.com", label: "Escreva" },
+    { network: "youtube", url: "", label: "" }] }];
+  const page = render(sections, false);
+  assert.match(page, /<a class="link-btn" href="https:\/\/instagram\.com\/perfil" target="_blank" rel="noopener noreferrer"><svg class="link-ico" aria-hidden="true"><use href="#i-net-instagram"\/><\/svg>Instagram</);
+  assert.match(page, /<a class="link-btn" href="mailto:a@b\.com"><svg class="link-ico" aria-hidden="true"><use href="#i-net-email"\/><\/svg>Escreva<\/a>/);
+  assert.ok(!page.includes("#i-net-youtube\"/></svg>YouTube"));
+  const empty = [{ type: "social", items: [{ network: "x", url: "" }] }];
+  assert.ok(!render(empty, false).includes("social-links"));
+  assert.match(render(empty, "live"), /data-block="0" data-hidden/);
+  assert.match(render(empty, "live"), /<h2 id="t-1" data-field="title" data-fallback>Acompanhe nas redes<\/h2>/);
+});
+
+/* ---------- Oferta final ---------- */
+test("oferta: texto à esquerda, cartão de compra com preço, garantia, cadeado e aviso da Kiwify", () => {
+  const page = render([{ type: "offer", title: "Garanta", text: "Desc.", items: [{ icon: "bolt", text: "Rápido" }],
+    proof_title: "Especialista", proof_text: "10 anos", price_label: "Por", conditions: [{ text: "Pagamento único" }],
+    guarantee_title: "Garantia de 7 dias", guarantee_text: "Devolvemos.", cta_label: "Quero me matricular agora" }], false);
+  assert.match(page, /<div class="container offer-grid">\s*<div class="offer-main">/);
+  assert.match(page, /<p class="lead">Desc\.<\/p>/);
+  assert.match(page, /<ul class="offer-benefits"><li><svg class="ico" aria-hidden="true"><use href="#i-bolt"\/><\/svg>Rápido<\/li><\/ul>/);
+  assert.match(page, /<div class="offer-proof">.*<strong>Especialista<\/strong><span>10 anos<\/span>/);
+  assert.match(page, /<div class="buy-card">[\s\S]*R\$\s49,90[\s\S]*Pagamento único[\s\S]*<div class="buy-guarantee"><svg class="ico" aria-hidden="true"><use href="#i-shield"\/><\/svg><p><strong>Garantia de 7 dias<\/strong>/);
+  assert.match(page, /<a class="btn-cta" href="https:\/\/pay\.example\.com\/x" target="_blank" rel="noopener noreferrer"><svg class="cta-ico" aria-hidden="true"><use href="#i-lock"\/><\/svg>Quero me matricular agora/);
+  assert.match(page, /<p class="buy-note">Pagamento processado com segurança pela Kiwify\.<\/p>/);
+});
+
+test("oferta antiga (só os campos de antes) continua válida: preço, botão, e sem cartões vazios", () => {
+  const old = [{ type: "offer", image: null, eyebrow: "Oferta", title: "Garanta", price_label: "Oferta especial", cta_label: "Garantir agora" }];
+  assert.ok(validateSections(old).sections);
+  const page = render(old, false);
+  assert.match(page, /Oferta especial<\/span> R\$\s49,90/);
+  assert.match(page, />Garantir agora<span class="sr-only">/);
+  for (const piece of ["offer-benefits", "offer-proof", "buy-conditions", "buy-guarantee"]) assert.ok(!page.includes(piece), piece);
+  const live = render(old, "live");
+  assert.match(live, /<div class="offer-proof" data-empty>/);
+  assert.match(live, /<div class="buy-guarantee" data-empty>/);
+  assert.match(live, /<p class="buy-note" data-field="note" data-fallback>/);
 });
