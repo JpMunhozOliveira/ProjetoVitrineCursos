@@ -141,7 +141,7 @@ dialog.confirm .buttons{display:flex;flex-wrap:wrap;justify-content:flex-end;gap
 /* Ações fixas no rodapé da tela: o botão Salvar fica sempre visível em formulários longos.
    A barra cresce para cima (aviso da situação, mensagens); os botões ficam encostados na BASE
    da grade, então não se movem quando o conteúdo ao lado muda de tamanho. */
-/* Visual da barra de baixo do editor: solta, arredondada, de vidro. */
+/* Barra de salvar do formulário de produto: solta, arredondada, de vidro. */
 .form-actions{position:sticky;bottom:calc(.75rem + env(safe-area-inset-bottom,0px));display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"picker buttons" "msg buttons";gap:.5rem 1.5rem;
   padding:.75rem .75rem .75rem 1.25rem;background:color-mix(in srgb,var(--color-bg) 86%,transparent);
   backdrop-filter:blur(14px) saturate(1.3);-webkit-backdrop-filter:blur(14px) saturate(1.3);
@@ -197,6 +197,10 @@ dialog.confirm .buttons{display:flex;flex-wrap:wrap;justify-content:flex-end;gap
 .cover-preview img{width:100%;height:100%;object-fit:cover}
 .cover-controls .hint{margin:.5rem 0 1rem}
 .cover-controls .msg:empty{display:none}
+/* Logo da marca: fundo escuro como o menu do site (logo branco aparece) e sem cortar. */
+.brand-preview{aspect-ratio:3/1;background:#0f2340}
+.brand-preview img{object-fit:contain;padding:1rem}
+.brand-preview .muted{color:#c7d2e3}
 
 /* Diálogo "Escolher da biblioteca" */
 dialog.picker{width:min(56rem,calc(100% - 2rem));max-height:min(40rem,calc(100% - 2rem));padding:1.25rem;color:var(--color-text);background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius)}
@@ -249,11 +253,8 @@ dialog.viewer img{display:block;width:auto;height:auto;max-width:100%;max-height
 /* ==========================================================
    Editor da página de vendas (pagina.html)
    ========================================================== */
-.page-head p{margin:.25rem 0 0}
 .start-box{max-width:900px;padding:1.5rem;border:2px dashed var(--color-border);border-radius:var(--radius)}
 .start-box h2{font-size:1.25rem}
-.page-editor{max-width:900px}
-.page-editor > .hint{margin:0 0 1rem}
 
 /* Lista de blocos */
 .blocks{display:grid;gap:.75rem;margin:0 0 1.5rem;padding:0;list-style:none}
@@ -289,13 +290,9 @@ dialog.viewer img{display:block;width:auto;height:auto;max-width:100%;max-height
 .img-thumb .media-zoom,.img-thumb img{width:100%;height:100%;object-fit:cover}
 .image-side .hint{margin:.4rem 0 0}
 
-/* Adicionar bloco e SEO */
-.add-block{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem .75rem;margin-bottom:1.5rem;padding:1rem;border:2px dashed var(--color-border);border-radius:var(--radius)}
-.add-block label{font-weight:700}
-.add-block select{min-height:40px;padding:.4rem .6rem;font:inherit;color:var(--color-text);background:var(--color-bg);border:2px solid var(--color-border);border-radius:8px}
-.seo{margin:0 0 1.5rem;padding:1rem 1.25rem .25rem;border:1px solid var(--color-border);border-radius:var(--radius)}
-.seo legend{padding:0 .5rem;font-weight:800}
-.segmented input[value="yes"]:checked + span{background:var(--color-focus)}
+/* Grupos de opções nos painéis do editor (cores, aviso dos dados do produto) */
+.panel-fieldset{margin:0 0 1.5rem;padding:1rem 1.25rem .25rem;border:1px solid var(--color-border);border-radius:var(--radius)}
+.panel-fieldset legend{padding:0 .5rem;font-weight:800}
 @media (max-width:719px){
   .block-head{flex-wrap:wrap}
   .block-head .tools{margin-left:auto}
@@ -316,8 +313,8 @@ dialog.viewer img{display:block;width:auto;height:auto;max-width:100%;max-height
 table.list tbody tr:last-child td{border-bottom:0}
 table.list th:first-child{border-top-left-radius:var(--radius)}
 table.list th:last-child{border-top-right-radius:var(--radius)}
-.product-form fieldset,.sales-zone,.media-card,.seo,.start-box{box-shadow:var(--admin-shadow)}
-.product-form fieldset,.seo{background:var(--color-bg)}
+.product-form fieldset,.sales-zone,.media-card,.panel-fieldset,.start-box{box-shadow:var(--admin-shadow)}
+.product-form fieldset,.panel-fieldset{background:var(--color-bg)}
 .field input,.field select,.field textarea,.search input{border-radius:10px}
 @media (max-width:719px){
   .table-wrap{background:none;border:0;border-radius:0;box-shadow:none}

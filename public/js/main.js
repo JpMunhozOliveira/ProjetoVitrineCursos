@@ -1,6 +1,5 @@
 (function () {
   "use strict";
-  document.documentElement.classList.add("js");
   var S = window.SITE || {};
 
   // Cria elementos usando textContent (nunca innerHTML com dados)
@@ -24,14 +23,10 @@
       id: p.slug,
       titulo: p.title,
       resumo: p.short_description || "",
-      descricao: p.description || "",
       categoria: p.category || "",
       destaque: !!p.featured,
       imagem: p.image ? p.image.url : null,
       imagemAlt: p.image ? p.image.alt_text || "" : "",
-      publico: p.audience || "",
-      preRequisitos: p.prerequisites || "",
-      conteudo: p.modules || [],
       formato: p.format || "",
       cargaHoraria: p.workload || "",
       preco: p.price_cents === null || p.price_cents === undefined ? null : p.price_cents / 100,
@@ -109,7 +104,6 @@
         c.categoria ? el("p", { "class": "eyebrow", text: c.categoria }) : "",
         el("h3", { text: c.titulo }),
         el("p", { "class": "muted", text: c.resumo }),
-        c.publico ? el("p", { "class": "muted small", text: c.publico }) : "",
         el("div", { "class": "card-foot" }, [
           brl(c.preco) ? el("p", { "class": "price", text: brl(c.preco) }) : "",
           el("a", { "class": "card-link", href: href, "aria-label": "Ver detalhes: " + c.titulo, text: "Ver detalhes" })
@@ -155,7 +149,7 @@
       var term = norm(q.value), cat = sel.value;
       var list = C.filter(function (c) {
         return (!cat || c.categoria === cat) &&
-          (!term || norm([c.titulo, c.resumo, c.publico, c.categoria].join(" ")).indexOf(term) >= 0);
+          (!term || norm([c.titulo, c.resumo, c.categoria].join(" ")).indexOf(term) >= 0);
       });
       renderCards(catalog, list);
       out.textContent = list.length + (list.length === 1 ? " produto encontrado" : " produtos encontrados");
@@ -196,17 +190,13 @@
     document.title = c.titulo + " — " + S.nome;
     var m = document.querySelector('meta[name="description"]');
     if (m) m.setAttribute("content", c.resumo || "");
-    var facts = [["Formato", c.formato], ["Carga horária", c.cargaHoraria], ["Pré-requisitos", c.preRequisitos]]
+    var facts = [["Formato", c.formato], ["Carga horária", c.cargaHoraria]]
       .filter(function (f) { return f[1]; })
       .map(function (f) { return el("li", {}, [el("strong", { text: f[0] + ": " }), f[1]]); });
     var main = el("div", {}, [
       el("a", { "class": "crumb", href: "/catalogo.html", text: "← Todos os produtos" }),
       el("h1", { text: c.titulo }),
       el("p", { "class": "muted", text: c.resumo }),
-      c.descricao ? el("div", {}, [el("h2", { text: "Sobre" }), el("p", { text: c.descricao })]) : "",
-      c.publico ? el("div", {}, [el("h2", { text: "Para quem é" }), el("p", { text: c.publico })]) : "",
-      (c.conteudo || []).length ? el("div", {}, [el("h2", { text: "Conteúdo" }),
-        el("ul", {}, c.conteudo.map(function (t) { return el("li", { text: t }); }))]) : "",
       facts.length ? el("div", {}, [el("h2", { text: "Informações" }), el("ul", {}, facts)]) : ""
     ]);
     var aside = el("aside", { "class": "buy-box", "aria-label": "Compra" }, [
@@ -246,13 +236,28 @@
 
   // Menu flutuante: fica mais opaco depois que a página rola (ver site.css).
   var header = document.querySelector(".site-header");
-  if (header) {
-    var onScroll = function () { header.classList.toggle("is-scrolled", window.scrollY > 24); };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    onScroll();
+
+  // Botão "voltar ao topo": aparece depois de rolar um pouco mais de uma tela. Fora do editor do
+  // painel (lá a página é só uma prévia). Ao voltar, o foco vai para o início da página.
+  var toTop = null;
+  if (!document.documentElement.hasAttribute("data-editor")) {
+    toTop = el("button", { "class": "to-top", type: "button", "aria-label": "Voltar ao topo", title: "Voltar ao topo" });
+    toTop.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 19V5M5 12l7-7 7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    toTop.addEventListener("click", function () {
+      var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+      window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
+      var start = document.querySelector(".skip") || document.body;
+      start.focus({ preventScroll: true });
+    });
+    document.body.append(toTop);
   }
 
-  // Modo noturno: o botão é ligado por theme.js (compartilhado com o painel).
+  var onScroll = function () {
+    if (header) header.classList.toggle("is-scrolled", window.scrollY > 24);
+    if (toTop) toTop.classList.toggle("is-visible", window.scrollY > Math.max(600, window.innerHeight));
+  };
+  window.addEventListener("scroll", onScroll, { passive: true });
+  onScroll();
 
   // Menu mobile
   var btn = document.getElementById("menu-btn"), nav = document.getElementById("nav");

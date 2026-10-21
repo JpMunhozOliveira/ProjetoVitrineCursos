@@ -235,7 +235,7 @@
   window.Admin = {
     api: api, requireSession: requireSession, formatPrice: formatPrice,
     showMessage: showMessage, confirm: confirmAction, setFlash: setFlash, takeFlash: takeFlash,
-    uploadImage: uploadImage, formatBytes: formatBytes, viewImage: viewImage, pickImage: pickImage, IMAGE_TYPES: IMAGE_TYPES, STATUS: STATUS,
+    uploadImage: uploadImage, formatBytes: formatBytes, viewImage: viewImage, pickImage: pickImage, STATUS: STATUS,
     hasUnsavedChanges: function () { return false; }, // páginas com formulário substituem esta função
     leaving: false
   };

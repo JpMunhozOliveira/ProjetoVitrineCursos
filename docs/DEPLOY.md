@@ -158,11 +158,6 @@ docker compose run --rm app node scripts/admin-user.js seu@email.com
 ```
 O script pede a senha (mínimo 12 caracteres). Para trocar a senha depois, rode o mesmo comando: as sessões abertas são encerradas.
 
-Opcional: importar o Manual da Reforma Tributária (cria o produto como rascunho):
-```bash
-docker compose exec app node scripts/import-manual.js
-```
-
 ## 9. Testar tudo
 
 - [ ] `http://seusite.com.br` redireciona para `https://`.

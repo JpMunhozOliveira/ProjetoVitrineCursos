@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Cria o .env a partir do .env.example com segredos aleatórios (não imprime os valores).
 // Uso:  node scripts/gerar-env.js          (recusa sobrescrever um .env existente)
-//       node scripts/gerar-env.js --force  (sobrescreve; veja o aviso no README sobre o volume do banco)
+//       node scripts/gerar-env.js --force  (sobrescreve: com o banco já criado, a senha nova do Postgres não vale para o volume existente)
 const fs = require("node:fs");
 const path = require("node:path");
 const crypto = require("node:crypto");
