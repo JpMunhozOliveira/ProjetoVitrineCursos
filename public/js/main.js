@@ -27,6 +27,9 @@
       destaque: !!p.featured,
       imagem: p.image ? p.image.url : null,
       imagemAlt: p.image ? p.image.alt_text || "" : "",
+      // Logo da marca (Editar produto > Marca): aparece no cartão, ao lado da categoria.
+      marca: p.brand_logo ? { url: p.brand_logo.url, alt: p.brand_name || p.brand_logo.alt_text || "",
+        width: p.brand_logo.width || 1, height: p.brand_logo.height || 1 } : null,
       formato: p.format || "",
       cargaHoraria: p.workload || "",
       preco: p.price_cents === null || p.price_cents === undefined ? null : p.price_cents / 100,
@@ -101,7 +104,11 @@
       // Página de vendas publicada = destino principal; sem ela, a página de detalhes.
       var href = c.pagina || ("/produto.html?id=" + encodeURIComponent(c.id));
       var body = el("div", { "class": "card-body" }, [
-        c.categoria ? el("p", { "class": "eyebrow", text: c.categoria }) : "",
+        c.categoria || c.marca ? el("div", { "class": "card-meta" }, [
+          c.marca ? el("img", { "class": "card-brand", src: c.marca.url, alt: c.marca.alt,
+            width: c.marca.width, height: c.marca.height, loading: "lazy" }) : "",
+          c.categoria ? el("p", { "class": "eyebrow", text: c.categoria }) : ""
+        ]) : "",
         el("h3", { text: c.titulo }),
         el("p", { "class": "muted", text: c.resumo }),
         el("div", { "class": "card-foot" }, [

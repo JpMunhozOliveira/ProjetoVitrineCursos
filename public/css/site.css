@@ -888,8 +888,17 @@ html[data-editor] .to-top {
     box-shadow 0.2s,
     transform 0.2s;
 }
-.card:hover,
-.card:focus-within {
+/* Destaque do cartão: com o mouse em cima ou com foco de TECLADO (:focus-visible). Com foco de
+   clique (:focus-within) o cartão ficaria destacado ao voltar para a página, porque o navegador
+   restaura o foco no link clicado. Em telas de toque não há hover: o último toque ficaria preso. */
+@media (hover: hover) {
+  .card:hover {
+    border-color: var(--v-cta);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--v-cta) 14%, transparent);
+    transform: translateY(-3px);
+  }
+}
+.card:has(:focus-visible) {
   border-color: var(--v-cta);
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--v-cta) 14%, transparent);
   transform: translateY(-3px);
@@ -906,8 +915,10 @@ html[data-editor] .to-top {
   background: linear-gradient(135deg, var(--v-navy-2), var(--v-navy));
   transition: transform 0.4s ease;
 }
-.card-cover:hover .cover {
-  transform: scale(1.03);
+@media (hover: hover) {
+  .card-cover:hover .cover {
+    transform: scale(1.03);
+  }
 }
 .card-body {
   padding: 1.1rem 0.6rem 0.6rem;
@@ -926,6 +937,21 @@ html[data-editor] .to-top {
 .card-body p {
   margin: 0;
 }
+/* Logo da marca do produto à esquerda da categoria. Altura fixa: logos largos ou quadrados
+   ficam do mesmo tamanho visual. */
+.card-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 28px;
+}
+.card-brand {
+  flex: none;
+  width: auto;
+  height: 28px;
+  max-width: 110px;
+  object-fit: contain;
+}
 .small {
   font-size: 0.9rem;
 }
@@ -943,25 +969,41 @@ html[data-editor] .to-top {
   font-size: 1.2rem;
   letter-spacing: -0.02em;
 }
+/* "Ver detalhes": botão cheio na cor de destaque (mesmo estilo do botão de compra, menor). */
 .card-link {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.45rem;
   min-height: 44px;
   margin-left: auto;
-  font-weight: 700;
-  color: var(--v-accent-ink);
+  padding: 0.55rem 1.1rem;
+  border-radius: 10px;
+  background: var(--v-cta);
+  color: var(--v-cta-text);
+  font-weight: 800;
   text-decoration: none;
+  white-space: nowrap;
+  box-shadow: 0 10px 22px -10px color-mix(in srgb, var(--v-cta) 75%, transparent);
+  transition:
+    background 0.15s,
+    box-shadow 0.15s;
 }
 .card-link::after {
   content: "→";
   transition: transform 0.15s;
 }
-.card:hover .card-link::after {
-  transform: translateX(3px);
+@media (hover: hover) {
+  .card:hover .card-link {
+    background: var(--v-cta-hover);
+    box-shadow: 0 14px 28px -10px color-mix(in srgb, var(--v-cta) 85%, transparent);
+  }
+  .card:hover .card-link::after {
+    transform: translateX(3px);
+  }
 }
 .card-link:focus-visible {
-  outline: none; /* o contorno do cartão inteiro (:focus-within) já mostra o foco */
+  outline: none; /* o contorno do cartão inteiro (:has(:focus-visible)) já mostra o foco */
+  background: var(--v-cta-hover);
 }
 .more {
   margin-top: 2.5rem;
@@ -1074,7 +1116,7 @@ html[data-editor] .to-top {
 
 @media (prefers-reduced-motion: reduce) {
   .card:hover,
-  .card:focus-within,
+  .card:has(:focus-visible),
   .contact-card:hover,
   .card-cover:hover .cover {
     transform: none;
