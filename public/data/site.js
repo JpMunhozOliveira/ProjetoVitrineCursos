@@ -5,7 +5,7 @@
    Os textos marcados com REVISAR são sugestões: confira antes de publicar.
    ========================================================== */
 window.SITE = {
-  nome: "Estratégia Contábil Digital",
+  nome: "Celetivo Cursos",
   slogan: "Atualização contábil e tributária, direto ao ponto",
   descricao:
     "Cursos e materiais digitais para contadores e profissionais da área fiscal se atualizarem com segurança, começando pela Reforma Tributária do Consumo.",
@@ -14,7 +14,7 @@ window.SITE = {
   sobre: {
     titulo: "Conhecimento técnico, explicado para quem aplica no dia a dia",
     texto:
-      "A Estratégia Contábil Digital produz cursos e materiais de estudo para profissionais da contabilidade e da área fiscal.\n\nNosso foco é transformar mudanças na legislação em conteúdo claro, organizado e pronto para consulta, para que você entenda o que muda, por que muda e como aplicar no trabalho.",
+      "A Celetivo Cursos produz cursos e materiais de estudo para profissionais da contabilidade e da área fiscal.\n\nNosso foco é transformar mudanças na legislação em conteúdo claro, organizado e pronto para consulta, para que você entenda o que muda, por que muda e como aplicar no trabalho.",
     valores: [
       { titulo: "Direto ao ponto", texto: "Conteúdo organizado em etapas curtas, sem enrolação." },
       { titulo: "Fundamentado", texto: "Explicações baseadas na legislação e na regulamentação vigentes." },
