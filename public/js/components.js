@@ -11,7 +11,7 @@
   var HEADER = `<a class="skip" href="#conteudo">Pular para o conteúdo</a>
 <header class="site-header">
   <div class="container header-row">
-    <a class="brand" href="/index.html"><img class="brand-mark" src="/assets/favicon/favicon.png" alt="" width="32" height="32"><span data-site="nome">Estratégia Contábil Digital</span></a>
+    <a class="brand" href="/index.html"><img class="brand-mark" src="/assets/favicon/favicon.png" alt="" width="32" height="32"><span data-site="nome">Celetivo Cursos</span></a>
     <div class="header-actions">
       <nav id="nav" class="nav" aria-label="Principal">
         <ul>
@@ -29,7 +29,7 @@
 
   var FOOTER = `<footer class="site-footer">
   <div class="container foot3">
-    <div><p><strong data-site="nome">Estratégia Contábil Digital</strong> © <span data-year></span></p><p data-site="slogan"></p></div>
+    <div><p><strong data-site="nome">Celetivo Cursos</strong> © <span data-year></span></p><p data-site="slogan"></p></div>
     <div><p><strong>Navegação</strong></p><p><a href="/catalogo.html">Catálogo</a></p><p><a href="/sobre.html">Sobre</a></p><p><a href="/contato.html">Contato</a></p></div>
     <div><p><strong>Compra segura</strong></p><p>Pagamentos e acesso aos cursos processados pela Kiwify.</p></div>
   </div>
@@ -39,8 +39,39 @@
     var ph = document.getElementById(id);
     if (ph) ph.outerHTML = html;
   }
+
+  // Marca do professor: a página de vendas manda nome e logo em data-brand-* no
+  // placeholder do cabeçalho (ver server/sales/render.js). Sem eles, fica a marca do site.
+  // Os textos entram por textContent/setAttribute, nunca como HTML.
+  var placeholder = document.getElementById("site-header");
+  var brand = placeholder && placeholder.hasAttribute("data-brand-name") ? {
+    name: placeholder.dataset.brandName,
+    logo: placeholder.dataset.brandLogo,
+    width: placeholder.dataset.brandLogoW,
+    height: placeholder.dataset.brandLogoH,
+    alt: placeholder.dataset.brandLogoAlt
+  } : null;
+
   mount("site-header", HEADER);
   mount("site-footer", FOOTER);
+
+  if (brand) {
+    var link = document.querySelector(".site-header .brand");
+    var mark = link.querySelector(".brand-mark"), label = link.querySelector("[data-site]");
+    if (brand.logo) {
+      mark.src = brand.logo;
+      mark.className = "brand-logo";
+      if (brand.width && brand.height) { mark.width = brand.width; mark.height = brand.height; }
+      // Só logo, sem nome: o logo é o nome do link.
+      mark.alt = brand.name ? "" : brand.alt || "Início";
+    }
+    if (brand.name) {
+      label.removeAttribute("data-site"); // main.js não troca pelo nome do site
+      label.textContent = brand.name;
+    } else if (brand.logo) {
+      label.remove();
+    }
+  }
 
   // Marca no menu a página atual (acessibilidade + destaque visual)
   var current = { home: "/index.html", catalogo: "/catalogo.html", produto: "/catalogo.html", sobre: "/sobre.html", contato: "/contato.html" }[document.body.dataset.page];

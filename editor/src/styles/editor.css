@@ -1,5 +1,5 @@
 /* Layout do editor React. Os componentes reaproveitam as classes do painel (admin.css):
-   .block, .list-field, .image-field, .form-actions, .segmented etc. */
+   .block, .list-field, .image-field, .segmented etc. */
 
 /* ---------- Tela cheia ----------
    A página de vendas ocupa a janela inteira. Por cima dela flutuam duas barras (TopBar em cima,

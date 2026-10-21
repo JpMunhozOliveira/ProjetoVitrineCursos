@@ -1,7 +1,7 @@
 // Editor da página de vendas (React). A própria página é o editor: textos editados direto nela,
 // "+" para inserir blocos e uma barra flutuante no bloco selecionado (ver Preview, CanvasEditing e
 // CanvasOverlay). Um painel lateral abre sob demanda para o que não se edita na página (imagens,
-// ícones, itens de lista), a visão geral dos blocos e as cores/SEO.
+// ícones, itens de lista), a visão geral dos blocos e as cores.
 // Este arquivo coordena: carregamento, estado da página, seleção, salvar e publicar.
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { EditorContext } from "./state/context.js";
@@ -14,7 +14,7 @@ import { BlockList } from "./components/BlockList.jsx";
 import { BlockPicker } from "./components/BlockPicker.jsx";
 import { IconMenu } from "./components/IconMenu.jsx";
 import { ThemePicker, resolveTheme } from "./components/ThemePicker.jsx";
-import { SeoFields } from "./components/SeoFields.jsx";
+import { ProductSettingsNote } from "./components/ProductSettingsNote.jsx";
 import { SidePanel } from "./components/SidePanel.jsx";
 import { Preview } from "./components/Preview.jsx";
 
@@ -101,8 +101,7 @@ export default function App({ productId }) {
         document.title = `Página de vendas: ${product.title} — Painel administrativo`;
         if (saved) {
           dispatch({ type: "load", doc: {
-            sections: withKeys(saved.sections, schema), seo_title: saved.seo_title || "",
-            seo_description: saved.seo_description || "",
+            sections: withKeys(saved.sections, schema),
             theme: resolveTheme(saved.theme, schema),
           } });
         }
@@ -121,8 +120,8 @@ export default function App({ productId }) {
 
   // O que vai para a pré-visualização (sem _key).
   const previewPayload = useMemo(() => doc && stripKeys({
-    sections: doc.sections, seo_title: doc.seo_title, seo_description: doc.seo_description, theme: doc.theme,
-  }), [doc?.sections, doc?.seo_title, doc?.seo_description, doc?.theme]); // eslint-disable-line react-hooks/exhaustive-deps
+    sections: doc.sections, theme: doc.theme,
+  }), [doc?.sections, doc?.theme]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ---------- Edição direta na página ----------
      Texto digitado na página já está na tela: não redesenha a moldura a cada letra (o cursor
@@ -287,7 +286,7 @@ export default function App({ productId }) {
 
   function start(fromTemplate) {
     const initial = withKeys(fromTemplate ? structuredClone(schema.defaultSections) : [], schema);
-    dispatch({ type: "start", doc: { sections: initial, seo_title: "", seo_description: "", theme: resolveTheme(null, schema) } });
+    dispatch({ type: "start", doc: { sections: initial, theme: resolveTheme(null, schema) } });
     if (initial[0]) { setOpen(new Set([initial[0]._key])); select(initial[0]._key, "canvas"); }
     setMessage(fromTemplate
       ? { text: "Modelo padrão carregado: clique nos textos da página para substituí-los.", kind: "success" }
@@ -318,7 +317,6 @@ export default function App({ productId }) {
       // "saved" (e não "load"): o histórico continua — dá para desfazer o que veio antes de salvar.
       dispatch({ type: "saved", sent, doc: {
         sections: withKeys(carryKeys(saved.sections, sent.sections), schema),
-        seo_title: saved.seo_title || "", seo_description: saved.seo_description || "",
         theme: resolveTheme(saved.theme, schema),
       } });
       return saved;
@@ -428,7 +426,7 @@ export default function App({ productId }) {
               block={sections[selectedIndex]} blockIndex={selectedIndex}
               blockHidden={visible !== null && selectedIndex >= 0 && !visible.has(selectedIndex)}
               structure={structure}
-              page={<><ThemePicker theme={doc.theme} /><SeoFields title={doc.seo_title} description={doc.seo_description} /></>} />
+              page={<><ThemePicker theme={doc.theme} /><ProductSettingsNote productUrl={productUrl} /></>} />
           )}
           <ToolDock canUndo={history.past.length > 0} canRedo={history.future.length > 0} onUndo={undo} onRedo={redo}
             device={device} onDevice={setDevice} panel={panel} onPanel={setPanel} />

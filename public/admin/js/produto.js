@@ -18,7 +18,7 @@
 
   // Campos de texto enviados como estão; a API apara espaços e transforma vazio em null.
   var TEXT_FIELDS = ["title", "slug", "status", "category", "short_description",
-    "format", "workload", "checkout_url"];
+    "format", "workload", "checkout_url", "brand_name"];
 
   // "Manual Prático!" -> "manual-pratico"
   function slugify(text) {
@@ -46,7 +46,8 @@
     TEXT_FIELDS.forEach(function (f) { form.elements[f].value = p[f] || ""; });
     form.elements.featured.checked = !!p.featured;
     form.elements.price.value = priceToInput(p.price_cents);
-    showCover(p.image || null);
+    cover.show(p.image || null);
+    brandLogo.show(p.brand_logo || null);
   }
 
   function collect() {
@@ -54,77 +55,94 @@
     TEXT_FIELDS.forEach(function (f) { data[f] = form.elements[f].value; });
     data.featured = form.elements.featured.checked;
     data.price_cents = parsePrice(form.elements.price.value);
-    data.image_id = cover ? cover.id : null;
+    data.image_id = cover.image ? cover.image.id : null;
+    data.brand_logo_id = brandLogo.image ? brandLogo.image.id : null;
     return data;
   }
 
-  /* ---------- Imagem de capa ----------
-     A imagem é enviada para a biblioteca na hora (gera um registro em /media), mas só vira capa
-     do produto quando ele é salvo. Se você desistir, ela fica na biblioteca e pode ser excluída lá. */
-  var cover = null; // { id, url, alt_text, width, height } ou null
+  /* ---------- Imagens do produto (capa e logo da marca) ----------
+     A imagem é enviada para a biblioteca na hora (gera um registro em /media), mas só vale para o
+     produto quando ele é salvo. Se você desistir, ela fica na biblioteca e pode ser excluída lá.
+     Cada campo usa elementos com o mesmo prefixo: <prefixo>-img, -zoom, -empty, -file, -pick,
+     -remove, -alt, -alt-field e -msg. */
+  function imageField(prefix, texts) {
+    var el = function (part) { return $(prefix + "-" + part); };
+    var field = { image: null }; // { id, url, alt_text, width, height } ou null
 
-  function showCover(image) {
-    cover = image;
-    var img = $("cover-img");
-    $("cover-zoom").hidden = !image;
-    $("cover-empty").hidden = !!image;
-    if (image) {
-      img.src = image.url;
-      img.width = image.width; img.height = image.height; // reserva o espaço antes de carregar
-    } else {
-      img.removeAttribute("src");
+    field.show = function (image) {
+      field.image = image;
+      var img = el("img");
+      el("zoom").hidden = !image;
+      el("empty").hidden = !!image;
+      if (image) {
+        img.src = image.url;
+        img.width = image.width; img.height = image.height; // reserva o espaço antes de carregar
+      } else {
+        img.removeAttribute("src");
+      }
+      el("remove").hidden = !image;
+      el("alt-field").hidden = !image;
+      el("alt").value = image ? image.alt_text || "" : "";
+    };
+
+    function choose(image, text) {
+      field.show(image);
+      dirty = true;
+      Admin.showMessage(el("msg"), text, "success");
     }
-    $("cover-remove").hidden = !image;
-    $("cover-alt-field").hidden = !image;
-    $("cover-alt").value = image ? image.alt_text || "" : "";
-  }
 
-  function chooseCover(image, text) {
-    showCover(image);
-    dirty = true;
-    Admin.showMessage($("cover-msg"), text, "success");
-  }
-
-  $("cover-file").addEventListener("change", async function () {
-    var file = this.files[0];
-    this.value = ""; // permite escolher o mesmo arquivo de novo depois
-    if (!file) return;
-    var coverMsg = $("cover-msg");
-    Admin.showMessage(coverMsg, "Enviando “" + file.name + "”…");
-    try {
-      chooseCover(await Admin.uploadImage(file), "Imagem enviada. Clique em Salvar para aplicá-la ao produto.");
-      $("cover-alt").focus(); // próximo passo natural: descrever a imagem
-    } catch (err) {
-      Admin.showMessage(coverMsg, err.message, "error");
-    }
-  });
-
-  $("cover-zoom").addEventListener("click", function () {
-    if (!cover) return;
-    Admin.viewImage({
-      url: cover.url, alt: $("cover-alt").value.trim(), title: "Imagem de capa",
-      width: cover.width, height: cover.height
+    el("file").addEventListener("change", async function () {
+      var file = this.files[0];
+      this.value = ""; // permite escolher o mesmo arquivo de novo depois
+      if (!file) return;
+      Admin.showMessage(el("msg"), "Enviando “" + file.name + "”…");
+      try {
+        choose(await Admin.uploadImage(file), "Imagem enviada. " + texts.apply);
+        el("alt").focus(); // próximo passo natural: descrever a imagem
+      } catch (err) {
+        Admin.showMessage(el("msg"), err.message, "error");
+      }
     });
-  });
 
-  $("cover-remove").addEventListener("click", function () {
-    chooseCover(null, "Capa removida. Clique em Salvar para aplicar (a imagem continua na biblioteca).");
-  });
+    el("zoom").addEventListener("click", function () {
+      if (!field.image) return;
+      Admin.viewImage({
+        url: field.image.url, alt: el("alt").value.trim(), title: texts.title,
+        width: field.image.width, height: field.image.height
+      });
+    });
 
-  // Seletor de imagens da biblioteca (compartilhado: Admin.pickImage, em common.js).
-  $("cover-pick").addEventListener("click", async function () {
-    var m = await Admin.pickImage({ currentId: cover && cover.id });
-    if (m) chooseCover(m, "Imagem escolhida. Clique em Salvar para aplicá-la ao produto.");
-  });
+    el("remove").addEventListener("click", function () {
+      choose(null, texts.removed + " Clique em Salvar para aplicar (a imagem continua na biblioteca).");
+    });
 
-  // O texto alternativo pertence à imagem (fica na biblioteca); é gravado junto com o produto.
-  async function saveCoverAlt() {
-    if (!cover) return;
-    var alt = $("cover-alt").value.trim();
-    if (alt === (cover.alt_text || "")) return;
-    var updated = await Admin.api("/media/" + encodeURIComponent(cover.id), { method: "PATCH", body: { alt_text: alt || null } });
-    cover.alt_text = updated.alt_text;
+    // Seletor de imagens da biblioteca (compartilhado: Admin.pickImage, em common.js).
+    el("pick").addEventListener("click", async function () {
+      var m = await Admin.pickImage({ currentId: field.image && field.image.id });
+      if (m) choose(m, "Imagem escolhida. " + texts.apply);
+    });
+
+    // O texto alternativo pertence à imagem (fica na biblioteca); é gravado junto com o produto.
+    field.saveAlt = async function () {
+      if (!field.image) return;
+      var alt = el("alt").value.trim();
+      if (alt === (field.image.alt_text || "")) return;
+      var updated = await Admin.api("/media/" + encodeURIComponent(field.image.id), { method: "PATCH", body: { alt_text: alt || null } });
+      field.image.alt_text = updated.alt_text;
+    };
+
+    field.clearMessage = function () { Admin.showMessage(el("msg"), ""); };
+    return field;
   }
+
+  var cover = imageField("cover", {
+    title: "Imagem de capa", removed: "Capa removida.",
+    apply: "Clique em Salvar para aplicá-la ao produto."
+  });
+  var brandLogo = imageField("brand", {
+    title: "Logo da marca", removed: "Logo removido.",
+    apply: "Clique em Salvar para usá-lo na página de vendas."
+  });
 
   // Ajusta a tela ao produto como está GRAVADO (não ao que foi alterado e ainda não salvo).
   function setMode(product) {
@@ -229,7 +247,8 @@
     saveBtn.disabled = true;
     Admin.showMessage(msg, "Salvando…");
     try {
-      await saveCoverAlt();
+      await cover.saveAlt();
+      await brandLogo.saveAlt();
       var saved = id
         ? await Admin.api("/products/" + encodeURIComponent(id), { method: "PATCH", body: data })
         : await Admin.api("/products", { method: "POST", body: data });
@@ -239,7 +258,7 @@
         history.replaceState(null, "", "produto.html?id=" + encodeURIComponent(id));
       }
       fill(saved); // mostra os valores como ficaram gravados (ex.: espaços removidos, link normalizado)
-      Admin.showMessage($("cover-msg"), ""); // o aviso "clique em Salvar" já foi atendido
+      cover.clearMessage(); brandLogo.clearMessage(); // o aviso "clique em Salvar" já foi atendido
       setMode(saved);
       dirty = false;
       Admin.showMessage(msg, "Produto salvo às " + new Date().toLocaleTimeString("pt-BR") + ".", "success");

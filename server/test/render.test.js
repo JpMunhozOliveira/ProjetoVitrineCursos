@@ -8,7 +8,7 @@ const { BLOCKS, defaultSections } = require("../sales/blocks");
 const product = (sections) => ({
   title: "Produto de Teste", slug: "produto-teste", short_description: "", status: "published",
   price_cents: 4990, checkout_url: "https://pay.example.com/x", image_id: null,
-  sections, seo_title: "", seo_description: "", theme: null, published_at: null, media: new Map(),
+  sections, brand_name: null, brand_logo_id: null, theme: null, published_at: null, media: new Map(),
 });
 const render = (sections, preview) => renderSalesPage(product(sections), { baseUrl: "http://localhost", preview });
 
@@ -381,4 +381,46 @@ test("oferta antiga (só os campos de antes) continua válida: preço, botão, e
   assert.match(live, /<div class="offer-proof" data-empty>/);
   assert.match(live, /<div class="buy-guarantee" data-empty>/);
   assert.match(live, /<p class="buy-note" data-field="note" data-fallback>/);
+});
+
+test("marca do professor: nome e logo vão para o menu e o rodapé, como texto (sem HTML)", () => {
+  const logoId = "11111111-1111-4111-8111-111111111111";
+  const data = {
+    ...product(defaultSections()), brand_name: "Coutinho <b>Treinamentos</b>", brand_logo_id: logoId,
+    media: new Map([[logoId, { id: logoId, url: "/uploads/logo.webp", width: 300, height: 90, alt_text: "Logo" }]]),
+  };
+  const page = renderSalesPage(data, { baseUrl: "http://localhost", preview: false });
+  assert.match(page, /<div id="site-header" data-brand-name="Coutinho &lt;b&gt;Treinamentos&lt;\/b&gt;" data-brand-logo="\/uploads\/logo.webp"/);
+  assert.match(page, /<strong>Coutinho &lt;b&gt;Treinamentos&lt;\/b&gt;<\/strong> ©/);
+  assert.doesNotMatch(page, /data-site="slogan"/);
+  // Sem marca: menu e rodapé do site.
+  const plain = render(defaultSections(), false);
+  assert.match(plain, /<div id="site-header"><\/div>/);
+  assert.match(plain, /<strong data-site="nome"><\/strong>/);
+});
+
+test("botão voltar: na página pública aponta para o catálogo; fora do editor ao vivo", () => {
+  assert.match(render(defaultSections(), false), /<a class="v-back" href="\/catalogo.html" data-back>/);
+  assert.match(render(defaultSections(), true), /class="v-back"/);
+  assert.doesNotMatch(render(defaultSections(), "live"), /class="v-back"/);
+});
+
+test("grades: colunas escolhidas viram classe; automático não leva classe", () => {
+  const item = { icon: "check", title: "T", text: "x" };
+  assert.match(render([{ type: "topics", title: "T", items: [item], columns: "four" }], false), /<ul class="grid8 cols-4">/);
+  assert.match(render([{ type: "audience", title: "T", items: [{ icon: "user", text: "A" }], columns: "three" }], false), /<ul class="who cols-3">/);
+  assert.match(render([{ type: "topics", title: "T", items: [item] }], false), /<ul class="grid8">/);
+});
+
+test("texto formatado: negrito, cor e alinhamento na página pública e no editor", () => {
+  const sections = [{ type: "faq", title: "[align=center]Dúvidas [b]frequentes[/b]", items: [
+    { question: "[c=accent]Pergunta[/c]", answer: "[align=right][i]um[/i]\n\ndois" }] }];
+  const page = render(sections, false);
+  assert.match(page, /<h2 id="t-\d+" data-align="center">Dúvidas <strong>frequentes<\/strong><\/h2>/);
+  // Texto formatado dentro de elemento flex (pergunta do FAQ) ganha um <span> em volta.
+  assert.match(page, /<summary><span><span class="tx-c-accent">Pergunta<\/span><\/span><\/summary>/);
+  assert.match(page, /<p data-align="right"><em>um<\/em><\/p><p data-align="right">dois<\/p>/);
+  assert.doesNotMatch(page, /\[b\]|\[align/);
+  const live = render(sections, "live");
+  assert.match(live, /data-field="title" data-align="center">Dúvidas <strong>frequentes<\/strong>/);
 });

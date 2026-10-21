@@ -1,6 +1,7 @@
 const pool = require("../config/database");
 const { BLOCKS, ICONS, ICON_GROUPS, MAX_BLOCKS, defaultSections } = require("../sales/blocks");
 const { THEMES, DEFAULT_THEME } = require("../sales/theme");
+const { COLORS, ALIGNS } = require("../sales/richtext");
 const { PageInputError, savePage, publishPage, getPage, loadDraftForRender } = require("../sales/pages");
 const { renderSalesPage } = require("../sales/render");
 const { baseUrl } = require("../lib/base-url");
@@ -19,6 +20,7 @@ function getBlockSchema(_req, res) {
   return res.json({ data: {
     blocks: BLOCKS, icons: ICONS, iconGroups: ICON_GROUPS, maxBlocks: MAX_BLOCKS, defaultSections: defaultSections(),
     themes: THEMES, defaultTheme: DEFAULT_THEME,
+    textColors: COLORS, textAligns: ALIGNS, // formatação de texto (barra do editor)
   } });
 }
 

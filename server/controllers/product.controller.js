@@ -1,26 +1,31 @@
 const pool = require("../config/database");
 const storage = require("../lib/storage");
 
-// Colunas do produto (alias "p") + dados da imagem de capa (alias "m", via LEFT JOIN).
+// Colunas do produto (alias "p") + dados da capa (alias "m") e do logo da marca (alias "bl").
 const COLUMNS = `p.id, p.title, p.slug, p.short_description, p.status, p.category, p.featured,
-  p.description, p.audience, p.prerequisites, p.modules, p.format, p.workload, p.price_cents,
-  p.checkout_url, p.image_id, p.created_at, p.updated_at,
+  p.format, p.workload, p.price_cents, p.checkout_url, p.image_id, p.brand_name, p.brand_logo_id,
+  p.created_at, p.updated_at,
   CASE WHEN m.id IS NULL THEN NULL ELSE json_build_object(
     'id', m.id, 'storage_key', m.storage_key, 'alt_text', m.alt_text,
-    'width', m.width, 'height', m.height) END AS image`;
+    'width', m.width, 'height', m.height) END AS image,
+  CASE WHEN bl.id IS NULL THEN NULL ELSE json_build_object(
+    'id', bl.id, 'storage_key', bl.storage_key, 'alt_text', bl.alt_text,
+    'width', bl.width, 'height', bl.height) END AS brand_logo`;
 
 // "source" é a tabela products ou um CTE com o resultado de um INSERT/UPDATE.
-const selectFrom = (source, extra = "") => `SELECT ${COLUMNS}${extra} FROM ${source} p LEFT JOIN media m ON m.id = p.image_id`;
+const selectFrom = (source, extra = "") => `SELECT ${COLUMNS}${extra} FROM ${source} p
+  LEFT JOIN media m ON m.id = p.image_id LEFT JOIN media bl ON bl.id = p.brand_logo_id`;
 
 // Site público: o produto tem página de vendas PUBLICADA? (o catálogo leva direto para /p/endereco)
 const HAS_SALES_PAGE = `,
   EXISTS (SELECT 1 FROM sales_pages sp WHERE sp.product_id = p.id AND sp.published_sections IS NOT NULL) AS has_sales_page`;
 
-// Troca a chave interna do arquivo pela URL pública.
+// Troca a chave interna do arquivo pela URL pública (capa e logo da marca).
 function toResponse(row) {
-  if (row.image) {
-    const { storage_key: key, ...image } = row.image;
-    row.image = { ...image, url: storage.publicUrl(key) };
+  for (const field of ["image", "brand_logo"]) {
+    if (!row[field]) continue;
+    const { storage_key: key, ...image } = row[field];
+    row[field] = { ...image, url: storage.publicUrl(key) };
   }
   return row;
 }
@@ -30,18 +35,19 @@ const MAX_PRICE_CENTS = 100_000_000; // R$ 1.000.000,00
 
 // Textos opcionais: campo -> tamanho máximo. Vazio vira null (o site oculta campos nulos).
 const OPTIONAL_TEXT = {
-  short_description: 500,
+  short_description: 500, // cards do catálogo e descrição no Google / prévia do link
   category: 80,
-  description: 10000,
-  audience: 2000,
-  prerequisites: 2000,
   format: 120,
   workload: 60,
+  brand_name: 80,       // nome da empresa do professor na página de vendas (vazio = marca do site)
 };
 
+// Imagens do produto (a existência é conferida pelo banco, chave estrangeira).
+const IMAGE_FIELDS = ["image_id", "brand_logo_id"];
+
 const FIELDS = new Set([
-  "title", "slug", "status", "featured", "modules", "price_cents", "checkout_url", "image_id",
-  ...Object.keys(OPTIONAL_TEXT),
+  "title", "slug", "status", "featured", "price_cents", "checkout_url",
+  ...IMAGE_FIELDS, ...Object.keys(OPTIONAL_TEXT),
 ]);
 
 function normalizeProductInput(body, isCreate = false) {
@@ -93,18 +99,6 @@ function normalizeProductInput(body, isCreate = false) {
     values.featured = body.featured;
   }
 
-  if ("modules" in body) {
-    if (!Array.isArray(body.modules) || body.modules.some((m) => typeof m !== "string")) {
-      return { error: "modules deve ser uma lista de textos." };
-    }
-    const modules = body.modules.map((m) => m.trim()).filter(Boolean);
-    if (modules.length > 100 || modules.some((m) => m.length > 200)) {
-      return { error: "Use no máximo 100 módulos, com até 200 caracteres cada." };
-    }
-    // O driver pg envia arrays JS como array do Postgres; para JSONB, mandamos o texto JSON.
-    values.modules = JSON.stringify(modules);
-  }
-
   if ("price_cents" in body) {
     const price = body.price_cents;
     if (price !== null && !(Number.isInteger(price) && price >= 0 && price <= MAX_PRICE_CENTS)) {
@@ -128,9 +122,10 @@ function normalizeProductInput(body, isCreate = false) {
   }
 
   // A existência da imagem é conferida pelo banco (chave estrangeira); aqui só o formato.
-  if ("image_id" in body) {
-    if (body.image_id !== null && !isValidId(body.image_id)) return { error: "image_id inválido." };
-    values.image_id = body.image_id;
+  for (const field of IMAGE_FIELDS) {
+    if (!(field in body)) continue;
+    if (body[field] !== null && !isValidId(body[field])) return { error: `${field} inválido.` };
+    values[field] = body[field];
   }
 
   return { values };
@@ -151,7 +146,8 @@ function isValidId(value) {
 }
 
 const isDuplicateSlug = (error) => error.code === "23505" && error.constraint === "products_slug_key";
-const isMissingImage = (error) => error.code === "23503" && error.constraint === "products_image_id_fkey";
+const isMissingImage = (error) => error.code === "23503"
+  && ["products_image_id_fkey", "products_brand_logo_id_fkey"].includes(error.constraint);
 const DUPLICATE_SLUG = { error: "Já existe um produto com este endereço (slug)." };
 const MISSING_IMAGE = { error: "A imagem escolhida não existe mais. Escolha outra." };
 const INVALID_ID = { error: "ID de produto inválido." };

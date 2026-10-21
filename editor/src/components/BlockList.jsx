@@ -6,11 +6,13 @@ import { Field } from "./Fields.jsx";
 import { BlockIcon } from "../ui/BlockIcon.jsx";
 import { Icon } from "./CanvasOverlay.jsx";
 import { SortableList, useSortableItem, DragHandle } from "../ui/dnd.jsx";
+import { plain } from "../state/richtext.js";
 
-// Resumo exibido no cabeçalho do bloco (o primeiro texto que identifica o conteúdo).
+// Resumo exibido no cabeçalho do bloco (o primeiro texto que identifica o conteúdo), sem as
+// marcações de formatação.
 function summary(block) {
   const first = (block.items || [])[0] || {};
-  return block.title || block.name || first.title || first.question || first.text || "";
+  return plain(block.title || block.name || first.title || first.question || first.text || "");
 }
 
 function BlockCard({ block, index, total, isOpen, isSelected, isHidden, onToggle, onRemove, onDuplicate, onHover }) {

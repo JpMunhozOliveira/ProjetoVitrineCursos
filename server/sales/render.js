@@ -3,12 +3,37 @@
 const { html } = require("../lib/html");
 const { BLOCKS, ICONS, NETWORKS, validBlocks } = require("./blocks");
 const { normalizeTheme, themeHref, DEFAULT_THEME } = require("./theme");
+const { toHtml, paragraphsHtml, alignOf } = require("./richtext");
 
 const brl = (cents) => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+// Textos dos blocos podem ter formatação (negrito, cor, alinhamento: ver richtext.js). Antes de
+// desenhar, cada texto vira HTML seguro já formatado, guardando o original em .raw: assim os
+// ${x.title} dos blocos saem formatados, e "vazio" continua sendo "" (some da página).
+function rich(value) {
+  if (!value) return "";
+  const out = toHtml(value);
+  out.raw = value;
+  return out;
+}
+function richFields(value, fields) {
+  const out = { ...value };
+  for (const [name, field] of Object.entries(fields)) {
+    if (field.type === "text" || field.type === "textarea") out[name] = rich(value[name]);
+    if (field.type === "list") out[name] = (value[name] || []).map((item) => richFields(item, field.item));
+  }
+  return out;
+}
+// Texto formatado que divide um elemento flex com um ícone (itens de lista, pergunta do FAQ,
+// botões): ganha um <span>, senão cada trecho em negrito/cor viraria um item separado da linha.
+const inline = (value) => (value && String(value).includes("<") ? html`<span>${value}</span>` : value);
+const rawOf = (value) => (value && value.raw !== undefined ? value.raw : value || "");
+// Alinhamento escolhido no texto: atributo (a política de segurança bloqueia style="" inline).
+const alignAttr = (value) => { const a = alignOf(rawOf(value)); return a ? html` data-align="${a}"` : null; };
+
 // Textos com várias linhas: cada parágrafo (separado por linha em branco) vira um <p>.
-const paragraphs = (text, cls) => (text || "").split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean)
-  .map((p) => (cls ? html`<p class="${cls}">${p}</p>` : html`<p>${p}</p>`));
+const paragraphs = (value, cls) => paragraphsHtml(rawOf(value)).map((p) =>
+  html`<p${cls ? html` class="${cls}"` : null}${alignAttr(value)}>${p}</p>`);
 
 const svg = (name, cls = "ico") => html`<svg class="${cls}" aria-hidden="true"><use href="#i-${name}"/></svg>`;
 const mark = (positive) => html`<svg aria-hidden="true"><use href="#i-${positive ? "check" : "x"}"/></svg>`;
@@ -46,7 +71,7 @@ function linkItem(ctx, list, i, x, kind) {
   const external = x.url && !x.url.startsWith("mailto:");
   const label = ctx.live
     ? html`<span${ctx.field(`${list}.${i}.label`, x.label, { fallback: true })}>${x.label || kind.label}</span>`
-    : x.label || kind.label;
+    : inline(x.label) || kind.label;
   const target = x.url
     ? html` href="${x.url}"${external ? html` target="_blank" rel="noopener noreferrer"` : null}`
     : html` data-no-url title="Defina o endereço em Configurar bloco ⚙"`;
@@ -73,6 +98,20 @@ const IMAGE_GLYPH = html`<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3
 // o autor fica numa faixa escura). Abertura, oferta e chamada são sempre escuras.
 const BACKGROUND_DEFAULT = { author: "dark" };
 
+// Número de colunas escolhido no bloco (grades): "auto" não leva classe.
+const COLUMNS = { two: 2, three: 3, four: 4 };
+const cols = (b) => (COLUMNS[b.columns] ? ` cols-${COLUMNS[b.columns]}` : "");
+
+// Marca do professor no menu (montado por public/js/components.js a partir destes atributos).
+// Sem nome nem logo, o menu mostra a marca do site.
+function brandAttrs(data) {
+  const logo = data.brand_logo_id && data.media.get(data.brand_logo_id);
+  if (!data.brand_name && !logo) return null;
+  return html` data-brand-name="${data.brand_name || ""}"${logo
+    ? html` data-brand-logo="${logo.url}" data-brand-logo-w="${logo.width}" data-brand-logo-h="${logo.height}" data-brand-logo-alt="${logo.alt_text || ""}"`
+    : null}`;
+}
+
 // Contexto de uma renderização: produto, imagens e contadores (ids de títulos, fundo alternado).
 // live = true: pré-visualização dentro do editor, com os textos marcados para edição direta.
 function createContext(data, { live = false } = {}) {
@@ -88,14 +127,15 @@ function createContext(data, { live = false } = {}) {
     // Atributos de um texto editável: data-field="items.0.question" (caminho dentro do bloco).
     // Vazio -> data-empty + data-placeholder (o editor mostra o rótulo só no bloco selecionado).
     // fallback: o texto exibido é um padrão (ex.: título do produto); editar grava o campo do bloco.
+    // O alinhamento do texto (data-align) vale também na página pública.
     field(path, value, { fallback = false } = {}) {
-      if (!live) return null;
+      if (!live) return alignAttr(value);
       const empty = !value && !fallback;
-      return html` data-field="${path}"${empty ? html` data-empty data-placeholder="${fieldLabel(ctx.type, path)}"` : null}${fallback && !value ? html` data-fallback` : null}`;
+      return html` data-field="${path}"${alignAttr(value)}${empty ? html` data-empty data-placeholder="${fieldLabel(ctx.type, path)}"` : null}${fallback && !value ? html` data-fallback` : null}`;
     },
     // Texto que divide o elemento com outra coisa (ícone, outro texto): ganha um <span> só no editor.
     text(path, value) {
-      return live ? html`<span${ctx.field(path, value)}>${value}</span>` : value;
+      return live ? html`<span${ctx.field(path, value)}>${value}</span>` : inline(value);
     },
     // Texto longo (parágrafos): no editor, os <p> ficam dentro de um <div> editável.
     paras(path, value, cls) {
@@ -148,7 +188,7 @@ function createContext(data, { live = false } = {}) {
     // icon: ícone antes do texto (ex.: o cadeado do cartão de compra).
     cta(label, fallback, path, { icon = null } = {}) {
       if (!data.checkout_url) return html`<span class="btn-cta is-disabled" aria-disabled="true">Em breve</span>`;
-      const text = live ? html`<span${ctx.field(path, label, { fallback: true })}>${label || fallback}</span>` : label || fallback;
+      const text = live ? html`<span${ctx.field(path, label, { fallback: true })}>${label || fallback}</span>` : inline(label) || fallback;
       return html`<a class="btn-cta" href="${data.checkout_url}" target="_blank" rel="noopener noreferrer">${icon && svg(icon, "cta-ico")}${text}<span class="sr-only"> (abre em nova aba)</span></a>`;
     },
     price(label, path) {
@@ -215,7 +255,7 @@ const RENDERERS = {
     const id = ctx.headingId();
     return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark({ hidden: !b.items.length })}><div class="container">
   ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
-  <ul class="grid8">${b.items.map((x, i) => html`<li${ctx.item("items", i)}>${ctx.icon(`items.${i}.icon`, x.icon)}<strong${ctx.field(`items.${i}.title`, x.title)}>${x.title}</strong><span${ctx.field(`items.${i}.text`, x.text)}>${x.text}</span>${ctx.remove("items", i)}</li>`)}${ctx.addItem("items", b.items)}</ul>
+  <ul class="grid8${cols(b)}">${b.items.map((x, i) => html`<li${ctx.item("items", i)}>${ctx.icon(`items.${i}.icon`, x.icon)}<strong${ctx.field(`items.${i}.title`, x.title)}>${x.title}</strong><span${ctx.field(`items.${i}.text`, x.text)}>${x.text}</span>${ctx.remove("items", i)}</li>`)}${ctx.addItem("items", b.items)}</ul>
 </div></section>`;
   },
 
@@ -273,7 +313,7 @@ const RENDERERS = {
     const id = ctx.headingId();
     return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark({ hidden: !b.items.length })}><div class="container">
   ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
-  <ul class="who">${b.items.map((x, i) => html`<li${ctx.item("items", i)}>${ctx.icon(`items.${i}.icon`, x.icon)}${ctx.text(`items.${i}.text`, x.text)}${ctx.remove("items", i)}</li>`)}${ctx.addItem("items", b.items)}</ul>
+  <ul class="who${cols(b)}">${b.items.map((x, i) => html`<li${ctx.item("items", i)}>${ctx.icon(`items.${i}.icon`, x.icon)}${ctx.text(`items.${i}.text`, x.text)}${ctx.remove("items", i)}</li>`)}${ctx.addItem("items", b.items)}</ul>
 </div></section>`;
   },
 
@@ -400,7 +440,7 @@ function renderSalesPage(data, { baseUrl, preview = false }) {
     // hidden: a seção só aparece no editor (ex.: depoimentos ainda sem texto) — marcada como oculta.
     ctx.mark = ({ hidden = false } = {}) => (preview ? html` data-block="${index}"${live && hidden ? html` data-hidden` : null}` : null);
     ctx.type = block.type;
-    const section = RENDERERS[block.type](block, ctx);
+    const section = RENDERERS[block.type](richFields(block, BLOCKS[block.type].fields), ctx);
     // No editor, um bloco que não aparece na página vira um aviso selecionável (senão ficaria inalcançável).
     if (!section && live) {
       return html`<section class="editor-hidden-block" data-block="${index}" data-hidden><div class="container">
@@ -410,8 +450,8 @@ function renderSalesPage(data, { baseUrl, preview = false }) {
     return section;
   }).filter(Boolean);
 
-  const title = data.seo_title || data.title;
-  const description = data.seo_description || data.short_description || "";
+  const title = data.title;
+  const description = data.short_description || ""; // o resumo do produto (tela Editar produto)
   const url = `${baseUrl}/p/${data.slug}`;
   const cover = data.media.get(data.image_id);
 
@@ -450,13 +490,16 @@ function renderSalesPage(data, { baseUrl, preview = false }) {
 <body data-page="venda">
   ${preview === true && html`<div class="preview-banner" role="status"><strong>Pré-visualização do rascunho salvo.</strong> ${data.published_at && data.status === "published" ? "O público vê a última versão publicada; publique no editor para levar estas alterações ao ar." : "Esta página ainda não está visível para o público."}</div>`}
   ${SPRITE}
-  <div id="site-header"></div>
+  <div id="site-header"${brandAttrs(data)}></div>
+  ${!live && html`<a class="v-back" href="/catalogo.html" data-back>${svg("arrowleft", "v-back-ico")}<span class="v-back-text">Voltar</span></a>`}
   <main id="conteudo" class="venda">
 ${body}
   </main>
   <footer class="site-footer v-footer">
     <div class="container foot3">
-      <div><p><strong data-site="nome"></strong> © <span data-year></span></p><p data-site="slogan"></p></div>
+      <div>${data.brand_name
+        ? html`<p><strong>${data.brand_name}</strong> © <span data-year></span></p>`
+        : html`<p><strong data-site="nome"></strong> © <span data-year></span></p><p data-site="slogan"></p>`}</div>
       <div><p><strong>Navegação</strong></p><p><a href="/catalogo.html">Catálogo</a></p><p><a href="/sobre.html">Sobre</a></p><p><a href="/contato.html">Contato</a></p></div>
       <div><p><strong>Compra segura</strong></p><p>Pagamentos e acesso aos cursos processados pela Kiwify.</p></div>
     </div>

@@ -49,7 +49,13 @@
           <legend>Identificação</legend>
           <div class="field">
             <label for="title">Título <span class="req">(obrigatório)</span></label>
-            <input id="title" name="title" required maxlength="180">
+            <input id="title" name="title" required maxlength="180" aria-describedby="title-help">
+            <p id="title-help" class="hint">Aparece no catálogo, na aba do navegador, no Google e na prévia do link no WhatsApp.</p>
+          </div>
+          <div class="field">
+            <label for="short_description">Resumo</label>
+            <textarea id="short_description" name="short_description" rows="2" maxlength="500" aria-describedby="short-help"></textarea>
+            <p id="short-help" class="hint">Texto curto exibido nos cards do catálogo. É também a descrição que aparece no Google e na prévia do link no WhatsApp (lá aparecem só as primeiras ~160 letras).</p>
           </div>
           <div class="field">
             <label for="slug">Endereço (slug) <span class="req">(obrigatório)</span></label>
@@ -100,15 +106,6 @@
         </fieldset>
 
         <fieldset>
-          <legend>Catálogo</legend>
-          <div class="field">
-            <label for="short_description">Resumo</label>
-            <textarea id="short_description" name="short_description" rows="2" maxlength="500" aria-describedby="short-help"></textarea>
-            <p id="short-help" class="hint">Texto curto exibido nos cards do catálogo. O conteúdo completo do produto fica na página de vendas.</p>
-          </div>
-        </fieldset>
-
-        <fieldset>
           <legend>Venda</legend>
           <div class="grid-2">
             <div class="field">
@@ -130,6 +127,39 @@
               <label for="checkout_url">Link de checkout</label>
               <input id="checkout_url" name="checkout_url" type="url" maxlength="2048" pattern="https://.+"
                 title="O link deve começar com https://" placeholder="https://pay.kiwify.com.br/..." spellcheck="false">
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Marca na página de vendas</legend>
+          <p class="hint">Nome e logo da empresa de quem vende este produto, no menu e no rodapé da página de vendas. Vazio = marca do site.</p>
+          <div class="field">
+            <label for="brand_name">Nome da empresa</label>
+            <input id="brand_name" name="brand_name" maxlength="80" placeholder="Ex.: Coutinho Treinamentos">
+          </div>
+          <div class="cover-field">
+            <div class="cover-preview brand-preview">
+              <button id="brand-zoom" class="media-zoom" type="button" aria-label="Ampliar logo" hidden>
+                <img id="brand-img" alt="">
+              </button>
+              <span id="brand-empty" class="muted">Sem logo</span>
+            </div>
+            <div class="cover-controls">
+              <div class="row-actions">
+                <label class="btn btn-sm btn-outline file-btn">Enviar logo
+                  <input id="brand-file" type="file" accept="image/png,image/jpeg,image/webp">
+                </label>
+                <button id="brand-pick" class="btn btn-sm btn-outline" type="button">Escolher da biblioteca</button>
+                <button id="brand-remove" class="btn btn-sm btn-danger" type="button" hidden>Remover logo</button>
+              </div>
+              <p class="hint">PNG com fundo transparente fica melhor (o menu é escuro). Altura exibida: 34 px.</p>
+              <div id="brand-alt-field" class="field" hidden>
+                <label for="brand-alt">Texto alternativo</label>
+                <input id="brand-alt" maxlength="300" aria-describedby="brand-alt-help">
+                <p id="brand-alt-help" class="hint">Usado quando não há nome da empresa. Ex.: “Logo da Coutinho Treinamentos”.</p>
+              </div>
+              <p id="brand-msg" class="msg" role="status" aria-live="polite"></p>
             </div>
           </div>
         </fieldset>

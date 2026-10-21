@@ -1,6 +1,6 @@
 // Controles desenhados SOBRE a página, dentro da moldura (iframe): a barra do bloco selecionado
-// (mover, duplicar, configurar, remover) e os botões "+" nas bordas do bloco selecionado ou sob
-// o mouse. Ficam num <div> próprio no fim do <body> da moldura (createPortal), com estilos do
+// (mover, duplicar, configurar, remover), os botões "+" nas bordas do bloco selecionado ou sob
+// o mouse e a barra de formatação do texto em edição (TextToolbar). Ficam num <div> próprio no fim do <body> da moldura (createPortal), com estilos do
 // venda-editor.css, e não mexem no layout da página: as posições são calculadas a partir das seções.
 //
 // A moldura é desenhada em escala (ex.: 1280 px exibidos a 60%); os controles recebem a escala
@@ -8,6 +8,7 @@
 import { useLayoutEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { BlockIcon } from "../ui/BlockIcon.jsx";
+import { TextToolbar } from "./TextToolbar.jsx";
 
 const ICONS = {
   up: "M12 19V5M6 11l6-6 6 6",
@@ -145,6 +146,7 @@ export function CanvasOverlay({ doc, scale, canvas, selectedIndex }) {
       ))}
       {toolbar}
       {first}
+      <TextToolbar doc={doc} scale={scale} labels={{ colors: schema.textColors, aligns: schema.textAligns }} />
     </>,
     host,
   );

@@ -6,6 +6,7 @@ import { useEditor } from "../state/context.js";
 import { emptyValue, hasText } from "../state/document.js";
 import { SortableList, useSortableItem, DragHandle } from "../ui/dnd.jsx";
 import { IconMenu, IconGlyph } from "./IconMenu.jsx";
+import { plain, hasInline, fromPlain } from "../state/richtext.js";
 
 // compact: dentro de itens de lista (textos longos começam com 2 linhas em vez de 3).
 export function Field({ field, value, path, compact, inline }) {
@@ -25,10 +26,16 @@ function Help({ id, text }) {
 
 // inline: item numa linha só — o rótulo fica só para leitores de tela e vira o texto de exemplo da caixa.
 // Campos "url" (endereço de link) usam a mesma caixa, do tipo url (teclado certo no celular).
+// Textos podem ter formatação (negrito, cor…, feita na página): aqui aparecem sem as marcações, e
+// editar aqui mantém só o alinhamento (o aviso explica).
 function TextField({ field, value, path, compact, inline }) {
   const { dispatch } = useEditor();
   const id = useId();
   const Tag = field.type === "textarea" ? "textarea" : "input";
+  const isUrl = field.type === "url";
+  const formatted = !isUrl && hasInline(value);
+  const shown = isUrl ? value || "" : plain(value);
+  const describedBy = [field.help && `${id}-help`, formatted && `${id}-fmt`].filter(Boolean).join(" ") || undefined;
   return (
     <div className="field">
       <label htmlFor={id} className={inline ? "sr-only" : undefined}>{field.label}</label>
@@ -37,14 +44,15 @@ function TextField({ field, value, path, compact, inline }) {
         type={field.type === "url" ? "url" : undefined}
         inputMode={field.type === "url" ? "url" : undefined}
         spellCheck={field.type === "url" ? false : undefined}
-        value={value || ""}
+        value={shown}
         maxLength={field.max}
         placeholder={field.placeholder || (inline ? field.label : undefined)}
         rows={field.type === "textarea" ? (compact ? 2 : 3) : undefined}
-        aria-describedby={field.help ? `${id}-help` : undefined}
-        onChange={(e) => dispatch({ type: "set", path, value: e.target.value, merge: true })}
+        aria-describedby={describedBy}
+        onChange={(e) => dispatch({ type: "set", path, value: isUrl ? e.target.value : fromPlain(value, e.target.value), merge: true })}
       />
       <Help id={`${id}-help`} text={field.help} />
+      {formatted && <p id={`${id}-fmt`} className="hint warn">Este texto tem negrito, itálico ou cor. Editar aqui tira essa formatação; para mantê-la, edite direto na página.</p>}
     </div>
   );
 }

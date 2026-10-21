@@ -1,6 +1,6 @@
 // Barras do editor, flutuando sobre a página (que ocupa a tela inteira):
 //   TopBar  (em cima) -> Voltar · título (cortado com "…") · situação · links · modo noturno · Salvar · Publicar
-//   ToolDock (embaixo) -> desfazer/refazer | computador/celular | Estrutura · Cores e SEO
+//   ToolDock (embaixo) -> desfazer/refazer | computador/celular | Estrutura · Cores
 // A explicação da situação da página fica no selo (dica ao passar o mouse e texto para leitores de tela).
 import { useEffect, useRef } from "react";
 import { PRODUCT_STATUS } from "../labels.js";
@@ -128,8 +128,8 @@ export function ToolDock({ canUndo, canRedo, onUndo, onRedo, device, onDevice, p
           <Glyph d={LAYERS} />Estrutura
         </button>
         <button type="button" className="bar-btn" data-panel="page" aria-pressed={panel === "page"} onClick={() => togglePanel("page")}
-          title="Cores da página, título e descrição para busca e compartilhamento">
-          <Glyph d={PALETTE} />Cores e SEO
+          title="Cores da página">
+          <Glyph d={PALETTE} />Cores
         </button>
       </div>
     </nav>

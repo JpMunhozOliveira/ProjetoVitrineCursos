@@ -3,13 +3,13 @@
 //   block     -> campos do bloco selecionado que não se editam na página: imagens, ícones,
 //                ✓/✗ e adicionar / remover / reordenar itens de lista (os textos também aparecem)
 //   structure -> visão geral: lista de blocos com arrastar e soltar (BlockList)
-//   page      -> "Cores e SEO": cores da página e busca/compartilhamento
+//   page      -> "Cores": cores da página (busca/compartilhamento e marca ficam em Editar produto)
 import { useEffect, useRef } from "react";
 import { useEditor } from "../state/context.js";
 import { Field } from "./Fields.jsx";
 import { BlockIcon } from "../ui/BlockIcon.jsx";
 
-export const PANEL_LABELS = { block: "Bloco", structure: "Estrutura", page: "Cores e SEO" };
+export const PANEL_LABELS = { block: "Bloco", structure: "Estrutura", page: "Cores" };
 
 function BlockFields({ block, index, hidden }) {
   const { schema } = useEditor();

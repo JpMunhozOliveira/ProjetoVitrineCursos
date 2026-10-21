@@ -54,7 +54,7 @@
 }
 /* Resposta do FAQ vazia: mesmo recuo dos parágrafos. */
 .is-editor-preview .faq [data-multiline]:empty {
-  padding: 0 1.25rem 1.1rem;
+  padding: 0 1.35rem 1.2rem;
 }
 
 /* ---------- Bloco que não aparece na página ---------- */
@@ -348,7 +348,7 @@
   width: 12px;
   height: 12px;
 }
-/* Galeria: o slide corta o que passa da borda; o × fica dentro da imagem. */
+/* Galeria: o × fica dentro do slide, no canto de cima. */
 .slide > .item-remove {
   top: 10px;
   right: 10px;
@@ -424,4 +424,64 @@ html[data-editor] .site-footer {
 html[data-editor] {
   scroll-padding-block: 24px 110px;
   scroll-behavior: auto;
+}
+
+/* Barra de formatação do texto em edição (TextToolbar): mesma cara da barra do bloco. */
+.eo-text-toolbar {
+  z-index: 2;
+}
+.eo-format {
+  font: 700 16px/1 Georgia, "Times New Roman", serif;
+}
+.eo-format em {
+  font-weight: 400;
+}
+.eo-btn[aria-pressed="true"] {
+  color: var(--color-primary);
+  background: var(--color-surface);
+  box-shadow: inset 0 0 0 1px var(--color-border);
+}
+.eo-color-a {
+  padding-bottom: 1px;
+  border-bottom: 3px solid var(--v-accent-ink);
+}
+.eo-sep {
+  width: 1px;
+  height: 24px;
+  margin: 0 4px;
+  background: var(--color-border);
+}
+.eo-colors {
+  position: relative;
+}
+/* Paleta: as amostras usam as mesmas classes do texto (.tx-c-*), então mostram a cor real do tema. */
+.eo-color-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  display: flex;
+  gap: 4px;
+  padding: 6px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  box-shadow: 0 10px 28px rgb(0 0 0 / 0.18);
+}
+.eo-swatch {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  font: 800 16px/1 system-ui, sans-serif;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.eo-swatch:hover {
+  border-color: var(--color-primary);
+}
+.eo-swatch-none {
+  color: var(--color-muted);
 }

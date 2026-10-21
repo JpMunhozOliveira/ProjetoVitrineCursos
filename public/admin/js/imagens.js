@@ -27,7 +27,7 @@
 
     // Onde a imagem é usada (links para os produtos) ou aviso de "sem uso".
     var usage = el("p", "media-usage small");
-    var KIND = { cover: "capa de ", page: "página de vendas de " };
+    var KIND = { cover: "capa de ", brand: "logo da marca de ", page: "página de vendas de " };
     if (m.usage.length) {
       usage.append("Usada em: ");
       m.usage.forEach(function (u, i) {

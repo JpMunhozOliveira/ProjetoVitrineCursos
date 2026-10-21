@@ -86,4 +86,4 @@ function themeStylesheet(hero, accent) {
 // Endereço da folha de estilo para um tema (cores sem "#" na URL).
 const themeHref = ({ hero, accent }) => `/page-theme.css?fundo=${hero.slice(1)}&botao=${accent.slice(1)}`;
 
-module.exports = { THEMES, DEFAULT_THEME: DEFAULT, ThemeError, normalizeTheme, checkColors, themeStylesheet, themeHref, contrast };
+module.exports = { THEMES, DEFAULT_THEME: DEFAULT, ThemeError, normalizeTheme, checkColors, themeStylesheet, themeHref };
