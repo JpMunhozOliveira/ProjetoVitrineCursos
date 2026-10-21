@@ -225,6 +225,17 @@ dialog.picker .msg:empty{display:none}
 .media-name{overflow-wrap:anywhere}
 .media-usage{margin:.25rem 0 .5rem}
 .media-body .field{margin-bottom:.5rem}
+/* Blocos salvos (blocos.html): cartões da lista e formulário com lista de itens (ex.: redes). */
+.shared-list{margin-bottom:2rem}
+.shared-form{margin-top:1rem}
+.shared-form .form-actions{grid-template-areas:"msg buttons"}
+.list-field{margin:0 0 1rem;padding:.75rem 1rem 1rem;border:1px dashed var(--color-border);border-radius:var(--radius)}
+.list-field legend{padding:0 .4rem;font-weight:700}
+.list-items{display:grid;gap:.75rem;margin:0 0 .75rem;padding:0;list-style:none}
+.list-item{padding:.75rem 1rem .25rem;background:var(--color-surface);border-radius:10px}
+.list-item-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.5rem;margin-bottom:.5rem}
+.list-item-fields{display:grid;gap:0 1rem}
+@media (min-width:720px){.list-item-fields{grid-template-columns:repeat(auto-fit,minmax(12rem,1fr))}}
 .badge{display:inline-block;padding:.1rem .6rem;font-weight:700;color:var(--color-warning);border:1px solid currentColor;border-radius:999px}
 
 /* Miniatura clicável (abre o visualizador). Botão sem aparência de botão; a lupa indica o zoom. */

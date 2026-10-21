@@ -197,6 +197,14 @@
 /* Seletor de tipo de bloco (diálogo) */
 .block-picker { width: min(60rem, calc(100% - 2rem)); }
 .block-types { display: grid; gap: .75rem; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); }
+/* Blocos salvos: título da seção no seletor e ligação no painel do bloco (SharedBlock.jsx). */
+.block-types-title { margin: 1.25rem 0 .6rem; font-size: 1rem; }
+.block-picker.compact .block-types-title { margin: .6rem .25rem .3rem; font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; color: var(--color-muted); }
+.shared-note { margin: 0 0 1rem; padding: .6rem .8rem; color: var(--color-text); background: var(--color-surface); border-left: 3px solid var(--color-accent); border-radius: 6px; }
+.shared-link .row-actions { margin-top: .5rem; }
+.save-shared { margin-top: 1rem; padding: .6rem .8rem; border: 1px dashed var(--color-border); border-radius: 8px; }
+.save-shared summary { font-weight: 700; cursor: pointer; }
+.save-shared .hint { margin-bottom: .75rem; }
 .block-type {
   display: grid; grid-template-columns: auto 1fr; gap: .2rem .75rem; align-items: start; padding: .85rem;
   font: inherit; text-align: left; color: var(--color-text); background: var(--color-bg);

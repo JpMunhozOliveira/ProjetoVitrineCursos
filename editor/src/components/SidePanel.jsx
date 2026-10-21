@@ -6,8 +6,8 @@
 //   page      -> "Cores": cores da página (busca/compartilhamento e marca ficam em Editar produto)
 import { useEffect, useRef } from "react";
 import { useEditor } from "../state/context.js";
-import { Field } from "./Fields.jsx";
 import { BlockIcon } from "../ui/BlockIcon.jsx";
+import { BlockFormBody } from "./SharedBlock.jsx";
 
 export const PANEL_LABELS = { block: "Bloco", structure: "Estrutura", page: "Cores" };
 
@@ -21,10 +21,8 @@ function BlockFields({ block, index, hidden }) {
     <div key={block._key} className="block-fields">
       <h3 className="panel-block-title"><BlockIcon type={block.type} /> <span className="block-number">{index + 1}</span> {def.label}</h3>
       {def.help && <p className="hint block-help">{def.help}</p>}
-      {hidden && <p className="hint warn">Este bloco não aparece na página no momento: preencha o conteúdo principal (ex.: itens da lista ou imagens).</p>}
-      {Object.entries(def.fields).map(([name, field]) => (
-        <Field key={name} field={field} value={block[name]} path={["sections", index, name]} />
-      ))}
+      {hidden && !block.shared && <p className="hint warn">Este bloco não aparece na página no momento: preencha o conteúdo principal (ex.: itens da lista ou imagens).</p>}
+      <BlockFormBody block={block} index={index} />
     </div>
   );
 }

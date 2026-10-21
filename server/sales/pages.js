@@ -9,7 +9,7 @@
 // "Editar produto") e valem assim que ele é salvo.
 const pool = require("../config/database");
 const storage = require("../lib/storage");
-const { validateSections, validBlocks, mediaIds } = require("./blocks");
+const { validateSections, validBlocks, mediaIds, sharedIds } = require("./blocks");
 
 // Blocos válidos de uma lista gravada (os inválidos são ignorados um a um, ver validBlocks).
 const storedBlocks = (sections) => validBlocks(sections).map((x) => x.block);
@@ -63,6 +63,38 @@ async function syncPageMedia(client, pageId) {
   if (ids.size) {
     await client.query("INSERT INTO sales_page_media (sales_page_id, media_id) SELECT $1, unnest($2::uuid[])", [pageId, [...ids]]);
   }
+
+  // Blocos salvos usados (rascunho + publicada): o banco recusa excluir um bloco salvo em uso.
+  const shared = new Set([...sharedIds(storedBlocks(rows[0].sections)), ...sharedIds(storedBlocks(rows[0].published_sections))]);
+  await client.query("DELETE FROM sales_page_shared_blocks WHERE sales_page_id = $1", [pageId]);
+  if (shared.size) {
+    await client.query("INSERT INTO sales_page_shared_blocks (sales_page_id, shared_block_id) SELECT $1, unnest($2::uuid[])", [pageId, [...shared]]);
+  }
+}
+
+// Troca cada referência a bloco salvo pelo conteúdo dele (mais os campos locais da página, como
+// o fundo). Devolve { sections, shared }: shared = Map posição -> { id, name } dos blocos que vieram
+// de um bloco salvo (no editor, eles aparecem trancados). Referência a bloco que não existe:
+// "strict" (pré-visualização do editor) avisa; na página pública o bloco só some.
+async function resolveShared(sections, { strict = false } = {}) {
+  const list = Array.isArray(sections) ? sections : [];
+  const ids = sharedIds(storedBlocks(list));
+  const shared = new Map();
+  if (!ids.length) return { sections: list, shared };
+  const { rows } = await pool.query("SELECT id, name, type, data FROM shared_blocks WHERE id = ANY($1::uuid[])", [ids]);
+  const byId = new Map(rows.map((r) => [r.id, r]));
+  const out = list.map((block, index) => {
+    if (!block || typeof block.shared !== "string") return block;
+    const saved = byId.get(block.shared.toLowerCase());
+    if (!saved || saved.type !== block.type) {
+      if (strict) throw new PageInputError(`Bloco ${index + 1}: o bloco salvo escolhido não existe mais. Escolha outro ou remova o bloco.`);
+      return null;
+    }
+    shared.set(index, { id: saved.id, name: saved.name });
+    const { shared: _id, ...local } = block;
+    return { ...saved.data, ...local };
+  });
+  return { sections: out, shared };
 }
 
 // Executa fn(client) numa transação; traduz "imagem não existe mais" para mensagem do painel.
@@ -78,6 +110,9 @@ async function inTransaction(fn) {
     await client.query("ROLLBACK").catch((rollbackError) => { broken = rollbackError; }); // mantém o erro original
     if (error.code === "23503" && error.constraint === "sales_page_media_media_fkey") {
       throw new PageInputError("Uma das imagens escolhidas não existe mais. Escolha outra.");
+    }
+    if (error.code === "23503" && error.constraint === "sales_page_shared_blocks_block_fkey") {
+      throw new PageInputError("Um dos blocos salvos usados na página não existe mais. Escolha outro ou remova o bloco.");
     }
     throw error;
   } finally {
@@ -144,9 +179,10 @@ async function loadDraftForRender(productId, body) {
   const { rows } = await pool.query(
     `SELECT ${PRODUCT_COLUMNS} FROM products p WHERE p.id = $1`, [productId]);
   if (!rows.length) return null;
+  const { sections, shared } = await resolveShared(input.sections, { strict: true });
   return {
-    ...rows[0], sections: input.sections, theme: input.theme,
-    published_at: null, media: await loadMedia(input.sections, rows[0].image_id, rows[0].brand_logo_id),
+    ...rows[0], sections, shared, theme: input.theme,
+    published_at: null, media: await loadMedia(storedBlocks(sections), rows[0].image_id, rows[0].brand_logo_id),
   };
 }
 
@@ -166,8 +202,9 @@ async function loadForRender({ slug, productId, version }) {
     [slug || productId]
   );
   if (!rows.length) return null;
-  const data = rows[0];
-  const media = await loadMedia(storedBlocks(data.sections), data.image_id, data.brand_logo_id);
+  const { sections, shared } = await resolveShared(rows[0].sections);
+  const data = { ...rows[0], sections, shared };
+  const media = await loadMedia(storedBlocks(sections), data.image_id, data.brand_logo_id);
   return { ...data, media };
 }
 

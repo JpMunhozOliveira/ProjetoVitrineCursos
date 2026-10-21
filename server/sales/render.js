@@ -129,25 +129,25 @@ function createContext(data, { live = false } = {}) {
     // fallback: o texto exibido é um padrão (ex.: título do produto); editar grava o campo do bloco.
     // O alinhamento do texto (data-align) vale também na página pública.
     field(path, value, { fallback = false } = {}) {
-      if (!live) return alignAttr(value);
+      if (!ctx.live) return alignAttr(value);
       const empty = !value && !fallback;
       return html` data-field="${path}"${alignAttr(value)}${empty ? html` data-empty data-placeholder="${fieldLabel(ctx.type, path)}"` : null}${fallback && !value ? html` data-fallback` : null}`;
     },
     // Texto que divide o elemento com outra coisa (ícone, outro texto): ganha um <span> só no editor.
     text(path, value) {
-      return live ? html`<span${ctx.field(path, value)}>${value}</span>` : inline(value);
+      return ctx.live ? html`<span${ctx.field(path, value)}>${value}</span>` : inline(value);
     },
     // Texto longo (parágrafos): no editor, os <p> ficam dentro de um <div> editável.
     paras(path, value, cls) {
-      return live ? html`<div${ctx.field(path, value)} data-multiline>${paragraphs(value, cls)}</div>` : paragraphs(value, cls);
+      return ctx.live ? html`<div${ctx.field(path, value)} data-multiline>${paragraphs(value, cls)}</div>` : paragraphs(value, cls);
     },
     // Ícone de um campo "icon". No editor leva data-icon-field (clicar nele abre a escolha de ícone).
     icon(path, name, cls = "ico") {
-      if (!live) return svg(name, cls);
+      if (!ctx.live) return svg(name, cls);
       return html`<svg class="${cls}" aria-hidden="true" data-icon-field="${path}"><use href="#i-${name}"/></svg>`;
     },
     // Campo opcional: na página pública só aparece preenchido; no editor, sempre (vazio = espaço para digitar).
-    show: (value) => live || !!value,
+    show: (value) => ctx.live || !!value,
 
     // <img> de uma imagem da biblioteca; "priority" para a primeira dobra (não espera rolar).
     // No editor (com path, o caminho do campo): a imagem leva data-image-field (clicar troca) e,
@@ -155,7 +155,7 @@ function createContext(data, { live = false } = {}) {
     // aparece no bloco selecionado (como os textos vazios), para não pesar na prévia.
     img(id, cls, { priority = false, path = null, optional = false } = {}) {
       const m = id && data.media.get(id);
-      const editable = live && path;
+      const editable = ctx.live && path;
       if (!m) return editable ? ctx.imageSlot(cls, path, { optional }) : null;
       return html`<img class="${cls}" src="${m.url}" alt="${m.alt_text || ""}" width="${m.width}" height="${m.height}" ${priority ? html`fetchpriority="high"` : html`loading="lazy"`} decoding="async"${editable ? html` data-image-field="${path}"` : null}>`;
     },
@@ -168,10 +168,10 @@ function createContext(data, { live = false } = {}) {
     },
     /* ---- Itens das listas, direto na página (só no editor) ---- */
     // Atributo do item: data-item="items.3" (caminho do item dentro do bloco).
-    item: (list, i) => (live ? html` data-item="${list}.${i}"` : null),
+    item: (list, i) => (ctx.live ? html` data-item="${list}.${i}"` : null),
     // Botão × que remove o item (aparece ao passar o mouse, no bloco selecionado).
     remove(list, i) {
-      if (!live) return null;
+      if (!ctx.live) return null;
       const noun = BLOCKS[ctx.type].fields[list].noun;
       return html`<button type="button" class="item-remove" data-item-remove="${list}.${i}" aria-label="Remover ${noun} ${i + 1}" title="Remover ${noun}">${svg("x", "item-remove-ico")}</button>`;
     },
@@ -179,7 +179,7 @@ function createContext(data, { live = false } = {}) {
     // tag: "li" dentro de <ul>; "div" nas grades de <article>, <details> e <figure>.
     addItem(list, items, tag = "li") {
       const field = BLOCKS[ctx.type].fields[list];
-      if (!live || items.length >= field.max) return null;
+      if (!ctx.live || items.length >= field.max) return null;
       const button = html`<button type="button" class="item-add-btn" data-item-add="${list}">+ Adicionar ${field.noun}</button>`;
       return tag === "li" ? html`<li class="item-add">${button}</li>` : html`<div class="item-add">${button}</div>`;
     },
@@ -188,7 +188,7 @@ function createContext(data, { live = false } = {}) {
     // icon: ícone antes do texto (ex.: o cadeado do cartão de compra).
     cta(label, fallback, path, { icon = null } = {}) {
       if (!data.checkout_url) return html`<span class="btn-cta is-disabled" aria-disabled="true">Em breve</span>`;
-      const text = live ? html`<span${ctx.field(path, label, { fallback: true })}>${label || fallback}</span>` : inline(label) || fallback;
+      const text = ctx.live ? html`<span${ctx.field(path, label, { fallback: true })}>${label || fallback}</span>` : inline(label) || fallback;
       return html`<a class="btn-cta" href="${data.checkout_url}" target="_blank" rel="noopener noreferrer">${icon && svg(icon, "cta-ico")}${text}<span class="sr-only"> (abre em nova aba)</span></a>`;
     },
     price(label, path) {
@@ -436,15 +436,23 @@ function renderSalesPage(data, { baseUrl, preview = false }) {
   const ctx = createContext(data, { live });
   // Blocos inválidos são ignorados um a um; index (posição original) liga a seção ao bloco do editor.
   const body = validBlocks(data.sections).map(({ block, index }) => {
+    // Bloco que vem de um bloco salvo: no editor é desenhado como na página pública (sem textos
+    // editáveis), com a etiqueta data-shared; o conteúdo se edita na aba "Blocos salvos".
+    const shared = data.shared?.get(index);
+    ctx.live = live && !shared;
     // Na pré-visualização, cada seção leva data-block="N" (clicar nela abre o bloco N no editor).
     // hidden: a seção só aparece no editor (ex.: depoimentos ainda sem texto) — marcada como oculta.
-    ctx.mark = ({ hidden = false } = {}) => (preview ? html` data-block="${index}"${live && hidden ? html` data-hidden` : null}` : null);
+    ctx.mark = ({ hidden = false } = {}) => (preview
+      ? html` data-block="${index}"${live && hidden ? html` data-hidden` : null}${live && shared ? html` data-shared="${shared.name}"` : null}`
+      : null);
     ctx.type = block.type;
     const section = RENDERERS[block.type](richFields(block, BLOCKS[block.type].fields), ctx);
     // No editor, um bloco que não aparece na página vira um aviso selecionável (senão ficaria inalcançável).
     if (!section && live) {
+      const reason = shared ? `o bloco salvo “${shared.name}” está vazio (preencha na aba Blocos salvos)`
+        : HIDDEN_REASON[block.type] || "preencha o conteúdo principal do bloco";
       return html`<section class="editor-hidden-block" data-block="${index}" data-hidden><div class="container">
-  <p><strong>${BLOCKS[block.type].label}</strong> — não aparece na página: ${HIDDEN_REASON[block.type] || "preencha o conteúdo principal do bloco"}.</p>
+  <p><strong>${BLOCKS[block.type].label}</strong> — não aparece na página: ${reason}.</p>
 </div></section>`;
     }
     return section;

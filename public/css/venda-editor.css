@@ -57,6 +57,35 @@
   padding: 0 1.35rem 1.2rem;
 }
 
+/* ---------- Bloco salvo (conteúdo vem da aba "Blocos salvos"; não se edita aqui) ---------- */
+/* Marca pequena e laranja (destaque) acima do conteúdo; o nome do bloco salvo só aparece com o
+   mouse em cima ou com o bloco selecionado. Fica no .container, e não na seção: o ::before/::after da seção já
+   desenham as transições de cor entre blocos (site.css) e esticariam a marca pelo bloco inteiro.
+   Sobe o próprio tamanho para ficar no espaço livre acima do conteúdo (padding da seção). */
+.is-editor-preview [data-shared] > .container::before {
+  content: "Bloco salvo";
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  max-width: 100%;
+  transform: translateY(calc(-100% - 0.75rem));
+  padding: 0.1rem 0.5rem;
+  overflow: hidden;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1.5;
+  color: var(--color-on-accent);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  background: var(--color-accent);
+  border-radius: 6px;
+  pointer-events: none;
+}
+.is-editor-preview [data-shared]:is(:hover, .is-hovered, .is-selected) > .container::before {
+  content: "Bloco salvo: " attr(data-shared) " · edite na aba Blocos salvos";
+}
+
 /* ---------- Bloco que não aparece na página ---------- */
 .is-editor-preview .editor-hidden-block {
   padding: 1.25rem 0;

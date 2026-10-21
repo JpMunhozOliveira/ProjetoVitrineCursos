@@ -133,3 +133,40 @@ test("grades: colunas aceitam automático, 2, 3 ou 4 (two/three/four)", () => {
     assert.match(validateSections([{ type, columns: "five" }]).error, /opção inválida/);
   }
 });
+
+/* ---------- Blocos salvos ---------- */
+const { validateSharedData, sharedIds } = require("../sales/blocks");
+const SHARED_ID = "3f2b8c1e-4d5a-4b6c-8d7e-9f0a1b2c3d4e";
+
+test("aceita referência a bloco salvo só com os campos locais", () => {
+  const { sections, error } = validateSections([{ type: "social", shared: SHARED_ID.toUpperCase(), background: "dark" }]);
+  assert.equal(error, undefined);
+  assert.deepEqual(sections[0], { type: "social", shared: SHARED_ID, background: "dark" });
+  assert.deepEqual(validateSections([{ type: "social", shared: SHARED_ID }]).sections[0].background, "auto");
+});
+
+test("recusa referência com conteúdo junto, ID inválido ou tipo não compartilhável", () => {
+  assert.match(validateSections([{ type: "social", shared: SHARED_ID, items: [] }]).error, /não suportado/);
+  assert.match(validateSections([{ type: "social", shared: "abc" }]).error, /bloco salvo inválido/);
+  assert.match(validateSections([{ type: "social", shared: null }]).error, /bloco salvo inválido/);
+  assert.match(validateSections([{ type: "faq", shared: SHARED_ID }]).error, /não pode ser um bloco salvo/);
+});
+
+test("conteúdo do bloco salvo: valida os campos e não aceita os locais", () => {
+  const ok = validateSharedData("social", { title: "Siga", items: [{ network: "instagram", url: "instagram.com/prof" }] });
+  assert.equal(ok.error, undefined);
+  assert.equal(ok.data.items[0].url, "https://instagram.com/prof");
+  assert.ok(!("background" in ok.data));
+  assert.match(validateSharedData("social", { background: "dark" }).error, /não suportado/);
+  assert.match(validateSharedData("social", { items: [{ network: "x", url: "javascript:alert(1)" }] }).error, /endereço inválido/);
+  assert.match(validateSharedData("faq", {}).error, /Tipo de bloco inválido/);
+  assert.match(validateSharedData("social", "texto").error, /formato inválido/);
+});
+
+test("lista os blocos salvos usados, sem repetir", () => {
+  const { sections } = validateSections([
+    { type: "social", shared: SHARED_ID }, { type: "faq" }, { type: "social", shared: SHARED_ID },
+  ]);
+  assert.deepEqual(sharedIds(sections), [SHARED_ID]);
+  assert.deepEqual(mediaIds(sections), []);
+});

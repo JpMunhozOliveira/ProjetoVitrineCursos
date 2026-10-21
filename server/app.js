@@ -5,9 +5,11 @@ const productRoutes = require("./routes/product.routes");
 const adminProductRoutes = require("./routes/admin-product.routes");
 const adminAuthRoutes = require("./routes/admin-auth.routes");
 const adminMediaRoutes = require("./routes/admin-media.routes");
+const adminSharedBlockRoutes = require("./routes/admin-shared-block.routes");
 const storage = require("./lib/storage");
 const { showPublicPage, showPreview } = require("./controllers/page-view.controller");
 const requireAdmin = require("./middleware/admin-auth");
+const { findSession } = requireAdmin;
 const { getBlockSchema } = require("./controllers/sales-page.controller");
 const { themeStylesheet, checkColors } = require("./sales/theme");
 
@@ -60,6 +62,7 @@ app.use("/api/products", productRoutes);
 app.use("/api/admin/auth", adminAuthRoutes);
 app.use("/api/admin/products", adminProductRoutes);
 app.use("/api/admin/media", adminMediaRoutes);
+app.use("/api/admin/shared-blocks", adminSharedBlockRoutes);
 app.get("/api/admin/sales-blocks", requireAdmin, getBlockSchema);
 
 // Cores da página de vendas (ver sales/theme.js). As cores vêm na URL e são validadas; como a
@@ -93,6 +96,18 @@ app.get("/p/:slug", (_req, res, next) => {
   next();
 }, showPublicPage);
 app.get("/admin/preview/:id", showPreview); // cabeçalhos do /admin (no-store, CSP, noindex) já se aplicam
+
+// Páginas do painel: confere a sessão antes de entregar o HTML. Sem isso, o navegador mostrava o
+// painel vazio por um instante até o JavaScript descobrir que não havia login ("pisca").
+// Só páginas (/admin/ e *.html); JS, CSS e o editor seguem livres para o express.static.
+// Sem diferenciar maiúsculas: em disco do Windows, /admin/INDEX.HTML abriria o mesmo arquivo.
+const ADMIN_PAGE = /^\/(?:[a-z0-9-]+\.html)?$/i;
+app.use("/admin", async (req, res, next) => {
+  if ((req.method !== "GET" && req.method !== "HEAD") || !ADMIN_PAGE.test(req.path)) return next();
+  const loggedIn = Boolean(await findSession(req));
+  if (req.path.toLowerCase() === "/login.html") return loggedIn ? res.redirect(302, "/admin/") : next();
+  return loggedIn ? next() : res.redirect(302, "/admin/login.html");
+});
 
 // Rota de API inexistente responde em JSON, e não com a página HTML padrão do Express.
 app.use("/api", (_req, res) => res.status(404).json({ error: "Rota não encontrada." }));

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Blocos salvos — Painel administrativo</title>
+  <link rel="icon" type="image/png" href="/assets/favicon/favicon.png">
+  <link rel="stylesheet" href="../css/theme.css">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="css/admin.css">
+  <script src="../js/theme.js"></script>
+  <script src="js/common.js" defer></script>
+  <script src="js/blocos.js" defer></script>
+</head>
+<body>
+  <div class="container">
+    <div class="admin-top">
+      <header class="admin-bar">
+        <div class="admin-id">
+          <strong>Painel administrativo</strong>
+          <span id="who" class="muted small"></span>
+        </div>
+        <div class="admin-actions">
+          <button id="tema-btn" class="theme-btn" type="button" aria-label="Modo noturno" title="Modo noturno" aria-pressed="false"></button>
+          <button id="logout" class="btn btn-outline btn-sm" type="button">Sair</button>
+        </div>
+      </header>
+      <nav class="admin-nav" aria-label="Seções do painel">
+        <a href="./">Produtos</a>
+        <a href="imagens.html">Imagens</a>
+        <a href="blocos.html" aria-current="page">Blocos salvos</a>
+      </nav>
+    </div>
+    <main class="section">
+      <div class="page-head">
+        <h1>Blocos salvos</h1>
+        <button id="new" class="btn" type="button">Novo bloco de redes sociais</button>
+      </div>
+      <p class="hint">Conteúdo cadastrado uma vez e usado em várias páginas de vendas, como as redes sociais de cada professor.
+        Ao salvar um bloco, <strong>todas as páginas que o usam mudam na hora</strong>, inclusive as já publicadas.
+        Para usar um bloco numa página, abra o editor da página de vendas e escolha-o em “+” › Blocos salvos.</p>
+
+      <p id="msg" class="msg" role="status" aria-live="polite">Carregando…</p>
+      <p id="empty" class="empty muted" hidden>Nenhum bloco salvo ainda. Use “Novo bloco de redes sociais”, acima.</p>
+      <ul id="list" class="media-library shared-list"></ul>
+
+      <form id="block-form" class="product-form shared-form" hidden novalidate>
+        <h2 id="form-title">Novo bloco</h2>
+        <fieldset>
+          <legend>Identificação</legend>
+          <div class="field">
+            <label for="name">Nome <span class="req">(obrigatório)</span></label>
+            <input id="name" maxlength="120" required aria-describedby="name-help" placeholder="Ex.: Redes — Prof. Fulano">
+            <p id="name-help" class="hint">Só aparece no painel, para você achar o bloco. Não aparece na página.</p>
+          </div>
+        </fieldset>
+        <div id="fields"></div>
+        <div class="form-actions">
+          <p id="form-msg" class="msg" role="status" aria-live="polite"></p>
+          <div class="buttons">
+            <button id="cancel" class="btn btn-outline" type="button">Cancelar</button>
+            <button id="save" class="btn" type="submit">Salvar</button>
+          </div>
+        </div>
+      </form>
+    </main>
+  </div>
+</body>
+</html>

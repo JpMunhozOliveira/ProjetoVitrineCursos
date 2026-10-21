@@ -16,7 +16,9 @@ export function withKeys(sections, schema) {
     }
     return out;
   };
-  return sections.map((block) => keyed(block, schema.blocks[block.type]?.fields));
+  // Bloco vinculado a um bloco salvo só tem a referência e os campos locais (sem listas): não
+  // ganha listas vazias, que seriam recusadas pela API como campos a mais.
+  return sections.map((block) => keyed(block, block.shared ? null : schema.blocks[block.type]?.fields));
 }
 
 export function stripKeys(value) {

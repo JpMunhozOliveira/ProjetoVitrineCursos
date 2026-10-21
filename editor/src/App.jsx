@@ -34,6 +34,7 @@ export default function App({ productId }) {
   const redo = useCallback(() => rawDispatch({ type: "redo" }), []);
   const [page, setPage] = useState(null);                    // página como está GRAVADA
   const [media, setMedia] = useState(() => new Map());
+  const [sharedList, setSharedList] = useState([]);           // blocos salvos (aba "Blocos salvos")
   const [open, setOpen] = useState(() => new Set());         // cartões abertos no painel Estrutura
   const [selected, setSelected] = useState({ key: null, from: null });
   const [panel, setPanel] = useState(null);                   // null | "block" | "structure" | "page"
@@ -90,13 +91,15 @@ export default function App({ productId }) {
       try {
         await window.Admin.requireSession();
         if (!productId) throw new Error("Produto não informado.");
-        const [product, saved, schema, library] = await Promise.all([
+        const [product, saved, schema, library, sharedBlocks] = await Promise.all([
           api(`/products/${encodeURIComponent(productId)}`),
           api(`/products/${encodeURIComponent(productId)}/sales-page`),
           api("/sales-blocks"),
           api("/media"),
+          api("/shared-blocks"),
         ]);
         setMedia(new Map(library.map((m) => [m.id, m])));
+        setSharedList(sharedBlocks);
         setPage(saved);
         document.title = `Página de vendas: ${product.title} — Painel administrativo`;
         if (saved) {
@@ -232,7 +235,8 @@ export default function App({ productId }) {
   const context = useMemo(() => ({
     dispatch, schema, media, focusLater,
     addMedia: (m) => setMedia((prev) => new Map(prev).set(m.id, m)),
-  }), [dispatch, schema, media, focusLater]);
+    shared: { list: sharedList, add: (b) => setSharedList((prev) => [...prev, b]) },
+  }), [dispatch, schema, media, focusLater, sharedList]);
 
   /* ---------- Seleção ---------- */
   // Cartão aberto/fechado no painel Estrutura. Abrir seleciona o bloco e rola a página até ele.
@@ -268,6 +272,16 @@ export default function App({ productId }) {
     setOpen((prev) => new Set(prev).add(block._key));
     select(block._key, "canvas");
     reveal.current = { index, edit: true }; // ao redesenhar: mostra o bloco e começa a editar o 1º texto
+  }
+
+  // Bloco salvo escolhido no "+": entra só a referência (o conteúdo vem do bloco salvo).
+  function addSharedBlock(saved, index) {
+    const local = Object.fromEntries((schema.shareable[saved.type] || []).map((name) => [name, schema.blocks[saved.type].fields[name].default ?? ""]));
+    const block = withKeys([{ type: saved.type, shared: saved.id, ...local }], schema)[0];
+    setPicker(null);
+    dispatch({ type: "insert", path: ["sections"], index, value: block });
+    select(block._key, "canvas");
+    reveal.current = { index, edit: false };
   }
 
   async function removeBlock(index) {
@@ -431,7 +445,8 @@ export default function App({ productId }) {
           <ToolDock canUndo={history.past.length > 0} canRedo={history.future.length > 0} onUndo={undo} onRedo={redo}
             device={device} onDevice={setDevice} panel={panel} onPanel={setPanel} />
           <BlockPicker position={picker?.index ?? null} anchor={picker?.anchor} total={sections.length}
-            onPick={(type) => addBlock(type, picker.index)} onClose={() => setPicker(null)} />
+            onPick={(type) => addBlock(type, picker.index)} onPickShared={(saved) => addSharedBlock(saved, picker.index)}
+            onClose={() => setPicker(null)} />
           <IconMenu open={!!iconPick} anchor={iconPick?.anchor} title="Trocar ícone"
             value={iconPick ? fieldPath(iconPick).reduce((v, k) => v?.[k], doc) : null}
             onPick={(key) => { dispatch({ type: "set", path: fieldPath(iconPick), value: key }); setIconPick(null); }}

@@ -2,8 +2,7 @@
   "use strict";
   var $ = function (id) { return document.getElementById(id); };
 
-  // Já tem sessão? Vai direto para o painel.
-  Admin.api("/auth/me").then(function (d) { if (d.via === "session") location.replace("./"); }).catch(function () {});
+  // Quem já tem sessão nem chega aqui: o servidor redireciona /admin/login.html para o painel.
 
   $("login-form").addEventListener("submit", async function (e) {
     e.preventDefault();

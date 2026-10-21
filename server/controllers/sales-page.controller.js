@@ -1,5 +1,5 @@
 const pool = require("../config/database");
-const { BLOCKS, ICONS, ICON_GROUPS, MAX_BLOCKS, defaultSections } = require("../sales/blocks");
+const { BLOCKS, ICONS, ICON_GROUPS, NETWORKS, MAX_BLOCKS, SHAREABLE, defaultSections } = require("../sales/blocks");
 const { THEMES, DEFAULT_THEME } = require("../sales/theme");
 const { COLORS, ALIGNS } = require("../sales/richtext");
 const { PageInputError, savePage, publishPage, getPage, loadDraftForRender } = require("../sales/pages");
@@ -19,6 +19,8 @@ async function productExists(id) {
 function getBlockSchema(_req, res) {
   return res.json({ data: {
     blocks: BLOCKS, icons: ICONS, iconGroups: ICON_GROUPS, maxBlocks: MAX_BLOCKS, defaultSections: defaultSections(),
+    // Blocos salvos: tipos aceitos e, de cada um, os campos que continuam sendo da página.
+    shareable: SHAREABLE, networks: NETWORKS,
     themes: THEMES, defaultTheme: DEFAULT_THEME,
     textColors: COLORS, textAligns: ALIGNS, // formatação de texto (barra do editor)
   } });

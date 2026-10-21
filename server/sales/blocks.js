@@ -422,6 +422,17 @@ const BLOCKS = {
   },
 };
 
+// Blocos salvos (aba "Blocos salvos" do painel): tipos que podem ter o conteúdo cadastrado uma vez
+// e usado em várias páginas. Na página fica só a referência { type, shared: id, ...campos locais };
+// o resto vem do bloco salvo na hora de desenhar (ver resolveShared em pages.js).
+// Valor: campos que continuam sendo de cada página (o fundo combina com os blocos vizinhos).
+const SHAREABLE = { social: ["background"] };
+
+const pick = (fields, keep) => Object.fromEntries(Object.entries(fields).filter(([name]) => keep(name)));
+// Campos que ficam na página / campos que vêm do bloco salvo.
+const localFields = (type) => pick(BLOCKS[type].fields, (name) => SHAREABLE[type].includes(name));
+const sharedFields = (type) => pick(BLOCKS[type].fields, (name) => !SHAREABLE[type].includes(name));
+
 // Endereço digitado -> endereço seguro para href. Sem esquema: e-mail vira mailto:, o resto https://.
 // Só http, https e mailto (bloqueia javascript:, data: etc.). Devolve null se for inválido.
 function normalizeUrl(value) {
@@ -509,6 +520,27 @@ function validateFields(input, fields, where) {
   return out;
 }
 
+// Referência a um bloco salvo: só o ID e os campos locais (o conteúdo não pode vir junto).
+function validateSharedRef({ type, shared, ...fields }, where) {
+  if (!has(SHAREABLE, type)) throw new ValidationError(`${where}: este tipo de bloco não pode ser um bloco salvo.`);
+  if (typeof shared !== "string" || !UUID.test(shared)) throw new ValidationError(`${where}: bloco salvo inválido.`);
+  return { type, shared: shared.toLowerCase(), ...validateFields(fields, localFields(type), where) };
+}
+
+// Conteúdo de um bloco salvo (aba "Blocos salvos"). Devolve { data } normalizado ou { error }.
+function validateSharedData(type, data) {
+  try {
+    if (!has(SHAREABLE, type)) throw new ValidationError("Tipo de bloco inválido.");
+    return { data: validateFields(data ?? {}, sharedFields(type), BLOCKS[type].label) };
+  } catch (error) {
+    if (error instanceof ValidationError) return { error: error.message };
+    throw error;
+  }
+}
+
+// IDs dos blocos salvos usados numa lista de blocos.
+const sharedIds = (sections) => [...new Set(sections.filter((b) => b.shared).map((b) => b.shared))];
+
 // Valida a lista de blocos inteira. Devolve { sections } normalizado ou { error }.
 function validateSections(sections) {
   try {
@@ -517,7 +549,9 @@ function validateSections(sections) {
     const out = sections.map((block, i) => {
       if (!isObject(block) || !has(BLOCKS, block.type)) throw new ValidationError(`Bloco ${i + 1}: tipo inválido.`);
       const { type, ...fields } = block;
-      return { type, ...validateFields(fields, BLOCKS[type].fields, `Bloco ${i + 1} (${BLOCKS[type].label})`) };
+      const where = `Bloco ${i + 1} (${BLOCKS[type].label})`;
+      if (Object.hasOwn(block, "shared")) return validateSharedRef(block, where);
+      return { type, ...validateFields(fields, BLOCKS[type].fields, where) };
     });
     return { sections: out };
   } catch (error) {
@@ -587,4 +621,7 @@ function defaultSections() {
   ].map((block) => validateSections([block]).sections[0]); // preenche os campos que faltam
 }
 
-module.exports = { ICONS, ICON_GROUPS, NETWORKS, BLOCKS, MAX_BLOCKS, validateSections, validBlocks, mediaIds, defaultSections };
+module.exports = {
+  ICONS, ICON_GROUPS, NETWORKS, BLOCKS, MAX_BLOCKS, SHAREABLE,
+  validateSections, validBlocks, mediaIds, defaultSections, validateSharedData, sharedIds, sharedFields,
+};

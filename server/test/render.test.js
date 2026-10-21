@@ -424,3 +424,32 @@ test("texto formatado: negrito, cor e alinhamento na página pública e no edito
   const live = render(sections, "live");
   assert.match(live, /data-field="title" data-align="center">Dúvidas <strong>frequentes<\/strong>/);
 });
+
+/* ---------- Blocos salvos (já resolvidos por pages.js: conteúdo do bloco salvo + campos locais) ---------- */
+test("bloco vindo de bloco salvo: público igual a um bloco comum; no editor, trancado e com etiqueta", () => {
+  const sections = [
+    { type: "faq", title: "Dúvidas", items: [{ question: "P?", answer: "R" }] },
+    { type: "social", title: "Siga o professor", background: "dark",
+      items: [{ network: "instagram", url: "https://instagram.com/prof", label: "" }] },
+  ];
+  const data = { ...product(sections), shared: new Map([[1, { id: "x", name: "Redes — <Prof>" }]]) };
+  const pub = renderSalesPage(data, { baseUrl: "http://localhost", preview: false });
+  assert.ok(pub.includes('href="https://instagram.com/prof"'));
+  assert.ok(!pub.includes("data-shared"));
+
+  const live = renderSalesPage(data, { baseUrl: "http://localhost", preview: "live" });
+  const [faq, social] = sectionsOf(live).map(([, html]) => html);
+  assert.ok(faq.includes("data-field"), "os outros blocos continuam editáveis");
+  assert.ok(social.includes('data-shared="Redes — &lt;Prof&gt;"'), "etiqueta com o nome escapado");
+  for (const marker of ["data-field", "data-item", "item-add", "item-remove", "data-icon-field"]) {
+    assert.ok(!social.includes(marker), `"${marker}" apareceu no bloco salvo`);
+  }
+  assert.ok(social.includes("is-dark"), "o fundo escolhido na página vale");
+});
+
+test("bloco salvo sem nenhuma rede com link: no editor vira aviso com o nome do bloco", () => {
+  const data = { ...product([{ type: "social", items: [] }]), shared: new Map([[0, { id: "x", name: "Prof. Vazio" }]]) };
+  const live = renderSalesPage(data, { baseUrl: "http://localhost", preview: "live" });
+  assert.ok(live.includes("editor-hidden-block"));
+  assert.ok(live.includes("Prof. Vazio"));
+});

@@ -2,21 +2,25 @@
 import { Fragment, useId } from "react";
 import { useEditor } from "../state/context.js";
 import { duplicateBlock } from "../state/document.js";
-import { Field } from "./Fields.jsx";
 import { BlockIcon } from "../ui/BlockIcon.jsx";
+import { BlockFormBody } from "./SharedBlock.jsx";
 import { Icon } from "./CanvasOverlay.jsx";
 import { SortableList, useSortableItem, DragHandle } from "../ui/dnd.jsx";
 import { plain } from "../state/richtext.js";
 
 // Resumo exibido no cabeçalho do bloco (o primeiro texto que identifica o conteúdo), sem as
 // marcações de formatação.
-function summary(block) {
+function summary(block, shared) {
+  if (block.shared) {
+    const saved = shared.list.find((s) => s.id === block.shared);
+    return saved ? `Bloco salvo: ${saved.name}` : "Bloco salvo não encontrado";
+  }
   const first = (block.items || [])[0] || {};
   return plain(block.title || block.name || first.title || first.question || first.text || "");
 }
 
 function BlockCard({ block, index, total, isOpen, isSelected, isHidden, onToggle, onRemove, onDuplicate, onHover }) {
-  const { schema, dispatch, focusLater } = useEditor();
+  const { schema, dispatch, focusLater, shared } = useEditor();
   const def = schema.blocks[block.type];
   const bodyId = useId();
   const label = def.label;
@@ -39,7 +43,7 @@ function BlockCard({ block, index, total, isOpen, isSelected, isHidden, onToggle
           <span className="block-badge"><BlockIcon type={block.type} /></span>
           <span className="block-text">
             <span className="block-name"><span className="block-number">{index + 1}</span> {label}</span>
-            <span className="block-summary muted">{summary(block) || "Sem título"}</span>
+            <span className="block-summary muted">{summary(block, shared) || "Sem título"}</span>
           </span>
           {isHidden && <span className="block-flag" title="Este bloco não tem conteúdo suficiente para aparecer na página">Não aparece</span>}
         </button>
@@ -56,13 +60,11 @@ function BlockCard({ block, index, total, isOpen, isSelected, isHidden, onToggle
       </div>
       <div className="block-body" id={bodyId} hidden={!isOpen}>
         {def.help && <p className="hint block-help">{def.help}</p>}
-        {isHidden && (
+        {isHidden && !block.shared && (
           <p className="hint warn">Este bloco não aparece na página no momento: preencha o conteúdo principal (ex.: itens da lista ou imagens).</p>
         )}
         {/* Só monta os campos quando aberto: páginas grandes ficam leves */}
-        {isOpen && Object.entries(def.fields).map(([name, field]) => (
-          <Field key={name} field={field} value={block[name]} path={["sections", index, name]} />
-        ))}
+        {isOpen && <BlockFormBody block={block} index={index} />}
       </div>
     </li>
   );
