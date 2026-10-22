@@ -18,7 +18,7 @@
 
   // Campos de texto enviados como estão; a API apara espaços e transforma vazio em null.
   var TEXT_FIELDS = ["title", "slug", "status", "category", "area", "short_description",
-    "format", "workload", "checkout_url"];
+    "checkout_url"];
 
   // "Manual Prático!" -> "manual-pratico"
   function slugify(text) {

@@ -8,7 +8,7 @@ const { fetchCheckout, syncProduct, errorText } = require("../lib/kiwify-sync");
 // com o logo dela (alias "bl"). brand_name / brand_logo_id / brand_logo mantêm os nomes de quando
 // ficavam no próprio produto: o site e a página de vendas leem esses campos.
 const COLUMNS = `p.id, p.title, p.slug, p.short_description, p.status, p.category, p.area, p.featured,
-  p.format, p.workload, p.price_cents, p.checkout_url, p.image_id, p.brand_id,
+  p.price_cents, p.checkout_url, p.image_id, p.brand_id,
   b.name AS brand_name, b.logo_id AS brand_logo_id,
   p.created_at, p.updated_at,
   CASE WHEN m.id IS NULL THEN NULL ELSE json_build_object(
@@ -49,8 +49,6 @@ const MAX_PRICE_CENTS = 100_000_000; // R$ 1.000.000,00
 // Textos opcionais: campo -> tamanho máximo. Vazio vira null (o site oculta campos nulos).
 const OPTIONAL_TEXT = {
   short_description: 500, // cards do catálogo e descrição no Google / prévia do link
-  format: 120,
-  workload: 60,
   area: 60, // área de conhecimento (página inicial e filtro do catálogo)
 };
 

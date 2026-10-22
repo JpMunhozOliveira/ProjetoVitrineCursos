@@ -36,8 +36,6 @@
       // só decorativo (alt vazio: leitores de tela não repetem o nome).
       marca: p.brand_logo ? { url: p.brand_logo.url, alt: p.brand_name ? "" : p.brand_logo.alt_text || "",
         width: p.brand_logo.width || 1, height: p.brand_logo.height || 1 } : null,
-      formato: p.format || "",
-      cargaHoraria: p.workload || "",
       preco: p.price_cents === null || p.price_cents === undefined ? null : p.price_cents / 100,
       checkoutUrl: p.checkout_url || "",
       // Com página de vendas publicada, o cartão leva direto para ela.
@@ -283,15 +281,11 @@
     document.title = c.titulo + " — " + S.nome;
     var m = document.querySelector('meta[name="description"]');
     if (m) m.setAttribute("content", c.resumo || "");
-    var facts = [["Formato", c.formato], ["Carga horária", c.cargaHoraria]]
-      .filter(function (f) { return f[1]; })
-      .map(function (f) { return el("li", {}, [el("strong", { text: f[0] + ": " }), f[1]]); });
     var main = el("div", {}, [
       el("a", { "class": "crumb", href: "/catalogo.html", text: "← Todos os produtos" }),
       c.empresa ? el("p", { "class": "card-by" }, ["Por ", el("strong", { text: c.empresa })]) : "",
       el("h1", { text: c.titulo }),
-      el("p", { "class": "muted", text: c.resumo }),
-      facts.length ? el("div", {}, [el("h2", { text: "Informações" }), el("ul", {}, facts)]) : ""
+      el("p", { "class": "muted", text: c.resumo })
     ]);
     var aside = el("aside", { "class": "buy-box", "aria-label": "Compra" }, [
       cover(c, "detail"),
