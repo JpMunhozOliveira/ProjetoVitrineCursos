@@ -27,14 +27,15 @@
 
     // Onde a imagem é usada (links para os produtos) ou aviso de "sem uso".
     var usage = el("p", "media-usage small");
-    var KIND = { cover: "capa de ", brand: "logo da marca de ", page: "página de vendas de " };
+    var KIND = { cover: "capa de ", brand: "logo da empresa ", "brand-icon": "ícone da aba da empresa ", page: "página de vendas de ", shared: "bloco salvo " };
     if (m.usage.length) {
       usage.append("Usada em: ");
       m.usage.forEach(function (u, i) {
         if (i) usage.append("; ");
         usage.append(KIND[u.kind] || "");
         var a = el("a", "", u.title);
-        a.href = "produto.html?id=" + encodeURIComponent(u.id);
+        a.href = u.kind.indexOf("brand") === 0 ? "empresas.html#" + encodeURIComponent(u.id)
+          : u.kind === "shared" ? "blocos.html" : "produto.html?id=" + encodeURIComponent(u.id);
         usage.append(a);
       });
     } else {

@@ -20,8 +20,10 @@ const PAGE_COLUMNS = `id, product_id, sections, theme, published_at, created_at,
   (published_sections IS DISTINCT FROM sections OR published_theme IS DISTINCT FROM theme) AS has_unpublished_changes`;
 
 // Dados do produto que a página usa (preço, checkout, título, resumo e marca vêm sempre do cadastro).
+// A marca vem da empresa escolhida no produto (aba Empresas): PRODUCT_FROM junta as duas tabelas.
 const PRODUCT_COLUMNS = `p.id, p.title, p.slug, p.short_description, p.price_cents, p.checkout_url, p.image_id, p.status,
-  p.brand_name, p.brand_logo_id`;
+  b.name AS brand_name, b.logo_id AS brand_logo_id, b.icon_id AS brand_icon_id`;
+const PRODUCT_FROM = "products p LEFT JOIN brands b ON b.id = p.brand_id";
 
 class PageInputError extends Error {}
 
@@ -166,8 +168,10 @@ async function loadMedia(sections, ...productImageIds) {
   const media = new Map();
   if (ids.length) {
     const result = await pool.query(
-      "SELECT id, storage_key, width, height, alt_text FROM media WHERE id = ANY($1::uuid[])", [ids]);
-    result.rows.forEach(({ storage_key: key, ...m }) => media.set(m.id, { ...m, url: storage.publicUrl(key) }));
+      "SELECT id, storage_key, width, height, alt_text, variants FROM media WHERE id = ANY($1::uuid[])", [ids]);
+    result.rows.forEach(({ storage_key: key, variants, ...m }) => media.set(m.id, {
+      ...m, url: storage.publicUrl(key), srcset: storage.srcset(key, m.width, variants),
+    }));
   }
   return media;
 }
@@ -177,12 +181,12 @@ async function loadMedia(sections, ...productImageIds) {
 async function loadDraftForRender(productId, body) {
   const input = normalizeInput(body);
   const { rows } = await pool.query(
-    `SELECT ${PRODUCT_COLUMNS} FROM products p WHERE p.id = $1`, [productId]);
+    `SELECT ${PRODUCT_COLUMNS} FROM ${PRODUCT_FROM} WHERE p.id = $1`, [productId]);
   if (!rows.length) return null;
   const { sections, shared } = await resolveShared(input.sections, { strict: true });
   return {
     ...rows[0], sections, shared, theme: input.theme,
-    published_at: null, media: await loadMedia(storedBlocks(sections), rows[0].image_id, rows[0].brand_logo_id),
+    published_at: null, media: await loadMedia(storedBlocks(sections), rows[0].image_id, rows[0].brand_logo_id, rows[0].brand_icon_id),
   };
 }
 
@@ -197,14 +201,14 @@ async function loadForRender({ slug, productId, version }) {
     : "sp.sections, sp.theme";
   const { rows } = await pool.query(
     `SELECT ${PRODUCT_COLUMNS}, ${columns}, sp.published_at
-       FROM products p JOIN sales_pages sp ON sp.product_id = p.id
+       FROM ${PRODUCT_FROM} JOIN sales_pages sp ON sp.product_id = p.id
       WHERE ${where} ${published ? "AND p.status = 'published' AND sp.published_sections IS NOT NULL" : ""}`,
     [slug || productId]
   );
   if (!rows.length) return null;
   const { sections, shared } = await resolveShared(rows[0].sections);
   const data = { ...rows[0], sections, shared };
-  const media = await loadMedia(storedBlocks(sections), data.image_id, data.brand_logo_id);
+  const media = await loadMedia(storedBlocks(sections), data.image_id, data.brand_logo_id, data.brand_icon_id);
   return { ...data, media };
 }
 
