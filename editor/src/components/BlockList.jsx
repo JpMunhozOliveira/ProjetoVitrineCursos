@@ -42,10 +42,14 @@ function BlockCard({ block, index, total, isOpen, isSelected, isHidden, onToggle
           onFocus={() => onHover(index)} onBlur={() => onHover(null)}>
           <span className="block-badge"><BlockIcon type={block.type} /></span>
           <span className="block-text">
-            <span className="block-name"><span className="block-number">{index + 1}</span> {label}</span>
+            <span className="block-name"><span className="block-number">{index + 1}</span> <span className="block-label">{label}</span></span>
             <span className="block-summary muted">{summary(block, shared) || "Sem título"}</span>
           </span>
-          {isHidden && <span className="block-flag" title="Este bloco não tem conteúdo suficiente para aparecer na página">Não aparece</span>}
+          {isHidden && (
+            <span className="block-flag" title="Não aparece na página: falta conteúdo">
+              <span aria-hidden="true">!</span><span className="sr-only">Não aparece na página</span>
+            </span>
+          )}
         </button>
         <div className="tools">
           <button type="button" className="icon-btn" data-action="up" disabled={index === 0}

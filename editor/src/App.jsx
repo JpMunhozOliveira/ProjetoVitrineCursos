@@ -3,12 +3,17 @@
 // CanvasOverlay). Um painel lateral abre sob demanda para o que não se edita na página (imagens,
 // ícones, itens de lista), a visão geral dos blocos e as cores.
 // Este arquivo coordena: carregamento, estado da página, seleção, salvar e publicar.
+//
+// Dois modos, com o mesmo editor:
+//   página      (pagina.html?id=<produto>)  -> a página de vendas inteira; salvar rascunho e publicar
+//   bloco salvo (pagina.html?bloco=<id>)    -> um bloco salvo sozinho (aba Blocos salvos): sem
+//                inserir/mover/remover blocos nem cores; "Salvar" muda todas as páginas que o usam.
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { EditorContext } from "./state/context.js";
 import { withKeys, stripKeys, carryKeys, newBlock, duplicateBlock, emptyValue, getIn, hasText } from "./state/document.js";
 import { historyReducer, initialHistory } from "./state/history.js";
-import { PRODUCT_STATUS } from "./labels.js";
-import { TopBar, ToolDock } from "./components/EditorHeader.jsx";
+import { PRODUCT_STATUS, sizeHint } from "./labels.js";
+import { TopBar, SharedTopBar, ToolDock, PublishBadge, SharedBadge, publishState } from "./components/EditorHeader.jsx";
 import { StartScreen, UnsupportedNotice } from "./components/StartScreen.jsx";
 import { BlockList } from "./components/BlockList.jsx";
 import { BlockPicker } from "./components/BlockPicker.jsx";
@@ -17,12 +22,30 @@ import { ThemePicker, resolveTheme } from "./components/ThemePicker.jsx";
 import { ProductSettingsNote } from "./components/ProductSettingsNote.jsx";
 import { SidePanel } from "./components/SidePanel.jsx";
 import { Preview } from "./components/Preview.jsx";
+import { SharedNameField } from "./components/SharedBlock.jsx";
 
 const api = (...args) => window.Admin.api(...args);
 // Caminho completo de um campo clicado na página: bloco 2, "items.0.icon" -> ["sections", 2, "items", 0, "icon"].
+// Definição do campo de imagem no esquema a partir do caminho dentro do bloco ("items.2.photo").
+const imageFieldDef = (schema, block, field) => field.split(".").filter((p) => !/^\d+$/.test(p))
+  .reduce((def, part) => (def?.item ?? def?.fields)?.[part], schema.blocks[block?.type]);
+// Bloco salvo -> documento do editor: o bloco (com os campos locais, como o fundo, no padrão) e o nome.
+function sharedDoc(saved, schema, theme) {
+  const def = schema.blocks[saved.type];
+  const local = Object.fromEntries((schema.shareable[saved.type] || []).map((n) => [n, def.fields[n].default ?? ""]));
+  return { name: saved.name, sections: [{ type: saved.type, ...saved.data, ...local }], theme: theme || resolveTheme(null, schema) };
+}
+// Documento -> corpo do PUT /shared-blocks/:id (sem tipo, campos locais e chaves do editor).
+function sharedBody(doc, schema) {
+  const { type, ...content } = stripKeys(doc.sections[0]);
+  for (const name of schema.shareable[type] || []) delete content[name];
+  return { name: doc.name, data: content };
+}
+
 const fieldPath = ({ index, field }) => ["sections", index, ...field.split(".").map((p) => (/^\d+$/.test(p) ? Number(p) : p))];
 
-export default function App({ productId }) {
+export default function App({ productId, sharedId }) {
+  const isShared = !productId && !!sharedId;
   const [boot, setBoot] = useState({ status: "loading" });  // loading | error | ready
   // Estado da página com histórico (desfazer/refazer). Ver state/history.js.
   const [history, rawDispatch] = useReducer(historyReducer, initialHistory);
@@ -33,6 +56,7 @@ export default function App({ productId }) {
   const undo = useCallback(() => rawDispatch({ type: "undo" }), []);
   const redo = useCallback(() => rawDispatch({ type: "redo" }), []);
   const [page, setPage] = useState(null);                    // página como está GRAVADA
+  const [sharedInfo, setSharedInfo] = useState(null);         // modo bloco salvo: o bloco como está gravado (uso, data)
   const [media, setMedia] = useState(() => new Map());
   const [sharedList, setSharedList] = useState([]);           // blocos salvos (aba "Blocos salvos")
   const [open, setOpen] = useState(() => new Set());         // cartões abertos no painel Estrutura
@@ -40,7 +64,7 @@ export default function App({ productId }) {
   const [panel, setPanel] = useState(null);                   // null | "block" | "structure" | "page"
   const [device, setDevice] = useState("desktop");
   const [message, setMessage] = useState({ text: "", kind: "" });
-  const [saving, setSaving] = useState(false);
+  const [saving, setSaving] = useState(false); // false, "Salvando…" ou "Publicando…" (aparece no selo de baixo)
   const [hovered, setHovered] = useState(null);               // cartão sob o mouse (destaca na página)
   const [visible, setVisible] = useState(null);               // índices que aparecem na página (da prévia)
   const [picker, setPicker] = useState(null);                 // { index, anchor } onde inserir (null = fechado)
@@ -90,6 +114,20 @@ export default function App({ productId }) {
     (async () => {
       try {
         await window.Admin.requireSession();
+        if (isShared) {
+          const [saved, schema, library] = await Promise.all([
+            api(`/shared-blocks/${encodeURIComponent(sharedId)}`), api("/sales-blocks"), api("/media"),
+          ]);
+          setMedia(new Map(library.map((m) => [m.id, m])));
+          setSharedInfo(saved);
+          document.title = `Bloco salvo: ${saved.name} — Painel administrativo`;
+          const base = sharedDoc(saved, schema);
+          const loaded = { ...base, sections: withKeys(base.sections, schema) };
+          dispatch({ type: "load", doc: loaded });
+          setSelected({ key: loaded.sections[0]._key, from: "canvas" }); // já vem selecionado (barra e painel prontos)
+          setBoot({ status: "ready", product: null, schema });
+          return;
+        }
         if (!productId) throw new Error("Produto não informado.");
         const [product, saved, schema, library, sharedBlocks] = await Promise.all([
           api(`/products/${encodeURIComponent(productId)}`),
@@ -113,7 +151,7 @@ export default function App({ productId }) {
         setBoot({ status: "error", text: err.message });
       }
     })();
-  }, [productId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [productId, sharedId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const schema = boot.schema;
   const product = boot.product;
@@ -144,6 +182,7 @@ export default function App({ productId }) {
   // Ações chamadas de dentro da página (CanvasEditing e CanvasOverlay).
   const canvas = {
     schema, sections, undo, redo,
+    single: isShared, // bloco salvo: sem inserir, mover, duplicar nem remover blocos
     // Largura (na tela) ocupada à direita pela janela flutuante aberta: os controles da página desviam dela.
     // (Mesmas medidas do .floating-panel em editor.css: largura até 460 px, a 16 px da borda.)
     panelInset: panel ? Math.min(460, window.innerWidth - 32) + 16 + 8 : 0,
@@ -161,23 +200,24 @@ export default function App({ productId }) {
     },
     takeReveal() { const r = reveal.current; reveal.current = null; return r; },
     move(index, delta) {
+      if (isShared) return;
       dispatch({ type: "move", path: ["sections"], from: index, to: index + delta });
       reveal.current = { index: index + delta, edit: false };
     },
     duplicate(index) {
-      if (full) return;
+      if (full || isShared) return;
       const copy = duplicateBlock(sections[index], schema);
       dispatch({ type: "insert", path: ["sections"], index: index + 1, value: copy });
       select(copy._key, "canvas");
       reveal.current = { index: index + 1, edit: false };
     },
-    remove: (index) => removeBlock(index),
+    remove: (index) => !isShared && removeBlock(index),
     configure(index) {
       select(sections[index]._key, "canvas");
       setPanel("block");
     },
     insert(index, anchor) {
-      if (!full) setPicker({ index, anchor });
+      if (!full && !isShared) setPicker({ index, anchor });
     },
     // Clique num ícone da página: seleciona o bloco e abre a lista de ícones junto dele.
     pickIcon(index, field, anchor) {
@@ -190,10 +230,22 @@ export default function App({ productId }) {
       if (!sections[index]) return;
       revealBlock(index, "canvas");
       const path = fieldPath({ index, field });
-      const chosen = await window.Admin.pickImage({ currentId: getIn(doc, path) });
+      const chosen = await window.Admin.pickImage({ currentId: getIn(doc, path), hint: sizeHint(imageFieldDef(schema, sections[index], field)) });
       if (!chosen) return;
       setMedia((prev) => new Map(prev).set(chosen.id, chosen));
       dispatch({ type: "set", path, value: chosen.id });
+    },
+    // Imagem da página que pode ser removida (o campo vira vazio)? Não vale para as obrigatórias
+    // (ex.: cada imagem da galeria: lá se remove o item inteiro, pelo × dele).
+    canRemoveImage(index, field) {
+      const def = imageFieldDef(schema, sections[index], field);
+      return def?.type === "image" && !def.required;
+    },
+    // Botão "Remover imagem" sobre a imagem: o espaço volta a ficar vazio (Ctrl+Z desfaz).
+    removeImage(index, field) {
+      if (!canvas.canRemoveImage(index, field)) return;
+      revealBlock(index, "canvas");
+      dispatch({ type: "set", path: fieldPath({ index, field }), value: null });
     },
     // "Adicionar imagem" no fim da galeria: a imagem escolhida vira um item novo da lista.
     async addImage(index, list) {
@@ -201,10 +253,10 @@ export default function App({ productId }) {
       const field = block && schema.blocks[block.type].fields[list];
       if (field?.type !== "list" || block[list].length >= field.max) return;
       revealBlock(index, "canvas");
-      const chosen = await window.Admin.pickImage({});
+      const [name, imageDef] = Object.entries(field.item).find(([, f]) => f.type === "image");
+      const chosen = await window.Admin.pickImage({ hint: sizeHint(imageDef) });
       if (!chosen) return;
       setMedia((prev) => new Map(prev).set(chosen.id, chosen));
-      const [name] = Object.entries(field.item).find(([, f]) => f.type === "image");
       dispatch({ type: "insert", path: ["sections", index, list], value: { ...emptyValue(field.item), [name]: chosen.id } });
     },
     // "+ Adicionar …" no fim de uma lista da página: item novo no fim, já com o cursor no 1º texto.
@@ -233,10 +285,10 @@ export default function App({ productId }) {
   };
 
   const context = useMemo(() => ({
-    dispatch, schema, media, focusLater,
+    dispatch, schema, media, focusLater, isShared,
     addMedia: (m) => setMedia((prev) => new Map(prev).set(m.id, m)),
     shared: { list: sharedList, add: (b) => setSharedList((prev) => [...prev, b]) },
-  }), [dispatch, schema, media, focusLater, sharedList]);
+  }), [dispatch, schema, media, focusLater, sharedList, isShared]);
 
   /* ---------- Seleção ---------- */
   // Cartão aberto/fechado no painel Estrutura. Abrir seleciona o bloco e rola a página até ele.
@@ -340,13 +392,32 @@ export default function App({ productId }) {
     }
   }
 
+  // Modo bloco salvo: grava o bloco (todas as páginas que o usam mudam na hora).
+  async function saveShared() {
+    const sent = doc;
+    try {
+      const saved = await api(`/shared-blocks/${encodeURIComponent(sharedId)}`, { method: "PUT", body: sharedBody(sent, schema) });
+      setSharedInfo(saved);
+      const next = sharedDoc(saved, schema, sent.theme);
+      dispatch({ type: "saved", sent, doc: { ...next, sections: withKeys(carryKeys(next.sections, sent.sections), schema) } });
+    } catch (err) {
+      showError(err);
+    }
+  }
+
   async function save() {
     if (saving || !doc) return;
-    setSaving(true);
-    setMessage({ text: "Salvando rascunho…", kind: "" });
-    if (await saveDraft()) {
-      setMessage({ text: `Rascunho salvo às ${new Date().toLocaleTimeString("pt-BR")}. O site só muda quando você publicar.`, kind: "success" });
+    if (isShared) {
+      setSaving("Salvando…");
+      setMessage({ text: "", kind: "" });
+      await saveShared();
+      setSaving(false);
+      return;
     }
+    // Andamento e resultado aparecem no selo de baixo (PublishBadge); a barra de cima só mostra erros.
+    setSaving("Salvando…");
+    setMessage({ text: "", kind: "" });
+    await saveDraft();
     setSaving(false);
   }
   saveRef.current = save;
@@ -363,18 +434,14 @@ export default function App({ productId }) {
       cancel: "Continuar editando",
     });
     if (!ok) return;
-    setSaving(true);
-    setMessage({ text: "Publicando…", kind: "" });
+    setSaving("Publicando…");
+    setMessage({ text: "", kind: "" });
     if (dirty || !page) {
       if (!(await saveDraft())) { setSaving(false); return; }
     }
     try {
       const published = await api(`/products/${encodeURIComponent(productId)}/sales-page/publish`, { method: "POST" });
-      setPage(published);
-      setMessage({
-        text: visibleOnSite ? `Publicada às ${new Date().toLocaleTimeString("pt-BR")}: já está no ar.` : "Publicada. Aparece no site quando o produto for publicado.",
-        kind: "success",
-      });
+      setPage(published); // o selo de baixo passa a "Publicada às …"
     } catch (err) {
       showError(err);
     } finally {
@@ -386,12 +453,16 @@ export default function App({ productId }) {
   if (boot.status === "loading") return <p className="msg" role="status">Carregando…</p>;
   if (boot.status === "error") return <p className="msg error" role="alert">{boot.text}</p>;
 
-  const productUrl = `produto.html?id=${encodeURIComponent(productId)}`;
-  const header = (
+  const productUrl = isShared ? "blocos.html" : `produto.html?id=${encodeURIComponent(productId)}`;
+  const header = isShared ? (
+    <SharedTopBar name={doc?.name ?? ""} type={schema.blocks[sharedInfo.type]?.label} dirty={dirty}
+      saving={saving} onSave={save} message={message} />
+  ) : (
     <TopBar product={product} productId={productId} productUrl={productUrl} page={page} dirty={dirty} editing={!!doc}
       saving={saving} onSave={save} onPublish={publish} message={message} />
   );
-  const unsupported = <UnsupportedNotice productId={productId} productUrl={productUrl} hasPage={!!page} />;
+  const unsupported = <UnsupportedNotice productId={productId} productUrl={productUrl} hasPage={!!page}
+    backLabel={isShared ? "Voltar aos blocos salvos" : undefined} />;
 
   if (!doc) {
     return (
@@ -429,24 +500,30 @@ export default function App({ productId }) {
           {header}
           {/* A página ocupa a tela inteira; barras e painel flutuam por cima dela. */}
           <section className="preview-pane" aria-label="Página (clique num texto para editar)">
-            <Preview productId={productId} payload={previewPayload} renderKey={renderKey} canvas={canvas} device={device}
+            <Preview payload={previewPayload}
+              previewUrl={isShared ? `/shared-blocks/${encodeURIComponent(sharedId)}/preview` : `/products/${encodeURIComponent(productId)}/sales-page/preview`} renderKey={renderKey} canvas={canvas} device={device}
               selectedIndex={selectedIndex >= 0 ? selectedIndex : null}
               scrollToSelected={selected.from === "editor"}
               onSelectBlock={(index) => revealBlock(index, "preview")}
-              hoveredIndex={hovered} onVisibleChange={setVisible} />
+              hoveredIndex={hovered} onVisibleChange={setVisible}
+              badge={isShared
+                ? <SharedBadge saved={sharedInfo} dirty={dirty} busy={saving} />
+                : <PublishBadge pub={publishState({ page, dirty, product })} busy={saving} />} />
           </section>
           {panel && (
             <SidePanel mode={panel} onMode={setPanel} onClose={() => setPanel(null)}
+              modes={isShared ? ["block"] : undefined}
+              blockHeader={isShared && <SharedNameField value={doc.name} />}
               block={sections[selectedIndex]} blockIndex={selectedIndex}
               blockHidden={visible !== null && selectedIndex >= 0 && !visible.has(selectedIndex)}
               structure={structure}
               page={<><ThemePicker theme={doc.theme} /><ProductSettingsNote productUrl={productUrl} /></>} />
           )}
           <ToolDock canUndo={history.past.length > 0} canRedo={history.future.length > 0} onUndo={undo} onRedo={redo}
-            device={device} onDevice={setDevice} panel={panel} onPanel={setPanel} />
-          <BlockPicker position={picker?.index ?? null} anchor={picker?.anchor} total={sections.length}
+            device={device} onDevice={setDevice} panel={panel} onPanel={setPanel} single={isShared} />
+          {!isShared && <BlockPicker position={picker?.index ?? null} anchor={picker?.anchor} total={sections.length}
             onPick={(type) => addBlock(type, picker.index)} onPickShared={(saved) => addSharedBlock(saved, picker.index)}
-            onClose={() => setPicker(null)} />
+            onClose={() => setPicker(null)} />}
           <IconMenu open={!!iconPick} anchor={iconPick?.anchor} title="Trocar ícone"
             value={iconPick ? fieldPath(iconPick).reduce((v, k) => v?.[k], doc) : null}
             onPick={(key) => { dispatch({ type: "set", path: fieldPath(iconPick), value: key }); setIconPick(null); }}

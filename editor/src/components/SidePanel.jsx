@@ -11,7 +11,7 @@ import { BlockFormBody } from "./SharedBlock.jsx";
 
 export const PANEL_LABELS = { block: "Bloco", structure: "Estrutura", page: "Cores" };
 
-function BlockFields({ block, index, hidden }) {
+function BlockFields({ block, index, hidden, header }) {
   const { schema } = useEditor();
   if (!block) {
     return <p className="hint panel-empty">Selecione um bloco na página (clique nele) para ver as imagens, os ícones e os itens dele.</p>;
@@ -19,6 +19,7 @@ function BlockFields({ block, index, hidden }) {
   const def = schema.blocks[block.type];
   return (
     <div key={block._key} className="block-fields">
+      {header}
       <h3 className="panel-block-title"><BlockIcon type={block.type} /> <span className="block-number">{index + 1}</span> {def.label}</h3>
       {def.help && <p className="hint block-help">{def.help}</p>}
       {hidden && !block.shared && <p className="hint warn">Este bloco não aparece na página no momento: preencha o conteúdo principal (ex.: itens da lista ou imagens).</p>}
@@ -27,7 +28,9 @@ function BlockFields({ block, index, hidden }) {
   );
 }
 
-export function SidePanel({ mode, onMode, onClose, block, blockIndex, blockHidden, structure, page }) {
+// modes: abas mostradas (o modo bloco salvo usa só "block"); blockHeader: algo acima dos campos do
+// bloco (no modo bloco salvo, o nome dele).
+export function SidePanel({ mode, onMode, onClose, block, blockIndex, blockHidden, structure, page, modes = Object.keys(PANEL_LABELS), blockHeader = null }) {
   // Janela flutuante (não modal): a página continua clicável por trás. Ao abrir, o foco vem para
   // a janela; ao fechar pelo ✕ ou Esc, volta para o botão da barra de baixo que a abre.
   const box = useRef(null);
@@ -40,8 +43,8 @@ export function SidePanel({ mode, onMode, onClose, block, blockIndex, blockHidde
     <aside ref={box} tabIndex={-1} className="side-panel floating-panel" aria-label={`Painel: ${PANEL_LABELS[mode]}`}
       onKeyDown={(e) => { if (e.key === "Escape" && !e.defaultPrevented && !document.querySelector("dialog[open]")) close(); }}>
       <div className="side-panel-head">
-        <div className="segmented panel-tabs" role="radiogroup" aria-label="Conteúdo do painel">
-          {Object.entries(PANEL_LABELS).map(([value, label]) => (
+        <div className="segmented panel-tabs" role="radiogroup" aria-label="Conteúdo do painel" hidden={modes.length < 2}>
+          {modes.map((value) => [value, PANEL_LABELS[value]]).map(([value, label]) => (
             <label key={value}>
               <input type="radio" name="panel-mode" value={value} checked={mode === value} onChange={() => onMode(value)} />
               <span>{label}</span>
@@ -51,7 +54,7 @@ export function SidePanel({ mode, onMode, onClose, block, blockIndex, blockHidde
         <button type="button" className="icon-btn" aria-label="Fechar painel" title="Fechar (Esc)" onClick={close}>✕</button>
       </div>
       <div className="side-panel-body">
-        {mode === "block" && <BlockFields block={block} index={blockIndex} hidden={blockHidden} />}
+        {mode === "block" && <BlockFields block={block} index={blockIndex} hidden={blockHidden} header={blockHeader} />}
         {mode === "structure" && structure}
         {mode === "page" && page}
       </div>

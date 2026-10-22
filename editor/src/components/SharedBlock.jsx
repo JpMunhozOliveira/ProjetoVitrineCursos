@@ -1,5 +1,5 @@
 // Blocos salvos (aba "Blocos salvos" do painel): conteúdo usado em várias páginas, como as redes
-// sociais de um professor. Na página fica só a referência { type, shared: id, ...campos locais }.
+// sociais ou o bloco Autor de um professor (qualquer tipo de bloco pode ser salvo). Na página fica só a referência { type, shared: id, ...campos locais }.
 //   BlockFormBody    -> formulário de um bloco no painel (escolhe entre os dois abaixo)
 //   SharedLinkFields -> bloco vinculado: qual bloco salvo usar, campos locais (fundo),
 //                       editar na aba, desvincular (vira cópia editável só desta página)
@@ -9,11 +9,29 @@ import { useEditor } from "../state/context.js";
 import { stripKeys, withKeys } from "../state/document.js";
 import { Field } from "./Fields.jsx";
 
-const TAB_URL = "blocos.html";
+// Editor visual de um bloco salvo.
+const editUrl = (id) => `pagina.html?bloco=${encodeURIComponent(id)}`;
 
 // Campos que ficam na página (ex.: fundo) e os que vêm do bloco salvo.
 export const localNames = (schema, type) => schema.shareable?.[type] || [];
 export const isShareable = (schema, type) => Object.hasOwn(schema.shareable || {}, type);
+
+// Exemplo de nome no campo "Nome do bloco salvo", conforme o tipo (ex.: "Autor — Prof. Fulano").
+const nameExample = (schema, type) => `${schema.blocks[type]?.label || "Bloco"} — Prof. Fulano`;
+
+// Modo bloco salvo: nome do bloco (só aparece no painel), no topo do painel do bloco.
+export function SharedNameField({ value }) {
+  const { dispatch } = useEditor();
+  const id = useId();
+  return (
+    <div className="field shared-name">
+      <label htmlFor={id}>Nome do bloco salvo</label>
+      <input id={id} value={value} maxLength={120} aria-describedby={`${id}-help`}
+        onChange={(e) => dispatch({ type: "set", path: ["name"], value: e.target.value, merge: true })} />
+      <p id={`${id}-help`} className="hint">Só aparece no painel, para você achar o bloco.</p>
+    </div>
+  );
+}
 
 function pickFields(block, names) {
   return Object.fromEntries(names.filter((n) => Object.hasOwn(block, n)).map((n) => [n, block[n]]));
@@ -43,7 +61,7 @@ function SharedLinkFields({ block, index }) {
     <div className="shared-link">
       <p className="hint shared-note">
         {saved
-          ? <>Este bloco vem do bloco salvo <strong>“{saved.name}”</strong>. O conteúdo é editado na aba <a href={TAB_URL} target="_blank" rel="noopener">Blocos salvos<span className="sr-only"> (abre em nova aba)</span></a> e muda em todas as páginas que o usam.</>
+          ? <>Este bloco vem do bloco salvo <strong>“{saved.name}”</strong>. O conteúdo é editado no <a href={editUrl(saved.id)} target="_blank" rel="noopener">editor do bloco salvo<span className="sr-only"> (abre em nova aba)</span></a> e muda em todas as páginas que o usam.</>
           : <>O bloco salvo deste bloco não existe mais. Escolha outro abaixo ou remova o bloco.</>}
       </p>
       <div className="field">
@@ -59,7 +77,7 @@ function SharedLinkFields({ block, index }) {
       ))}
       {saved && (
         <div className="row-actions">
-          <a className="btn btn-sm btn-outline" href={TAB_URL} target="_blank" rel="noopener">Editar o bloco salvo<span className="sr-only"> (abre em nova aba)</span></a>
+          <a className="btn btn-sm btn-outline" href={editUrl(saved.id)} target="_blank" rel="noopener">Editar o bloco salvo<span className="sr-only"> (abre em nova aba)</span></a>
           <button type="button" className="btn btn-sm btn-outline" onClick={unlink}>Desvincular desta página</button>
         </div>
       )}
@@ -71,14 +89,14 @@ function SharedLinkFields({ block, index }) {
 // mostra a ligação com o bloco salvo; bloco comum mostra os campos (e, se o tipo for
 // compartilhável, a opção de virar bloco salvo).
 export function BlockFormBody({ block, index }) {
-  const { schema } = useEditor();
+  const { schema, isShared } = useEditor();
   if (block.shared) return <SharedLinkFields block={block} index={index} />;
   return (
     <>
       {Object.entries(schema.blocks[block.type].fields).map(([name, field]) => (
         <Field key={name} field={field} value={block[name]} path={["sections", index, name]} />
       ))}
-      {isShareable(schema, block.type) && <SaveAsShared block={block} index={index} />}
+      {!isShared && isShareable(schema, block.type) && <SaveAsShared block={block} index={index} />}
     </>
   );
 }
@@ -91,7 +109,7 @@ function SaveAsShared({ block, index }) {
   const local = localNames(schema, block.type);
 
   async function create() {
-    if (!name.trim()) { setState({ busy: false, error: "Dê um nome ao bloco salvo (ex.: Redes — Prof. Fulano)." }); return; }
+    if (!name.trim()) { setState({ busy: false, error: `Dê um nome ao bloco salvo (ex.: ${nameExample(schema, block.type)}).` }); return; }
     setState({ busy: true, error: "" });
     const content = stripKeys(block);
     const data = Object.fromEntries(Object.entries(content).filter(([k]) => k !== "type" && !local.includes(k)));
@@ -113,7 +131,7 @@ function SaveAsShared({ block, index }) {
         Depois, as mudanças feitas lá valem para todas as páginas que o usam. Salve a página para manter o vínculo.</p>
       <div className="field">
         <label htmlFor={id}>Nome do bloco salvo</label>
-        <input id={id} value={name} maxLength={120} placeholder="Ex.: Redes — Prof. Fulano"
+        <input id={id} value={name} maxLength={120} placeholder={`Ex.: ${nameExample(schema, block.type)}`}
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); create(); } }} />
       </div>

@@ -48,10 +48,13 @@
 /* Situação da pré-visualização: selo pequeno no canto de baixo, à esquerda da barra. */
 .preview-bar {
   position: absolute; left: 16px; bottom: 22px; z-index: 30; display: flex; gap: .5rem; align-items: center;
-  max-width: calc(50% - 260px); padding: .25rem .65rem; font-size: .8rem; pointer-events: none;
+  max-width: calc(50% - 240px); padding: .25rem .4rem .25rem .3rem; font-size: .8rem; pointer-events: none;
   background: color-mix(in srgb, var(--color-bg) 85%, transparent); border: 1px solid var(--color-border); border-radius: 999px;
 }
-.preview-bar:has(.preview-status.ok:only-child) { opacity: .7; }
+/* Discreta quando está tudo em dia (pré-visualização atualizada e sem alerta de publicação). */
+.preview-bar:has(.preview-status.ok):not(:has(.pub-badge.warn, .small)) { opacity: .7; }
+/* Selo da situação da página: aceita o mouse (a explicação aparece como dica). */
+.preview-bar .pub-badge { padding: .05rem .5rem; font-size: .75rem; pointer-events: auto; cursor: help; }
 .preview-status { font-weight: 600; color: var(--color-muted); white-space: nowrap; }
 .preview-status.ok { color: var(--color-focus); }
 .preview-status.error { color: var(--color-danger); }
@@ -77,13 +80,11 @@
 .editor-topbar .toolbar-msg:empty { display: none; }
 .editor-topbar .publish-controls { display: flex; align-items: center; gap: .35rem; flex: none; }
 .editor-topbar .btn-sm { min-height: 36px; border-radius: 999px; }
-.editor-topbar .pub-badge { flex: none; }
 .bar-links { display: flex; gap: 2px; flex: none; }
 .theme-slot { display: contents; }
 .editor-topbar .theme-btn { width: 36px; height: 36px; border-width: 1px; }
 .editor-topbar .theme-btn svg { width: 18px; height: 18px; }
 @media (max-width: 1100px) {
-  .editor-topbar .pub-badge { display: none; }
   .editor-topbar .toolbar-msg { max-width: 12rem; }
 }
 
@@ -158,16 +159,21 @@
 .block-summary { flex: none; font-size: .85rem; }
 .block-head .icon-btn { width: 30px; height: 30px; border-width: 1px; font-size: .9rem; }
 .block-body { padding: .5rem 1rem .75rem; }
-.block-text { display: flex; flex-direction: column; min-width: 0; }
-.block-name { display: flex; align-items: center; gap: .4rem; }
+/* Nome e resumo numa linha cada, cortados com "…": no painel estreito, nomes longos ("Chamada
+   intermediária") não podem invadir o selo e a seta ao lado. */
+.block-text { display: flex; flex: 1 1 auto; flex-direction: column; min-width: 0; overflow: hidden; }
+.block-name { display: flex; align-items: center; gap: .4rem; min-width: 0; }
+.block-label, .block-summary { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .block-number {
   display: inline-grid; place-items: center; min-width: 1.5rem; height: 1.5rem; padding: 0 .3rem;
   font-size: .75rem; font-weight: 800; color: var(--color-muted); background: var(--color-surface); border-radius: 999px;
 }
 .block-summary { display: block; }
+/* "Não aparece na página": só um "!" em círculo (o aviso completo fica no corpo do bloco). */
 .block-flag {
-  order: 2; flex: none; padding: .1rem .55rem; font-size: .75rem; font-weight: 700; white-space: nowrap;
-  color: var(--color-warning); border: 1px solid currentColor; border-radius: 999px;
+  order: 2; display: inline-grid; place-items: center; flex: none; width: 1.4rem; height: 1.4rem;
+  font-size: .8rem; font-weight: 800; line-height: 1; color: var(--color-warning);
+  border: 1.5px solid currentColor; border-radius: 50%;
 }
 .block.is-hidden .block-badge { opacity: .55; }
 
@@ -306,6 +312,7 @@
 .pub-badge.never { color: var(--color-muted); }
 .pub-badge.changes { color: var(--color-warning); }
 .pub-badge.live { color: var(--color-focus); }
+.pub-badge.busy { color: var(--color-muted); }
 /* Publicar é a ação principal do editor: botão cheio; "Salvar rascunho" fica como secundário. */
 .btn-publish { white-space: nowrap; }
 
@@ -335,6 +342,9 @@
 /* Telas de toque: alvos maiores. */
 @media (hover: none) {
   .bar-btn, .bar-icon-btn, .editor-topbar .btn-sm, .icon-btn { min-height: 40px; min-width: 40px; }
+  /* Botões maiores: o cabeçalho do bloco quebra em duas linhas em vez de espremer o nome. */
+  .block-head { flex-wrap: wrap; }
+  .block-head .tools { margin-left: auto; }
 }
 .block-head .icon-btn svg { display: block; width: 16px; height: 16px; }
 

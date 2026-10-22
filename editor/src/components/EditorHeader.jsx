@@ -1,7 +1,8 @@
 // Barras do editor, flutuando sobre a página (que ocupa a tela inteira):
-//   TopBar  (em cima) -> Voltar · título (cortado com "…") · situação · links · modo noturno · Salvar · Publicar
+//   TopBar  (em cima) -> Voltar · título (cortado com "…") · mensagem · links · modo noturno · Salvar · Publicar
 //   ToolDock (embaixo) -> desfazer/refazer | computador/celular | Estrutura · Cores
-// A explicação da situação da página fica no selo (dica ao passar o mouse e texto para leitores de tela).
+// O selo da situação da página (publicada, alterações não publicadas…) fica na barra de baixo da
+// pré-visualização (PublishBadge, usado em Preview.jsx); aqui fica o texto para leitores de tela.
 import { useEffect, useRef } from "react";
 import { PRODUCT_STATUS } from "../labels.js";
 
@@ -20,8 +21,15 @@ const GLOBE = "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM3 12h18M12 3c2.5 2.5 3.5 5.
 const LAYERS = "M12 3l9 5-9 5-9-5zM3 13l9 5 9-5M3 17l9 5 9-5";
 const PALETTE = "M12 3a9 9 0 0 0 0 18c1.1 0 1.5-.8 1.5-1.5 0-1.2-1-1.5-1-2.5s.7-1.5 1.7-1.5H17a4 4 0 0 0 4-4c0-4.7-4-8.5-9-8.5zM7.5 12.5h.01M9.5 8h.01M14.5 8h.01";
 
+// "às 14:32" (hoje) ou "em 21/10/26 às 14:32".
+function moment(iso) {
+  const d = new Date(iso);
+  const time = d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  return d.toDateString() === new Date().toDateString() ? `às ${time}` : `em ${d.toLocaleDateString("pt-BR", { dateStyle: "short" })} às ${time}`;
+}
+
 // Situação da página: nunca publicada | alterações não publicadas | publicada e em dia.
-function publishState({ page, dirty, product }) {
+export function publishState({ page, dirty, product }) {
   const everPublished = !!page?.published_at;
   const changes = !page || page.has_unpublished_changes || dirty;
   const state = !everPublished ? "never" : changes ? "changes" : "live";
@@ -33,7 +41,14 @@ function publishState({ page, dirty, product }) {
     changes: `Há alterações que o público ainda não vê (a versão no ar é de ${when}). Publique para levá-las ao ar.`,
     live: `Publicada em ${when}. O que você vê aqui é o que está no ar.`,
   }[state] + productNote;
-  return { state, everPublished, hint, warn: state === "changes" || !!productNote };
+  // Texto do selo de baixo, com o horário do último salvamento ou da publicação.
+  const saved = page?.updated_at && !dirty ? `Rascunho salvo ${moment(page.updated_at)}` : "";
+  const label = {
+    never: dirty || !saved ? "Nunca publicada" : `${saved} · nunca publicada`,
+    changes: dirty ? "Alterações não salvas" : `${saved} · não publicado`,
+    live: `Publicada ${moment(page?.published_at)} · em dia`,
+  }[state];
+  return { state, everPublished, hint, label, warn: state === "changes" || !!productNote };
 }
 
 function DeviceToggle({ device, onChange }) {
@@ -73,9 +88,6 @@ export function TopBar({ product, productId, productUrl, page, dirty, editing, s
       <h1 className="editor-title" title={product.title}>Página de vendas <span className="muted">· {product.title}</span></h1>
       {editing && (
         <>
-          <span className={`pub-badge ${pub.state}${pub.warn ? " warn" : ""}`} title={pub.hint}>
-            {{ never: "Nunca publicada", changes: "Alterações não publicadas", live: "Publicada · em dia" }[pub.state]}
-          </span>
           <span id="pub-hint" className="sr-only">{pub.hint}</span>
           <p className={`msg toolbar-msg ${message.kind}`} role="status" aria-live="polite">{message.text}</p>
           {(page || live) && (
@@ -112,7 +124,38 @@ export function TopBar({ product, productId, productUrl, page, dirty, editing, s
   );
 }
 
-export function ToolDock({ canUndo, canRedo, onUndo, onRedo, device, onDevice, panel, onPanel }) {
+// Modo bloco salvo (pagina.html?bloco=<id>): Voltar · "Bloco salvo · nome" · mensagem · Salvar.
+export function SharedTopBar({ name, type, dirty, saving, onSave, message }) {
+  return (
+    <header className="editor-topbar">
+      <a className="bar-btn back-link" href="blocos.html"><span aria-hidden="true">←</span> Voltar</a>
+      <h1 className="editor-title" title={name}>Bloco salvo <span className="muted">· {name || "Sem nome"}{type ? ` (${type})` : ""}</span></h1>
+      <p className={`msg toolbar-msg ${message.kind}`} role="status" aria-live="polite">{message.text}</p>
+      <ThemeButtonSlot />
+      <span className="publish-controls">
+        <button type="button" className="btn btn-sm btn-publish save-btn" disabled={saving || !dirty} onClick={onSave}
+          aria-keyshortcuts="Control+S" title="Salvar (Ctrl+S): todas as páginas que usam este bloco mudam na hora">
+          {dirty && <span className="dirty-dot" aria-hidden="true" />}Salvar
+          {dirty && <span className="sr-only"> (há alterações não salvas)</span>}
+        </button>
+      </span>
+    </header>
+  );
+}
+
+// Pílula de baixo no modo bloco salvo: andamento, "não salvo" ou quando salvou e onde é usado.
+export function SharedBadge({ saved, dirty, busy }) {
+  const n = saved?.usage?.length || 0;
+  const where = n ? `usado em ${n} página${n > 1 ? "s" : ""}` : "não usado em nenhuma página";
+  const label = busy || (dirty ? "Alterações não salvas" : `Salvo ${moment(saved?.updated_at)} · ${where}`);
+  const hint = n
+    ? `Ao salvar, as páginas que usam este bloco mudam na hora, inclusive as publicadas: ${saved.usage.map((u) => u.title).join(", ")}.`
+    : "Para usar este bloco, abra o editor de uma página de vendas e escolha-o em “+” › Blocos salvos.";
+  return <span className={`pub-badge ${busy ? "busy" : dirty ? "changes warn" : "live"}`} title={hint}>{label}</span>;
+}
+
+// single (modo bloco salvo): sem Estrutura e Cores; o botão abre o painel do bloco.
+export function ToolDock({ canUndo, canRedo, onUndo, onRedo, device, onDevice, panel, onPanel, single = false }) {
   const togglePanel = (mode) => onPanel(panel === mode ? null : mode);
   return (
     <nav className="editor-dock" aria-label="Ferramentas do editor">
@@ -123,6 +166,14 @@ export function ToolDock({ canUndo, canRedo, onUndo, onRedo, device, onDevice, p
           title="Refazer (Ctrl+Shift+Z)" aria-label="Refazer" aria-keyshortcuts="Control+Shift+Z">↷</button>
       </div>
       <div className="dock-group"><DeviceToggle device={device} onChange={onDevice} /></div>
+      {single ? (
+        <div className="dock-group" role="group" aria-label="Painéis">
+          <button type="button" className="bar-btn" data-panel="block" aria-pressed={panel === "block"} onClick={() => togglePanel("block")}
+            title="Imagens, ícones, itens e nome do bloco">
+            <Glyph d={LAYERS} />Editar bloco
+          </button>
+        </div>
+      ) : (
       <div className="dock-group" role="group" aria-label="Painéis">
         <button type="button" className="bar-btn" data-panel="structure" aria-pressed={panel === "structure"} onClick={() => togglePanel("structure")}>
           <Glyph d={LAYERS} />Estrutura
@@ -132,6 +183,14 @@ export function ToolDock({ canUndo, canRedo, onUndo, onRedo, device, onDevice, p
           <Glyph d={PALETTE} />Cores
         </button>
       </div>
+      )}
     </nav>
   );
+}
+
+// Selo da situação da página (na barra de baixo, ao lado de "Atualizada"). A explicação aparece ao
+// passar o mouse; leitores de tela leem o texto #pub-hint da barra de cima.
+// busy: "Salvando…" / "Publicando…" enquanto a ação está em andamento.
+export function PublishBadge({ pub, busy }) {
+  return <span className={`pub-badge ${busy ? "busy" : pub.state}${pub.warn && !busy ? " warn" : ""}`} title={pub.hint}>{busy || pub.label}</span>;
 }

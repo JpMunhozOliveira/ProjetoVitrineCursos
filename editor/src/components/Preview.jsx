@@ -10,7 +10,8 @@ import { CanvasOverlay } from "./CanvasOverlay.jsx";
 
 const DEBOUNCE_MS = 500; // espera uma pausa na digitação antes de pedir nova renderização
 
-export function Preview({ productId, payload, renderKey, canvas, selectedIndex, scrollToSelected, onSelectBlock, device, hoveredIndex, onVisibleChange }) {
+// previewUrl: onde pedir o HTML (página de vendas do produto ou bloco salvo).
+export function Preview({ previewUrl, payload, renderKey, canvas, selectedIndex, scrollToSelected, onSelectBlock, device, hoveredIndex, onVisibleChange, badge }) {
   const frame = useRef(null);
   const scrollY = useRef(0);          // posição da rolagem, mantida entre atualizações
   const requestId = useRef(0);        // descarta respostas atrasadas (fora de ordem)
@@ -42,7 +43,7 @@ export function Preview({ productId, payload, renderKey, canvas, selectedIndex, 
     setStatus((s) => (s.kind === "error" ? s : { kind: "loading", text: "Atualizando…" }));
     const timer = setTimeout(async () => {
       try {
-        const result = await window.Admin.api(`/products/${encodeURIComponent(productId)}/sales-page/preview`, {
+        const result = await window.Admin.api(previewUrl, {
           method: "POST", body: payloadRef.current, text: true,
         });
         if (id !== requestId.current) return;
@@ -66,7 +67,7 @@ export function Preview({ productId, payload, renderKey, canvas, selectedIndex, 
       }
     }, DEBOUNCE_MS);
     return () => clearTimeout(timer);
-  }, [productId, renderKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [previewUrl, renderKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Libera os textos da moldura atual e devolve o foco ao campo que estava em edição.
   function unlock() {
@@ -215,8 +216,9 @@ export function Preview({ productId, payload, renderKey, canvas, selectedIndex, 
             canvas={{ ...canvas, insert: (position, rect) => canvas.insert(position, toWindow(rect)) }} />
         )}
       </div>
-      {/* Selo discreto no canto de baixo: situação da pré-visualização e escala de exibição. */}
+      {/* Barra discreta no canto de baixo: situação da página (publicada…), da pré-visualização e escala. */}
       <div className="preview-bar">
+        {badge}
         <span className={`preview-status ${status.kind}`} role="status" aria-live="polite">{status.text}</span>
         {scale < 1 && <span className="muted small">{logical} px, exibido a {Math.round(scale * 100)}%</span>}
       </div>

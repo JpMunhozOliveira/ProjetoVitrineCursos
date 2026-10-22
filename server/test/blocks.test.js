@@ -149,7 +149,7 @@ test("recusa referência com conteúdo junto, ID inválido ou tipo não comparti
   assert.match(validateSections([{ type: "social", shared: SHARED_ID, items: [] }]).error, /não suportado/);
   assert.match(validateSections([{ type: "social", shared: "abc" }]).error, /bloco salvo inválido/);
   assert.match(validateSections([{ type: "social", shared: null }]).error, /bloco salvo inválido/);
-  assert.match(validateSections([{ type: "faq", shared: SHARED_ID }]).error, /não pode ser um bloco salvo/);
+  assert.match(validateSections([{ type: "nada", shared: SHARED_ID }]).error, /tipo inválido/);
 });
 
 test("conteúdo do bloco salvo: valida os campos e não aceita os locais", () => {
@@ -159,7 +159,8 @@ test("conteúdo do bloco salvo: valida os campos e não aceita os locais", () =>
   assert.ok(!("background" in ok.data));
   assert.match(validateSharedData("social", { background: "dark" }).error, /não suportado/);
   assert.match(validateSharedData("social", { items: [{ network: "x", url: "javascript:alert(1)" }] }).error, /endereço inválido/);
-  assert.match(validateSharedData("faq", {}).error, /Tipo de bloco inválido/);
+  assert.match(validateSharedData("nada", {}).error, /Tipo de bloco inválido/);
+  assert.match(validateSharedData("constructor", {}).error, /Tipo de bloco inválido/);
   assert.match(validateSharedData("social", "texto").error, /formato inválido/);
 });
 
@@ -169,4 +170,29 @@ test("lista os blocos salvos usados, sem repetir", () => {
   ]);
   assert.deepEqual(sharedIds(sections), [SHARED_ID]);
   assert.deepEqual(mediaIds(sections), []);
+});
+
+test("bloco salvo de Autor: foto, nome e links vêm do bloco salvo; o fundo fica na página", () => {
+  const photo = "8c1e3f2b-4d5a-4b6c-8d7e-9f0a1b2c3d4e";
+  const ok = validateSharedData("author", { photo, name: "Ana", role: "Contadora", links: [{ label: "Lattes", url: "lattes.cnpq.br/1" }] });
+  assert.equal(ok.error, undefined);
+  assert.equal(ok.data.photo, photo);
+  assert.equal(ok.data.links[0].url, "https://lattes.cnpq.br/1");
+  assert.deepEqual(mediaIds([{ type: "author", ...ok.data }]), [photo]); // registrado como imagem em uso
+  assert.match(validateSharedData("author", { background: "dark" }).error, /não suportado/);
+  assert.match(validateSharedData("author", { photo: "../x" }).error, /imagem inválida/);
+  const { sections } = validateSections([{ type: "author", shared: SHARED_ID, background: "soft" }]);
+  assert.deepEqual(sections[0], { type: "author", shared: SHARED_ID, background: "soft" });
+});
+
+test("qualquer tipo de bloco pode ser salvo; só o fundo fica em cada página", () => {
+  const { BLOCKS, SHAREABLE } = require("../sales/blocks");
+  for (const [type, def] of Object.entries(BLOCKS)) {
+    assert.deepEqual(SHAREABLE[type], "background" in def.fields ? ["background"] : [], type);
+  }
+  const faq = validateSharedData("faq", { title: "Dúvidas", items: [{ question: "Tem garantia?", answer: "Sim." }] });
+  assert.equal(faq.error, undefined);
+  assert.equal(faq.data.items[0].answer, "Sim.");
+  assert.equal(validateSharedData("hero", { title: "Curso", badges: [{ strong: "PDF", text: "Prático" }] }).error, undefined);
+  assert.deepEqual(validateSections([{ type: "hero", shared: SHARED_ID }]).sections[0], { type: "hero", shared: SHARED_ID });
 });

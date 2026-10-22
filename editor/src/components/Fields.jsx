@@ -7,6 +7,7 @@ import { emptyValue, hasText } from "../state/document.js";
 import { SortableList, useSortableItem, DragHandle } from "../ui/dnd.jsx";
 import { IconMenu, IconGlyph } from "./IconMenu.jsx";
 import { plain, hasInline, fromPlain } from "../state/richtext.js";
+import { sizeHint } from "../labels.js";
 
 // compact: dentro de itens de lista (textos longos começam com 2 linhas em vez de 3).
 export function Field({ field, value, path, compact, inline }) {
@@ -121,7 +122,7 @@ function ImageField({ field, value, path }) {
   const image = value ? media.get(value) : null;
 
   async function pick() {
-    const chosen = await window.Admin.pickImage({ currentId: value });
+    const chosen = await window.Admin.pickImage({ currentId: value, hint: sizeHint(field) });
     if (!chosen) return;
     addMedia(chosen);
     dispatch({ type: "set", path, value: chosen.id });
@@ -147,7 +148,7 @@ function ImageField({ field, value, path }) {
             <button type="button" className="btn btn-sm btn-danger" onClick={() => dispatch({ type: "set", path, value: null })}>Remover</button>
           )}
         </div>
-        {field.size && <p className="hint">Tamanho recomendado: {field.size}{field.tip ? ` (${field.tip})` : ""}</p>}
+        {field.size && <p className="hint">{sizeHint(field)}</p>}
         {image && !image.alt_text && <p className="hint warn">Sem texto alternativo: descreva esta imagem na página Imagens.</p>}
       </div>
     </div>

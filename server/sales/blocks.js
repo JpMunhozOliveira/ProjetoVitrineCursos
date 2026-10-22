@@ -422,11 +422,13 @@ const BLOCKS = {
   },
 };
 
-// Blocos salvos (aba "Blocos salvos" do painel): tipos que podem ter o conteúdo cadastrado uma vez
-// e usado em várias páginas. Na página fica só a referência { type, shared: id, ...campos locais };
+// Blocos salvos (aba "Blocos salvos" do painel): qualquer bloco pode ter o conteúdo cadastrado uma
+// vez e usado em várias páginas (ex.: as redes sociais ou a apresentação de um professor). Na página fica só a referência { type, shared: id, ...campos locais };
 // o resto vem do bloco salvo na hora de desenhar (ver resolveShared em pages.js).
 // Valor: campos que continuam sendo de cada página (o fundo combina com os blocos vizinhos).
-const SHAREABLE = { social: ["background"] };
+// Todo tipo entra; o fundo (quando o tipo tem) continua sendo escolhido em cada página.
+const SHAREABLE = Object.fromEntries(Object.entries(BLOCKS)
+  .map(([type, def]) => [type, Object.hasOwn(def.fields, "background") ? ["background"] : []]));
 
 const pick = (fields, keep) => Object.fromEntries(Object.entries(fields).filter(([name]) => keep(name)));
 // Campos que ficam na página / campos que vêm do bloco salvo.
