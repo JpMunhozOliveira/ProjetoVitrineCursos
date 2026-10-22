@@ -132,11 +132,11 @@ docker run --rm --user "$(id -u):$(id -g)" -v "$PWD":/w -w /w node:22-alpine nod
   DOMAIN=seusite.com.br
   ACME_EMAIL=seu@email.com
   ```
-- `PUBLIC_URL`, `TRUST_PROXY` e `COOKIE_SECURE` podem ficar como estão: com o `docker-compose.prod.yml`, eles são definidos automaticamente a partir do `DOMAIN`.
+- `COOKIE_SECURE` pode ficar como está: com o `docker-compose.prod.yml`, ele, `PUBLIC_URL` e `TRUST_PROXY` são definidos automaticamente a partir do `DOMAIN`. (Sem o Caddy, com outro proxy na frente, acrescente `PUBLIC_URL=https://seusite.com.br` e `TRUST_PROXY=1` ao `.env`.)
 
 **6.3. Proteger o arquivo:** `chmod 600 .env`
 
-**6.4. Guardar as senhas do banco (`POSTGRES_PASSWORD` e `APP_DB_PASSWORD`) e a `ADMIN_API_KEY`** num gerenciador de senhas. O app conecta ao banco com o usuário `APP_DB_USER`, que só lê e grava dados; o `POSTGRES_USER` (dono do banco) fica para as migrations e os backups. Sem elas, os backups continuam restauráveis, mas você perde o acesso de automação.
+**6.4. Guardar as senhas do banco (`POSTGRES_PASSWORD` e `APP_DB_PASSWORD`), a `ADMIN_API_KEY` e a `KIWIFY_ENCRYPTION_KEY`** num gerenciador de senhas. A `KIWIFY_ENCRYPTION_KEY` criptografa as chaves das contas Kiwify guardadas no banco: se ela se perder, basta conectar as contas de novo na aba Empresas. O app conecta ao banco com o usuário `APP_DB_USER`, que só lê e grava dados; o `POSTGRES_USER` (dono do banco) fica para as migrations e os backups. Sem elas, os backups continuam restauráveis, mas você perde o acesso de automação.
 
 ## 7. Subir o site
 
@@ -157,6 +157,15 @@ docker compose logs caddy     # procure "certificate obtained successfully"
 docker compose run --rm app node scripts/admin-user.js seu@email.com
 ```
 O script pede a senha (mínimo 12 caracteres). Para trocar a senha depois, rode o mesmo comando: as sessões abertas são encerradas.
+
+## 8.1. Conectar as contas Kiwify (uma por professor)
+
+Cada professor vende pela própria conta Kiwify. Para o preço e o link de checkout virem direto da Kiwify:
+1. Na Kiwify do professor: **Apps > API > Criar API Key**. Copie o **Client ID**, o **Client Secret** e o **Account ID**.
+2. No painel: aba **Empresas** > **Editar** a empresa do professor > **Conta Kiwify**: cole os três valores e clique em **Conectar**. O site testa as chaves antes de guardar.
+3. Em **Editar produto > Venda**, escolha o **Produto na Kiwify** e o **Link de checkout**. Ao salvar, preço e link são preenchidos e passam a se atualizar sozinhos a cada 6 horas (ou na hora, pelo botão **Atualizar agora**).
+
+Sem conta conectada, o preço e o link continuam sendo preenchidos à mão, como antes.
 
 ## 9. Testar tudo
 
@@ -245,6 +254,7 @@ Se algo der errado, volte para a versão anterior com `git log --oneline` e `git
 | `docker compose` reclama de `APP_DB_USER` ou `APP_DB_PASSWORD` | `.env` criado antes dessas variáveis existirem. Rode o `gerar-env.js` (comando da etapa 11): ele só acrescenta o que falta. |
 | Login dá "Muitas tentativas" para todo mundo | `TRUST_PROXY` errado. Com o Cloudflare em modo proxy (nuvem laranja) na frente, são 2 proxies: acrescente `TRUST_PROXY: "2"` no `docker-compose.prod.yml`. |
 | O build trava ou o servidor fica lento | Pouca memória: confira a swap (`free -h`) ou aumente o plano. |
+| A aba Empresas diz que falta `KIWIFY_ENCRYPTION_KEY` | `.env` criado antes dessa variável existir. Rode o `gerar-env.js` (comando da etapa 11) e `docker compose up -d`. |
 | Ver os erros do app | `docker compose logs app --tail 100` |
 
 **Nunca apague o volume `caddy_data`** (ele guarda os certificados; o Let's Encrypt limita quantas vezes um domínio pode pedir certificado novo por semana). Também nunca apague os volumes `postgres_data` e `uploads` (os dados do site). Ou seja: **não use** `docker compose down -v`.

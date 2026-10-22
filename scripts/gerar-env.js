@@ -10,7 +10,10 @@ const root = path.join(__dirname, "..");
 const target = path.join(root, ".env");
 
 const random = (bytes) => crypto.randomBytes(bytes).toString("hex");
-const generated = { POSTGRES_PASSWORD: random(24), APP_DB_PASSWORD: random(24), ADMIN_API_KEY: random(32) };
+const generated = {
+  POSTGRES_PASSWORD: random(24), APP_DB_PASSWORD: random(24), ADMIN_API_KEY: random(32),
+  KIWIFY_ENCRYPTION_KEY: crypto.randomBytes(32).toString("base64"),
+};
 const keyOf = (line) => line.match(/^([A-Z_]+)=/)?.[1];
 
 const example = fs.readFileSync(path.join(root, ".env.example"), "utf8").split(/\r?\n/);
@@ -35,5 +38,5 @@ if (fs.existsSync(target) && !process.argv.includes("--force")) {
 }
 
 fs.writeFileSync(target, example.map(withSecrets).join("\n"), { mode: 0o600 });
-console.log(".env criado com POSTGRES_PASSWORD, APP_DB_PASSWORD e ADMIN_API_KEY aleatórios.");
+console.log(".env criado com POSTGRES_PASSWORD, APP_DB_PASSWORD, ADMIN_API_KEY e KIWIFY_ENCRYPTION_KEY aleatórios.");
 console.log("Abra o arquivo para ver a ADMIN_API_KEY e guardá-la em local seguro.");

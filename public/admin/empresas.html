@@ -108,6 +108,35 @@
             </div>
           </div>
         </fieldset>
+        <fieldset id="kiwify">
+          <legend>Conta Kiwify</legend>
+          <p class="hint">Conectada a conta Kiwify de quem vende (cada professor tem a sua), o preço e o link de checkout dos produtos desta empresa
+            vêm direto da Kiwify e se atualizam sozinhos. Na Kiwify, crie as chaves em <strong>Apps &gt; API &gt; Criar API Key</strong> e copie os três valores abaixo.</p>
+          <p id="kiwify-new" class="hint">Salve a empresa primeiro; depois, abra “Editar” para conectar a conta.</p>
+          <div id="kiwify-box">
+            <p id="kiwify-status" class="kiwify-status"></p>
+            <div class="grid-2">
+              <div class="field">
+                <label for="kiwify-account">Account ID</label>
+                <input id="kiwify-account" maxlength="100" autocomplete="off" spellcheck="false">
+              </div>
+              <div class="field">
+                <label for="kiwify-client">Client ID</label>
+                <input id="kiwify-client" maxlength="100" autocomplete="off" spellcheck="false">
+              </div>
+            </div>
+            <div class="field">
+              <label for="kiwify-secret">Client Secret</label>
+              <input id="kiwify-secret" type="password" maxlength="256" autocomplete="new-password" spellcheck="false" aria-describedby="kiwify-secret-help">
+              <p id="kiwify-secret-help" class="hint">Fica guardado criptografado e nunca é mostrado de novo. Para trocar, cole as chaves novas e clique em Conectar.</p>
+            </div>
+            <div class="row-actions">
+              <button id="kiwify-connect" class="btn btn-sm" type="button">Conectar</button>
+              <button id="kiwify-disconnect" class="btn btn-sm btn-danger" type="button" hidden>Desconectar</button>
+            </div>
+            <p id="kiwify-msg" class="msg" role="status" aria-live="polite"></p>
+          </div>
+        </fieldset>
         <div class="form-actions">
           <p id="form-msg" class="msg" role="status" aria-live="polite"></p>
           <div class="buttons">

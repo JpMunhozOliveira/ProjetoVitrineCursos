@@ -6,6 +6,7 @@ const {
   createProduct,
   updateProduct,
   deleteProduct,
+  syncKiwifyProduct,
 } = require("../controllers/product.controller");
 
 const { getAdminSalesPage, saveAdminSalesPage, publishAdminSalesPage, previewAdminSalesPage } = require("../controllers/sales-page.controller");
@@ -18,6 +19,7 @@ router.get("/:id", getAdminProduct);
 router.post("/", createProduct);
 router.patch("/:id", updateProduct);
 router.delete("/:id", deleteProduct);
+router.post("/:id/kiwify-sync", syncKiwifyProduct);
 router.get("/:id/sales-page", getAdminSalesPage);
 router.put("/:id/sales-page", saveAdminSalesPage);
 router.post("/:id/sales-page/preview", previewAdminSalesPage);

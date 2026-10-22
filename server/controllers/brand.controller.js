@@ -8,9 +8,12 @@ const { UUID, normalizeBrandBody } = require("../lib/brand-input");
 const NOT_FOUND = { error: "Empresa não encontrada." };
 const MISSING_LOGO = { error: "A imagem escolhida para o logo ou o ícone não existe mais. Escolha outra." };
 
-// "usage": produtos que usam a empresa.
+// "usage": produtos que usam a empresa. "kiwify": conta Kiwify conectada (sem o segredo; do
+// Client ID, só os 4 últimos caracteres, para conferir qual chave está em uso).
 const SELECT_BRAND = `
   SELECT b.id, b.name, b.created_at, b.updated_at,
+         (SELECT json_build_object('account_id', k.account_id, 'client_id_hint', right(k.client_id, 4),
+             'updated_at', k.updated_at) FROM kiwify_accounts k WHERE k.brand_id = b.id) AS kiwify,
          CASE WHEN m.id IS NULL THEN NULL ELSE json_build_object(
            'id', m.id, 'storage_key', m.storage_key, 'alt_text', m.alt_text,
            'width', m.width, 'height', m.height, 'original_name', m.original_name) END AS logo,

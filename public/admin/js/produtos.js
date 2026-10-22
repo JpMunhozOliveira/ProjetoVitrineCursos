@@ -101,7 +101,14 @@
 
       cell(tr, "Produto", link).append(details);
       cell(tr, "Situação", statusSelect(p));
-      cell(tr, "Preço", Admin.formatPrice(p.price_cents));
+      var price = cell(tr, "Preço", Admin.formatPrice(p.price_cents));
+      if (p.kiwify_product_id) { // preço e link vêm da Kiwify (atualizados sozinhos)
+        var kw = document.createElement("span");
+        kw.className = "badge badge-kiwify";
+        kw.textContent = p.kiwify_sync_error ? "Kiwify !" : "Kiwify";
+        kw.title = p.kiwify_sync_error ? "Última atualização falhou: " + p.kiwify_sync_error : "Preço e link vindos da Kiwify";
+        price.append(kw);
+      }
       cell(tr, "Atualizado em", new Date(p.updated_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }));
 
       var actions = document.createElement("div");

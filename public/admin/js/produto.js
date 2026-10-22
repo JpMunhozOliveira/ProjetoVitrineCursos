@@ -50,6 +50,7 @@
     form.elements.price.value = priceToInput(p.price_cents);
     cover.show(p.image || null);
     brand.select(p.brand_id || "");
+    kiwify.setSaved(p);
   }
 
   function collect() {
@@ -59,6 +60,7 @@
     data.price_cents = parsePrice(form.elements.price.value);
     data.image_id = cover.image ? cover.image.id : null;
     data.brand_id = form.elements.brand_id.value || null;
+    Object.assign(data, kiwify.collect());
     return data;
   }
 
@@ -95,6 +97,10 @@
         ? "Usada em " + b.usage.length + " produtos: alterações na aba Empresas valem para todos eles." : "";
     }
 
+    function current() {
+      return brands.find(function (x) { return x.id === select.value; }) || null;
+    }
+
     function draw(current) {
       var none = document.createElement("option");
       none.value = ""; none.textContent = "Marca do site (padrão)";
@@ -108,10 +114,165 @@
       preview();
     }
 
-    select.addEventListener("change", preview);
+    select.addEventListener("change", function () { preview(); kiwify.brandChanged(); });
     return {
       load: async function () { brands = await Admin.api("/brands"); draw(select.value); },
-      select: function (id) { draw(id); }
+      select: function (id) { draw(id); },
+      current: current
+    };
+  })();
+
+  /* ---------- Kiwify: preço e link vindos da conta Kiwify da empresa ----------
+     Com a empresa conectada (aba Empresas), escolhe-se o produto e o link de checkout da Kiwify; o
+     preço e o link ficam travados e se atualizam sozinhos (no servidor, a cada 6 h). */
+  var kiwify = (function () {
+    var box = $("kiwify-link"), prodSel = $("kiwify_product"), linkSel = $("kiwify_link");
+    var info = $("kiwify-info"), kmsg = $("kiwify-msg"), refresh = $("kiwify-refresh");
+    var saved = null;      // vínculo como está gravado: { brand, product, link, synced, error }
+    var listBrand = null;  // empresa cuja lista de produtos está no seletor
+    var links = [];        // links do produto escolhido
+    var run = 0;           // descarta respostas atrasadas quando a escolha muda no meio do caminho
+
+    function option(value, text) {
+      var o = document.createElement("option");
+      o.value = value; o.textContent = text;
+      return o;
+    }
+    function lock(on) {
+      form.elements.price.readOnly = on;
+      form.elements.checkout_url.readOnly = on;
+    }
+    // Preço e link do link escolhido aparecem nos campos (o servidor confirma ao salvar).
+    function applyLink() {
+      var l = links.find(function (x) { return x.id === linkSel.value; });
+      if (!l) return;
+      form.elements.price.value = priceToInput(l.price_cents);
+      form.elements.price.setCustomValidity("");
+      form.elements.checkout_url.value = l.checkout_url;
+    }
+    function isSavedChoice() {
+      return !!(saved && saved.brand === form.elements.brand_id.value
+        && prodSel.value === saved.product && linkSel.value === saved.link);
+    }
+    function updateInfo() {
+      var linked = !!prodSel.value;
+      lock(linked);
+      refresh.hidden = !isSavedChoice();
+      if (!linked) { info.textContent = ""; return; }
+      if (!isSavedChoice()) { info.textContent = "Preço e link virão da Kiwify. Clique em Salvar para aplicar."; return; }
+      info.textContent = "Preço e link vindos da Kiwify" + (saved.synced ? ", atualizados em " +
+        new Date(saved.synced).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "") + ".";
+      if (saved.error) Admin.showMessage(kmsg, "Última atualização falhou: " + saved.error + " O site mantém o último preço e link.", "error");
+    }
+
+    async function loadLinks(wanted) {
+      var mine = ++run;
+      links = [];
+      linkSel.replaceChildren();
+      linkSel.disabled = true;
+      if (!prodSel.value) { updateInfo(); return; }
+      linkSel.append(option("", "Carregando…"));
+      try {
+        var p = await Admin.api("/brands/" + encodeURIComponent(listBrand) + "/kiwify/products/" + encodeURIComponent(prodSel.value));
+        if (mine !== run) return;
+        links = (p.links || []).filter(function (l) { return l.status === "active" || l.id === wanted; });
+        linkSel.replaceChildren.apply(linkSel, links.map(function (l) {
+          return option(l.id, l.name + " — " + Admin.formatPrice(l.price_cents) + (l.status === "active" ? "" : " (desativado)"));
+        }));
+        if (!links.length) {
+          linkSel.append(option("", "Nenhum link ativo neste produto"));
+          Admin.showMessage(kmsg, "Este produto não tem link de checkout ativo na Kiwify.", "error");
+        } else {
+          linkSel.disabled = false;
+          linkSel.value = links.some(function (l) { return l.id === wanted; }) ? wanted : links[0].id;
+          if (!isSavedChoice()) applyLink();
+        }
+      } catch (err) {
+        if (mine !== run) return;
+        linkSel.replaceChildren(option(wanted || "", wanted ? "Link vinculado (" + wanted + ")" : "—"));
+        Admin.showMessage(kmsg, err.message, "error");
+      }
+      updateInfo();
+    }
+
+    // Mostra o seletor quando a empresa escolhida tem conta Kiwify e carrega os produtos dela.
+    async function draw() {
+      var b = brand.current();
+      Admin.showMessage(kmsg, "");
+      box.hidden = !(b && b.kiwify);
+      if (box.hidden) {
+        run++;
+        listBrand = null;
+        prodSel.replaceChildren(option("", "Não vincular (preencher à mão)"));
+        links = []; linkSel.replaceChildren(); linkSel.disabled = true;
+        lock(false); refresh.hidden = true; info.textContent = "";
+        return;
+      }
+      var keep = saved && saved.brand === b.id ? saved : null;
+      if (listBrand !== b.id) {
+        listBrand = b.id;
+        var mine = ++run;
+        prodSel.replaceChildren(option("", "Carregando produtos da Kiwify…"));
+        linkSel.replaceChildren(); linkSel.disabled = true;
+        try {
+          var list = await Admin.api("/brands/" + encodeURIComponent(b.id) + "/kiwify/products");
+          if (mine !== run) return;
+          prodSel.replaceChildren.apply(prodSel, [option("", "Não vincular (preencher à mão)")].concat(list.map(function (p) {
+            return option(p.id, p.name + (p.status && p.status !== "active" ? " (inativo)" : ""));
+          })));
+        } catch (err) {
+          if (mine !== run) return;
+          prodSel.replaceChildren(option("", "Não vincular (preencher à mão)"));
+          Admin.showMessage(kmsg, err.message, "error");
+        }
+        if (keep && !Array.prototype.some.call(prodSel.options, function (o) { return o.value === keep.product; })) {
+          prodSel.append(option(keep.product, "Produto vinculado (" + keep.product + ")"));
+        }
+      }
+      prodSel.value = keep ? keep.product : "";
+      await loadLinks(keep ? keep.link : "");
+    }
+
+    prodSel.addEventListener("change", function () { Admin.showMessage(kmsg, ""); loadLinks(""); });
+    linkSel.addEventListener("change", function () { applyLink(); updateInfo(); });
+
+    refresh.addEventListener("click", async function () {
+      refresh.disabled = true;
+      Admin.showMessage(kmsg, "Consultando a Kiwify…");
+      try {
+        var p = await Admin.api("/products/" + encodeURIComponent(id) + "/kiwify-sync", { method: "POST" });
+        form.elements.price.value = priceToInput(p.price_cents);
+        form.elements.checkout_url.value = p.checkout_url || "";
+        saved.synced = p.kiwify_synced_at; saved.error = p.kiwify_sync_error;
+        updateInfo();
+        Admin.showMessage(kmsg, "Preço e link atualizados: " + Admin.formatPrice(p.price_cents) + ".", "success");
+      } catch (err) {
+        Admin.showMessage(kmsg, err.message, "error");
+      } finally {
+        refresh.disabled = false;
+      }
+    });
+
+    return {
+      setSaved: function (p) {
+        saved = p.kiwify_product_id ? {
+          brand: p.brand_id || "", product: p.kiwify_product_id, link: p.kiwify_link_id,
+          synced: p.kiwify_synced_at, error: p.kiwify_sync_error
+        } : null;
+        listBrand = null; // recarrega a lista (o produto pode ter mudado)
+        draw();
+      },
+      brandChanged: draw,
+      // Seletor visível: o que está escolhido. Oculto (empresa sem conta conectada): mantém o vínculo
+      // gravado se a empresa é a mesma (o site guarda o último preço/link); trocou de empresa: desfaz.
+      collect: function () {
+        if (!box.hidden) {
+          var on = !!(prodSel.value && linkSel.value);
+          return { kiwify_product_id: on ? prodSel.value : null, kiwify_link_id: on ? linkSel.value : null };
+        }
+        var keep = saved && saved.brand === form.elements.brand_id.value;
+        return { kiwify_product_id: keep ? saved.product : null, kiwify_link_id: keep ? saved.link : null };
+      }
     };
   })();
 

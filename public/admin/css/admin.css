@@ -225,6 +225,13 @@ dialog.confirm .buttons .btn{flex:1 1 0;padding-inline:1rem;white-space:nowrap}
 .icon-preview img{object-fit:contain;padding:.75rem}
 .brand-tab{display:flex;align-items:center;gap:.4rem;margin:0}
 .brand-tab img{width:16px;height:16px;object-fit:contain}
+/* Conta Kiwify (aba Empresas) e vínculo no produto */
+.brand-kiwify,.kiwify-status{margin:0;color:var(--color-muted)}
+.brand-kiwify.ok,.kiwify-status.ok{color:var(--color-focus);font-weight:600}
+.kiwify-status{margin-bottom:.75rem}
+.kiwify-link{margin-bottom:1rem}
+.kiwify-sync{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem 1rem;margin:.25rem 0 0}
+.badge-kiwify{color:var(--color-focus);font-size:.75rem;padding:0 .45rem;margin-left:.35rem;vertical-align:middle}
 .brand-form .form-actions{grid-template-areas:"msg buttons"}
 
 /* Diálogo "Escolher da biblioteca" */
@@ -356,3 +363,4 @@ table.list th:last-child{border-top-right-radius:var(--radius)}
   .table-wrap{background:none;border:0;border-radius:0;box-shadow:none}
   table.list tr{background:var(--color-bg);box-shadow:var(--admin-shadow)}
 }
+.product-form input[readonly]{opacity:.7;cursor:not-allowed}

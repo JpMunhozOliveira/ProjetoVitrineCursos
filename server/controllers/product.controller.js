@@ -1,6 +1,8 @@
 const pool = require("../config/database");
 const storage = require("../lib/storage");
 const { normalizeCategory } = require("../lib/categories");
+const kiwify = require("../lib/kiwify");
+const { fetchCheckout, syncProduct, errorText } = require("../lib/kiwify-sync");
 
 // Colunas do produto (alias "p") + dados da capa (alias "m") e da empresa (alias "b", aba Empresas)
 // com o logo dela (alias "bl"). brand_name / brand_logo_id / brand_logo mantêm os nomes de quando
@@ -20,6 +22,10 @@ const COLUMNS = `p.id, p.title, p.slug, p.short_description, p.status, p.categor
 const selectFrom = (source, extra = "") => `SELECT ${COLUMNS}${extra} FROM ${source} p
   LEFT JOIN media m ON m.id = p.image_id
   LEFT JOIN brands b ON b.id = p.brand_id LEFT JOIN media bl ON bl.id = b.logo_id`;
+
+// Só no painel: vínculo com a Kiwify e situação da última atualização automática.
+const ADMIN_EXTRA = `,
+  p.kiwify_product_id, p.kiwify_link_id, p.kiwify_synced_at, p.kiwify_sync_error`;
 
 // Site público: o produto tem página de vendas PUBLICADA? (o catálogo leva direto para /p/endereco)
 const HAS_SALES_PAGE = `,
@@ -52,9 +58,12 @@ const OPTIONAL_TEXT = {
 // conferida pelo banco (chave estrangeira).
 const IMAGE_FIELDS = ["image_id", "brand_id"];
 
+// Vínculo com a Kiwify: produto e link de checkout, sempre os dois juntos (ou os dois null).
+const KIWIFY_FIELDS = ["kiwify_product_id", "kiwify_link_id"];
+
 const FIELDS = new Set([
   "title", "slug", "status", "category", "featured", "price_cents", "checkout_url",
-  ...IMAGE_FIELDS, ...Object.keys(OPTIONAL_TEXT),
+  ...IMAGE_FIELDS, ...Object.keys(OPTIONAL_TEXT), ...KIWIFY_FIELDS,
 ]);
 
 function normalizeProductInput(body, isCreate = false) {
@@ -142,6 +151,16 @@ function normalizeProductInput(body, isCreate = false) {
     values[field] = body[field];
   }
 
+  if (KIWIFY_FIELDS.some((field) => field in body)) {
+    const [productId, linkId] = KIWIFY_FIELDS.map((field) => body[field] ?? null);
+    const linked = productId !== null || linkId !== null;
+    if (linked && !(kiwify.isId(productId) && kiwify.isId(linkId))) {
+      return { error: "Escolha o produto e o link de checkout da Kiwify (ou desfaça o vínculo)." };
+    }
+    values.kiwify_product_id = productId;
+    values.kiwify_link_id = linkId;
+  }
+
   return { values };
 }
 
@@ -168,6 +187,44 @@ const MISSING_BRAND = { error: "A empresa escolhida não existe mais. Escolha ou
 const INVALID_ID = { error: "ID de produto inválido." };
 const NOT_FOUND = { error: "Produto não encontrado." };
 
+// Vínculo com a Kiwify ao salvar: preço e link vêm da Kiwify (sobrepõem os digitados).
+//  - vínculo novo ou trocado: a Kiwify precisa responder, senão o produto não é salvo;
+//  - vínculo igual ao gravado: se a Kiwify falhar, salva o resto e mantém o último preço/link;
+//  - trocar a empresa sem informar o vínculo desfaz o vínculo (a conta Kiwify é da empresa).
+// Devolve { error, status } para recusar o pedido.
+async function applyKiwify(values, productId) {
+  const current = productId
+    ? (await pool.query("SELECT brand_id, kiwify_product_id, kiwify_link_id FROM products WHERE id = $1", [productId])).rows[0]
+    : null;
+  if (productId && !current) return {}; // não existe: o UPDATE responde 404
+
+  if (!("kiwify_product_id" in values)) {
+    if ("brand_id" in values && current?.kiwify_product_id && values.brand_id !== current.brand_id) {
+      Object.assign(values, { kiwify_product_id: null, kiwify_link_id: null, kiwify_synced_at: null, kiwify_sync_error: null });
+    }
+    return {};
+  }
+  if (values.kiwify_product_id === null) {
+    Object.assign(values, { kiwify_synced_at: null, kiwify_sync_error: null });
+    return {};
+  }
+
+  const brandId = "brand_id" in values ? values.brand_id : current?.brand_id ?? null;
+  const unchanged = current && current.brand_id === brandId
+    && current.kiwify_product_id === values.kiwify_product_id && current.kiwify_link_id === values.kiwify_link_id;
+  try {
+    const checkout = await fetchCheckout(brandId, values.kiwify_product_id, values.kiwify_link_id);
+    Object.assign(values, checkout, { kiwify_synced_at: new Date(), kiwify_sync_error: null });
+  } catch (error) {
+    if (!(error instanceof kiwify.KiwifyError)) throw error;
+    if (!unchanged) return { status: error.status, error: error.message };
+    delete values.price_cents; // mantém o último preço e link da Kiwify
+    delete values.checkout_url;
+    values.kiwify_sync_error = errorText(error);
+  }
+  return {};
+}
+
 async function listPublicProducts(_req, res) {
   const result = await pool.query(
     `${selectFrom("products", HAS_SALES_PAGE)} WHERE p.status = 'published' ORDER BY p.created_at DESC`
@@ -185,14 +242,14 @@ async function getPublicProduct(req, res) {
 }
 
 async function listAdminProducts(_req, res) {
-  const result = await pool.query(`${selectFrom("products")} ORDER BY p.created_at DESC`);
+  const result = await pool.query(`${selectFrom("products", ADMIN_EXTRA)} ORDER BY p.created_at DESC`);
   return res.json({ data: result.rows.map(toResponse) });
 }
 
 async function getAdminProduct(req, res) {
   if (!isValidId(req.params.id)) return res.status(400).json(INVALID_ID);
 
-  const result = await pool.query(`${selectFrom("products")} WHERE p.id = $1`, [req.params.id]);
+  const result = await pool.query(`${selectFrom("products", ADMIN_EXTRA)} WHERE p.id = $1`, [req.params.id]);
   if (!result.rowCount) return res.status(404).json(NOT_FOUND);
   return res.json({ data: toResponse(result.rows[0]) });
 }
@@ -200,6 +257,8 @@ async function getAdminProduct(req, res) {
 async function createProduct(req, res) {
   const { values, error } = normalizeProductInput(req.body, true);
   if (error) return res.status(400).json({ error });
+  const linked = await applyKiwify(values, null);
+  if (linked.error) return res.status(linked.status).json({ error: linked.error });
 
   // Os nomes de coluna vêm da lista FIELDS (nunca do usuário); os valores vão como parâmetros.
   const fields = Object.keys(values);
@@ -210,7 +269,7 @@ async function createProduct(req, res) {
     const result = await pool.query(
       `WITH saved AS (
          INSERT INTO products (${fields.join(", ")}) VALUES (${placeholders.join(", ")}) RETURNING *)
-       ${selectFrom("saved")}`,
+       ${selectFrom("saved", ADMIN_EXTRA)}`,
       fields.map((field) => values[field])
     );
     return res.status(201).json({ data: toResponse(result.rows[0]) });
@@ -227,6 +286,8 @@ async function updateProduct(req, res) {
 
   const { values, error } = normalizeProductInput(req.body);
   if (error) return res.status(400).json({ error });
+  const linked = await applyKiwify(values, req.params.id);
+  if (linked.error) return res.status(linked.status).json({ error: linked.error });
 
   const fields = Object.keys(values);
   const assignments = fields.map((field, index) => `${field} = $${index + 2}`);
@@ -236,7 +297,7 @@ async function updateProduct(req, res) {
     const result = await pool.query(
       `WITH saved AS (
          UPDATE products SET ${assignments.join(", ")} WHERE id = $1 RETURNING *)
-       ${selectFrom("saved")}`,
+       ${selectFrom("saved", ADMIN_EXTRA)}`,
       [req.params.id, ...fields.map((field) => values[field])]
     );
     if (!result.rowCount) return res.status(404).json(NOT_FOUND);
@@ -247,6 +308,20 @@ async function updateProduct(req, res) {
     if (isMissingBrand(error)) return res.status(400).json(MISSING_BRAND);
     throw error;
   }
+}
+
+// Botão "Atualizar agora": busca de novo preço e link na Kiwify.
+async function syncKiwifyProduct(req, res) {
+  if (!isValidId(req.params.id)) return res.status(400).json(INVALID_ID);
+  try {
+    const { found } = await syncProduct(req.params.id);
+    if (!found) return res.status(404).json(NOT_FOUND);
+  } catch (error) {
+    if (!(error instanceof kiwify.KiwifyError)) throw error;
+    return res.status(error.status).json({ error: error.message });
+  }
+  const result = await pool.query(`${selectFrom("products", ADMIN_EXTRA)} WHERE p.id = $1`, [req.params.id]);
+  return res.json({ data: toResponse(result.rows[0]) });
 }
 
 // Exclusão definitiva só para rascunhos e arquivados; publicados devem ser arquivados antes
@@ -274,4 +349,5 @@ module.exports = {
   createProduct,
   updateProduct,
   deleteProduct,
+  syncKiwifyProduct,
 };

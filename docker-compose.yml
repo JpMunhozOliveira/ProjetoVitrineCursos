@@ -61,8 +61,8 @@ services:
       TRUST_PROXY: ${TRUST_PROXY:-}
       DATABASE_URL: *app-database-url
       UPLOAD_DIR: /data/uploads
-      KIWIFY_CLIENT_ID: ${KIWIFY_CLIENT_ID:-}
-      KIWIFY_CLIENT_SECRET: ${KIWIFY_CLIENT_SECRET:-}
+      # Chave mestra que criptografa as chaves das contas Kiwify guardadas no banco.
+      KIWIFY_ENCRYPTION_KEY: ${KIWIFY_ENCRYPTION_KEY:-}
     volumes:
       # Imagens enviadas pelo painel. Faça backup deste volume junto com o banco.
       - uploads:/data/uploads

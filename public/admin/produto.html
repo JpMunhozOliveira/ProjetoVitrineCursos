@@ -132,6 +132,26 @@
               <input id="workload" name="workload" maxlength="60" placeholder="Ex.: 20 horas">
             </div>
           </div>
+          <div id="kiwify-link" class="kiwify-link" hidden>
+            <div class="grid-2">
+              <div class="field">
+                <label for="kiwify_product">Produto na Kiwify</label>
+                <select id="kiwify_product" aria-describedby="kiwify-help">
+                  <option value="">Não vincular (preencher à mão)</option>
+                </select>
+                <p id="kiwify-help" class="hint">Da conta Kiwify da empresa escolhida em “Marca na página de vendas”.</p>
+              </div>
+              <div class="field">
+                <label for="kiwify_link">Link de checkout na Kiwify</label>
+                <select id="kiwify_link" disabled></select>
+              </div>
+            </div>
+            <div class="kiwify-sync">
+              <span id="kiwify-info" class="hint"></span>
+              <button id="kiwify-refresh" class="btn btn-sm btn-outline" type="button" hidden>Atualizar agora</button>
+            </div>
+            <p id="kiwify-msg" class="msg" role="status" aria-live="polite"></p>
+          </div>
           <div class="grid-2">
             <div class="field">
               <label for="price">Preço (R$)</label>

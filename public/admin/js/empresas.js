@@ -39,6 +39,76 @@
     hint: "Tamanho recomendado: 512 × 512 px (quadrada), PNG com fundo transparente."
   }, function () { dirty = true; });
 
+  /* ---------- Conta Kiwify ----------
+     Conectar e desconectar valem na hora (não dependem do Salvar): o servidor testa as chaves com
+     a Kiwify antes de guardar. O Client Secret nunca volta do servidor. */
+  var kiwify = (function () {
+    var fields = ["kiwify-account", "kiwify-client", "kiwify-secret"].map($);
+    var kmsg = $("kiwify-msg");
+
+    function show(brand) {
+      $("kiwify-new").hidden = !!brand;
+      $("kiwify-box").hidden = !brand;
+      fields.forEach(function (f) { f.value = ""; });
+      Admin.showMessage(kmsg, "");
+      var k = brand && brand.kiwify;
+      var status = $("kiwify-status");
+      status.textContent = k
+        ? "Conectada: Account ID " + k.account_id + ", Client ID terminado em …" + k.client_id_hint + "."
+        : "Não conectada: o preço e o link dos produtos desta empresa são preenchidos à mão.";
+      status.classList.toggle("ok", !!k);
+      if (k) fields[0].value = k.account_id;
+      $("kiwify-connect").textContent = k ? "Trocar chaves" : "Conectar";
+      $("kiwify-disconnect").hidden = !k;
+    }
+
+    $("kiwify-connect").addEventListener("click", async function () {
+      var body = { account_id: fields[0].value.trim(), client_id: fields[1].value.trim(), client_secret: fields[2].value.trim() };
+      var empty = fields.find(function (f, i) { return !body[["account_id", "client_id", "client_secret"][i]]; });
+      if (empty) { Admin.showMessage(kmsg, "Preencha Account ID, Client ID e Client Secret.", "error"); empty.focus(); return; }
+      var btn = this;
+      btn.disabled = true;
+      Admin.showMessage(kmsg, "Testando as chaves com a Kiwify…");
+      try {
+        var k = await Admin.api("/brands/" + encodeURIComponent(editing.id) + "/kiwify", { method: "PUT", body: body });
+        editing.kiwify = k;
+        show(editing);
+        Admin.showMessage(kmsg, "Conta conectada. Agora, em “Editar produto”, escolha o produto da Kiwify na parte Venda.", "success");
+        refreshCards();
+      } catch (err) {
+        Admin.showMessage(kmsg, err.message, "error");
+      } finally {
+        btn.disabled = false;
+        fields[2].value = ""; // o segredo não fica na tela
+      }
+    });
+
+    $("kiwify-disconnect").addEventListener("click", async function () {
+      var ok = await Admin.confirm({
+        title: "Desconectar a conta Kiwify?",
+        text: "As chaves serão apagadas do site. Os produtos desta empresa mantêm o último preço e link, mas param de se atualizar sozinhos.",
+        action: "Desconectar", danger: true
+      });
+      if (!ok) return;
+      try {
+        await Admin.api("/brands/" + encodeURIComponent(editing.id) + "/kiwify", { method: "DELETE" });
+        editing.kiwify = null;
+        show(editing);
+        Admin.showMessage(kmsg, "Conta desconectada.", "success");
+        refreshCards();
+      } catch (err) {
+        Admin.showMessage(kmsg, err.message, "error");
+      }
+    });
+
+    return { show: show };
+  })();
+
+  // Atualiza a lista sem fechar o formulário (ex.: depois de conectar a Kiwify).
+  async function refreshCards() {
+    try { await load(); } catch (e) { /* a lista se atualiza no próximo carregamento */ }
+  }
+
   /* ---------- Formulário ---------- */
   function openForm(brand) {
     editing = brand;
@@ -48,6 +118,7 @@
     logo.clearMessage();
     icon.show(brand && brand.icon ? Object.assign({}, brand.icon) : null);
     icon.clearMessage();
+    kiwify.show(brand);
     Admin.showMessage(formMsg, brand && brand.usage.length
       ? "Usada em " + brand.usage.length + " produto(s): ao salvar, todos mudam na hora." : "");
     dirty = false;
@@ -147,6 +218,9 @@
     }
     tab.append(b.icon ? "Ícone da aba próprio" : b.logo ? "Ícone da aba: usa o logo" : "Ícone da aba: o do site");
     body.append(tab);
+    var kw = el("p", "brand-kiwify small", b.kiwify ? "Kiwify conectada" : "Kiwify não conectada");
+    kw.classList.toggle("ok", !!b.kiwify);
+    body.append(kw);
 
     var usage = el("p", "media-usage small");
     if (b.usage.length) {
