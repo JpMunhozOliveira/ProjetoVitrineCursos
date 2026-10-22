@@ -91,10 +91,13 @@
       var tr = document.createElement("tr");
       var link = document.createElement("a");
       link.href = "produto.html?id=" + encodeURIComponent(p.id);
+      link.className = "cell-title";
       link.textContent = p.title;
+      link.title = p.title; // texto completo ao passar o mouse (o nome longo é cortado em 1 linha)
       var details = document.createElement("div");
-      details.className = "muted small";
+      details.className = "muted small cell-sub";
       details.textContent = "/" + p.slug + (p.category ? " · " + p.category : "");
+      details.title = details.textContent;
 
       cell(tr, "Produto", link).append(details);
       cell(tr, "Situação", statusSelect(p));

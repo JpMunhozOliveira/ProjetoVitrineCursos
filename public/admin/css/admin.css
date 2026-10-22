@@ -101,6 +101,16 @@ table.list td{overflow-wrap:anywhere}
 .status-select.status-archived{color:var(--color-muted)}
 .status-select:disabled{opacity:.6;cursor:wait}
 .row-actions{display:flex;flex-wrap:wrap;gap:.5rem}
+/* Nome longo não estica a linha: nome e endereço/categoria em 1 linha cada, com "…" */
+.cell-title{display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.cell-sub{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+/* Computador: a coluna Produto fica com o espaço que sobra; as outras (e os botões) não quebram linha */
+@media (min-width:720px){
+  table.list td{vertical-align:middle}
+  table.list th:not(:first-child),table.list td:not(:first-child){width:1%;white-space:nowrap}
+  table.list td:first-child{max-width:0}
+  .row-actions{flex-wrap:nowrap}
+}
 
 /* Celular: cada linha vira um cartão e o nome da coluna aparece ao lado do valor (data-label). */
 @media (max-width:719px){
@@ -127,10 +137,13 @@ table.list td{overflow-wrap:anywhere}
 .danger-zone .msg:empty{display:none}
 
 /* Diálogo de confirmação */
-dialog.confirm{max-width:min(28rem,calc(100% - 2rem));padding:1.5rem;color:var(--color-text);background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius)}
+dialog.confirm{max-width:min(32rem,calc(100% - 2rem));padding:1.5rem;color:var(--color-text);background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius)}
 dialog.confirm::backdrop{background:rgb(0 0 0 / .5)}
 dialog.confirm h2{font-size:1.25rem}
-dialog.confirm .buttons{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:.75rem;margin-top:1.5rem}
+/* Botões lado a lado (dividem a largura); só empilham em telas muito estreitas. */
+dialog.confirm .buttons{display:flex;justify-content:flex-end;gap:.75rem;margin-top:1.5rem}
+dialog.confirm .buttons .btn{flex:1 1 0;padding-inline:1rem;white-space:nowrap}
+@media (max-width:380px){dialog.confirm .buttons{flex-wrap:wrap}dialog.confirm .buttons .btn{flex-basis:100%;white-space:normal}}
 
 /* Formulário de produto */
 .product-form{max-width:900px}
@@ -201,6 +214,18 @@ dialog.confirm .buttons{display:flex;flex-wrap:wrap;justify-content:flex-end;gap
 .brand-preview{aspect-ratio:3/1;background:#0f2340}
 .brand-preview img{object-fit:contain;padding:1rem}
 .brand-preview .muted{color:#c7d2e3}
+/* Empresa escolhida no produto e cartões da aba Empresas: logo e nome como no menu do site. */
+.cover-preview.brand-pick-preview{display:flex;align-items:center;justify-content:center;gap:.6rem;padding:1rem;border-style:solid}
+.cover-preview.brand-pick-preview img{width:auto;max-width:60%;height:34px;padding:0;object-fit:contain}
+.brand-pick-preview span{overflow:hidden;font-weight:700;color:#fff;text-overflow:ellipsis;white-space:nowrap}
+.brand-pick-preview span.muted{font-weight:400;color:#c7d2e3}
+.brand-card .brand-pick-preview{aspect-ratio:auto;min-height:5.5rem;border:0;border-radius:0}
+.brand-form{margin-top:1rem}
+.icon-preview{aspect-ratio:1;max-width:8rem}
+.icon-preview img{object-fit:contain;padding:.75rem}
+.brand-tab{display:flex;align-items:center;gap:.4rem;margin:0}
+.brand-tab img{width:16px;height:16px;object-fit:contain}
+.brand-form .form-actions{grid-template-areas:"msg buttons"}
 
 /* Diálogo "Escolher da biblioteca" */
 dialog.picker{width:min(56rem,calc(100% - 2rem));max-height:min(40rem,calc(100% - 2rem));padding:1.25rem;color:var(--color-text);background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius)}
@@ -227,8 +252,8 @@ dialog.picker .msg:empty{display:none}
 .media-body .field{margin-bottom:.5rem}
 /* Blocos salvos (blocos.html): cartões da lista e formulário com lista de itens (ex.: redes). */
 .shared-list{margin-bottom:2rem}
-.shared-form{margin-top:1rem}
-.shared-form .form-actions{grid-template-areas:"msg buttons"}
+.new-shared{margin-bottom:1.5rem}
+.new-shared .msg:empty{display:none}
 .list-field{margin:0 0 1rem;padding:.75rem 1rem 1rem;border:1px dashed var(--color-border);border-radius:var(--radius)}
 .list-field legend{padding:0 .4rem;font-weight:700}
 .list-items{display:grid;gap:.75rem;margin:0 0 .75rem;padding:0;list-style:none}

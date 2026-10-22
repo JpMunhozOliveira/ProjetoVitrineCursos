@@ -17,8 +17,8 @@
   Admin.hasUnsavedChanges = function () { return dirty; };
 
   // Campos de texto enviados como estão; a API apara espaços e transforma vazio em null.
-  var TEXT_FIELDS = ["title", "slug", "status", "category", "short_description",
-    "format", "workload", "checkout_url", "brand_name"];
+  var TEXT_FIELDS = ["title", "slug", "status", "category", "area", "short_description",
+    "format", "workload", "checkout_url"];
 
   // "Manual Prático!" -> "manual-pratico"
   function slugify(text) {
@@ -44,10 +44,12 @@
 
   function fill(p) {
     TEXT_FIELDS.forEach(function (f) { form.elements[f].value = p[f] || ""; });
+    // Categoria antiga fora da lista fixa: o seletor fica em "Sem categoria".
+    if (form.elements.category.selectedIndex < 0) form.elements.category.value = "";
     form.elements.featured.checked = !!p.featured;
     form.elements.price.value = priceToInput(p.price_cents);
     cover.show(p.image || null);
-    brandLogo.show(p.brand_logo || null);
+    brand.select(p.brand_id || "");
   }
 
   function collect() {
@@ -56,93 +58,62 @@
     data.featured = form.elements.featured.checked;
     data.price_cents = parsePrice(form.elements.price.value);
     data.image_id = cover.image ? cover.image.id : null;
-    data.brand_logo_id = brandLogo.image ? brandLogo.image.id : null;
+    data.brand_id = form.elements.brand_id.value || null;
     return data;
   }
 
-  /* ---------- Imagens do produto (capa e logo da marca) ----------
-     A imagem é enviada para a biblioteca na hora (gera um registro em /media), mas só vale para o
-     produto quando ele é salvo. Se você desistir, ela fica na biblioteca e pode ser excluída lá.
-     Cada campo usa elementos com o mesmo prefixo: <prefixo>-img, -zoom, -empty, -file, -pick,
-     -remove, -alt, -alt-field e -msg. */
-  function imageField(prefix, texts) {
-    var el = function (part) { return $(prefix + "-" + part); };
-    var field = { image: null }; // { id, url, alt_text, width, height } ou null
+  var cover = Admin.imageField("cover", {
+    title: "Imagem de capa", removed: "Capa removida.",
+    apply: "Clique em Salvar para aplicá-la ao produto.",
+    hint: "Tamanho recomendado: 1200 × 675 px (formato 16:9)."
+  }, function () { dirty = true; });
 
-    field.show = function (image) {
-      field.image = image;
-      var img = el("img");
-      el("zoom").hidden = !image;
-      el("empty").hidden = !!image;
-      if (image) {
-        img.src = image.url;
-        img.width = image.width; img.height = image.height; // reserva o espaço antes de carregar
+  /* ---------- Empresa (cadastrada na aba Empresas) ----------
+     O produto guarda só qual empresa é; nome e logo vêm do cadastro dela. Assim, trocar o logo ou o
+     nome na aba Empresas muda todos os produtos dela de uma vez. */
+  var brand = (function () {
+    var select = form.elements.brand_id, brands = [];
+
+    function label(b) {
+      return b.name || ("Só logo" + (b.logo && (b.logo.alt_text || b.logo.original_name) ? " — " + (b.logo.alt_text || b.logo.original_name) : ""));
+    }
+
+    // Pré-visualização como no menu da página de vendas: logo e/ou nome sobre fundo escuro.
+    function preview() {
+      var b = brands.find(function (x) { return x.id === select.value; });
+      var img = $("brand-img"), name = $("brand-name-preview");
+      img.hidden = !(b && b.logo);
+      if (b && b.logo) {
+        img.src = b.logo.url; img.width = b.logo.width; img.height = b.logo.height;
+        img.alt = b.name ? "" : b.logo.alt_text || "";
       } else {
         img.removeAttribute("src");
       }
-      el("remove").hidden = !image;
-      el("alt-field").hidden = !image;
-      el("alt").value = image ? image.alt_text || "" : "";
-    };
-
-    function choose(image, text) {
-      field.show(image);
-      dirty = true;
-      Admin.showMessage(el("msg"), text, "success");
+      name.textContent = b ? b.name || "" : "Marca do site";
+      name.classList.toggle("muted", !b);
+      $("brand-usage").textContent = b && b.usage.length > 1
+        ? "Usada em " + b.usage.length + " produtos: alterações na aba Empresas valem para todos eles." : "";
     }
 
-    el("file").addEventListener("change", async function () {
-      var file = this.files[0];
-      this.value = ""; // permite escolher o mesmo arquivo de novo depois
-      if (!file) return;
-      Admin.showMessage(el("msg"), "Enviando “" + file.name + "”…");
-      try {
-        choose(await Admin.uploadImage(file), "Imagem enviada. " + texts.apply);
-        el("alt").focus(); // próximo passo natural: descrever a imagem
-      } catch (err) {
-        Admin.showMessage(el("msg"), err.message, "error");
-      }
-    });
-
-    el("zoom").addEventListener("click", function () {
-      if (!field.image) return;
-      Admin.viewImage({
-        url: field.image.url, alt: el("alt").value.trim(), title: texts.title,
-        width: field.image.width, height: field.image.height
+    function draw(current) {
+      var none = document.createElement("option");
+      none.value = ""; none.textContent = "Marca do site (padrão)";
+      var options = brands.map(function (b) {
+        var o = document.createElement("option");
+        o.value = b.id; o.textContent = label(b);
+        return o;
       });
-    });
+      select.replaceChildren.apply(select, [none].concat(options));
+      select.value = current;
+      preview();
+    }
 
-    el("remove").addEventListener("click", function () {
-      choose(null, texts.removed + " Clique em Salvar para aplicar (a imagem continua na biblioteca).");
-    });
-
-    // Seletor de imagens da biblioteca (compartilhado: Admin.pickImage, em common.js).
-    el("pick").addEventListener("click", async function () {
-      var m = await Admin.pickImage({ currentId: field.image && field.image.id });
-      if (m) choose(m, "Imagem escolhida. " + texts.apply);
-    });
-
-    // O texto alternativo pertence à imagem (fica na biblioteca); é gravado junto com o produto.
-    field.saveAlt = async function () {
-      if (!field.image) return;
-      var alt = el("alt").value.trim();
-      if (alt === (field.image.alt_text || "")) return;
-      var updated = await Admin.api("/media/" + encodeURIComponent(field.image.id), { method: "PATCH", body: { alt_text: alt || null } });
-      field.image.alt_text = updated.alt_text;
+    select.addEventListener("change", preview);
+    return {
+      load: async function () { brands = await Admin.api("/brands"); draw(select.value); },
+      select: function (id) { draw(id); }
     };
-
-    field.clearMessage = function () { Admin.showMessage(el("msg"), ""); };
-    return field;
-  }
-
-  var cover = imageField("cover", {
-    title: "Imagem de capa", removed: "Capa removida.",
-    apply: "Clique em Salvar para aplicá-la ao produto."
-  });
-  var brandLogo = imageField("brand", {
-    title: "Logo da marca", removed: "Logo removido.",
-    apply: "Clique em Salvar para usá-lo na página de vendas."
-  });
+  })();
 
   // Ajusta a tela ao produto como está GRAVADO (não ao que foi alterado e ainda não salvo).
   function setMode(product) {
@@ -248,7 +219,6 @@
     Admin.showMessage(msg, "Salvando…");
     try {
       await cover.saveAlt();
-      await brandLogo.saveAlt();
       var saved = id
         ? await Admin.api("/products/" + encodeURIComponent(id), { method: "PATCH", body: data })
         : await Admin.api("/products", { method: "POST", body: data });
@@ -258,7 +228,7 @@
         history.replaceState(null, "", "produto.html?id=" + encodeURIComponent(id));
       }
       fill(saved); // mostra os valores como ficaram gravados (ex.: espaços removidos, link normalizado)
-      cover.clearMessage(); brandLogo.clearMessage(); // o aviso "clique em Salvar" já foi atendido
+      cover.clearMessage(); // o aviso "clique em Salvar" já foi atendido
       setMode(saved);
       dirty = false;
       Admin.showMessage(msg, "Produto salvo às " + new Date().toLocaleTimeString("pt-BR") + ".", "success");
@@ -273,11 +243,24 @@
     }
   });
 
+  // Sugestões do campo Área: as áreas já usadas em outros produtos (evita "Gestão" e "gestao").
+  async function loadAreas() {
+    var seen = {};
+    (await Admin.api("/products")).forEach(function (p) {
+      var a = (p.area || "").trim();
+      if (a && !seen[a.toLowerCase()]) seen[a.toLowerCase()] = a;
+    });
+    var list = $("area-options");
+    Object.keys(seen).map(function (k) { return seen[k]; }).sort(function (a, b) { return a.localeCompare(b, "pt-BR"); })
+      .forEach(function (a) { var o = document.createElement("option"); o.value = a; list.append(o); });
+  }
+
   // Carregamento inicial: a mensagem fica fora do formulário, que só aparece se tudo der certo.
   (async function () {
     var loadMsg = $("load-msg");
     try {
       await Admin.requireSession();
+      await Promise.all([brand.load(), loadAreas()]);
       if (id) {
         var product = await Admin.api("/products/" + encodeURIComponent(id));
         fill(product);

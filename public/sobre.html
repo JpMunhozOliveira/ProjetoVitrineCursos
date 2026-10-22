@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Sobre — Celetivo Cursos</title>
   <link rel="icon" type="image/png" href="/assets/favicon/favicon.png">
-  <meta name="description" content="Conheça a Celetivo Cursos: cursos e materiais para contadores e profissionais da área fiscal.">
+  <meta name="description" content="Conheça a Celetivo Cursos: plataforma de cursos e materiais de estudo em diferentes áreas.">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <link rel="preload" href="/fonts/inter/InterVariable-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="css/theme.css">
@@ -24,7 +24,7 @@
     <div class="container">
       <p class="v-eyebrow">Sobre</p>
       <h1 id="t-sobre" data-site="nome">Celetivo Cursos</h1>
-      <p class="lead" data-site="slogan"></p>
+      <p class="lead" data-site="sobre.subtitulo"></p>
     </div>
   </section>
   <section class="v-section is-light" aria-labelledby="t-quem-somos">
@@ -37,8 +37,14 @@
   <section class="v-section is-soft" aria-labelledby="t-valores">
     <div class="container">
       <p class="v-eyebrow">Como trabalhamos</p>
-      <h2 id="t-valores">O que você pode esperar</h2>
+      <h2 id="t-valores" data-site="sobre.valoresTitulo"></h2>
       <div id="valores" class="features"></div>
+    </div>
+  </section>
+  <section class="v-section is-light" aria-labelledby="t-proposito">
+    <div class="container narrow about-text">
+      <h2 id="t-proposito">Nosso propósito</h2>
+      <p data-site="sobre.proposito"></p>
     </div>
   </section>
   <section class="v-section is-dark" id="professor" aria-labelledby="t-professor" hidden>
@@ -52,9 +58,13 @@
       </div>
     </div>
   </section>
-  <section class="v-strip" aria-label="Catálogo">
+  <section class="v-strip" aria-labelledby="t-explore">
     <div class="container v-strip-row">
-      <div><p class="v-eyebrow">Comece agora</p><p class="v-strip-text">Veja os cursos e materiais disponíveis.</p></div>
+      <div>
+        <p class="v-eyebrow" id="t-explore">Explore nossos cursos</p>
+        <p class="v-strip-text" data-site="sobre.chamada.destaque"></p>
+        <p class="v-strip-sub" data-site="sobre.chamada.texto"></p>
+      </div>
       <div class="v-strip-action"><a class="btn-cta" href="/catalogo.html">Ver o catálogo</a></div>
     </div>
   </section>

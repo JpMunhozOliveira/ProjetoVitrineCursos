@@ -126,7 +126,8 @@
   }
 
   // Seletor de imagens da biblioteca (com envio de imagem nova no próprio diálogo).
-  // Uso: var media = await Admin.pickImage({ currentId }); // null = fechou sem escolher
+  // Uso: var media = await Admin.pickImage({ currentId, hint }); // null = fechou sem escolher
+  // hint: tamanho recomendado para o lugar da imagem (ex.: "Tamanho recomendado: 1200 × 675 px").
   var picker = null, pickerResolve = null;
   function pickImage(opts) {
     opts = opts || {};
@@ -137,7 +138,7 @@
       picker.innerHTML = '<div class="picker-head"><h2 id="picker-title">Escolher imagem</h2><div class="row-actions">' +
         '<label class="btn btn-sm file-btn">Enviar nova<input type="file" accept="image/png,image/jpeg,image/webp"></label>' +
         '<button class="btn btn-sm btn-outline picker-close" type="button">Fechar</button></div></div>' +
-        '<p class="msg picker-msg" role="status" aria-live="polite"></p><div class="media-grid"></div>';
+        '<p class="hint picker-hint"></p><p class="msg picker-msg" role="status" aria-live="polite"></p><div class="media-grid"></div>';
       document.body.append(picker);
       picker.querySelector(".picker-close").addEventListener("click", function () { picker.close(); });
       picker.addEventListener("close", function () { if (pickerResolve) { pickerResolve(null); pickerResolve = null; } });
@@ -158,6 +159,9 @@
     }
 
     var grid = picker.querySelector(".media-grid"), msg = picker.querySelector(".picker-msg");
+    var hint = picker.querySelector(".picker-hint");
+    hint.textContent = opts.hint || "";
+    hint.hidden = !opts.hint;
     grid.replaceChildren();
     showMessage(msg, "Carregando…");
     picker.showModal();
@@ -201,6 +205,83 @@
       : (bytes / 1024 / 1024).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + " MB";
   }
 
+  /* Campo de imagem de formulário (capa do produto, logo da empresa).
+     A imagem é enviada para a biblioteca na hora (gera um registro em /media), mas só vale quando o
+     formulário é salvo. Se você desistir, ela fica na biblioteca e pode ser excluída lá.
+     Cada campo usa elementos com o mesmo prefixo: <prefixo>-img, -zoom, -empty, -file, -pick,
+     -remove, -alt, -alt-field e -msg. onChange: chamado quando a imagem muda (marca "não salvo").
+     texts.hint: tamanho recomendado, repetido na janela de escolher imagem.
+     Uso: var logo = Admin.imageField("logo", { title, removed, apply, hint }, function () { dirty = true; }); */
+  function imageField(prefix, texts, onChange) {
+    var el = function (part) { return document.getElementById(prefix + "-" + part); };
+    var field = { image: null }; // { id, url, alt_text, width, height } ou null
+
+    field.show = function (image) {
+      field.image = image;
+      var img = el("img");
+      el("zoom").hidden = !image;
+      el("empty").hidden = !!image;
+      if (image) {
+        img.src = image.url;
+        img.width = image.width; img.height = image.height; // reserva o espaço antes de carregar
+      } else {
+        img.removeAttribute("src");
+      }
+      el("remove").hidden = !image;
+      el("alt-field").hidden = !image;
+      el("alt").value = image ? image.alt_text || "" : "";
+    };
+
+    function choose(image, text) {
+      field.show(image);
+      if (onChange) onChange(image);
+      showMessage(el("msg"), text, "success");
+    }
+
+    el("file").addEventListener("change", async function () {
+      var file = this.files[0];
+      this.value = ""; // permite escolher o mesmo arquivo de novo depois
+      if (!file) return;
+      showMessage(el("msg"), "Enviando “" + file.name + "”…");
+      try {
+        choose(await uploadImage(file), "Imagem enviada. " + texts.apply);
+        el("alt").focus(); // próximo passo natural: descrever a imagem
+      } catch (err) {
+        showMessage(el("msg"), err.message, "error");
+      }
+    });
+
+    el("zoom").addEventListener("click", function () {
+      if (!field.image) return;
+      viewImage({
+        url: field.image.url, alt: el("alt").value.trim(), title: texts.title,
+        width: field.image.width, height: field.image.height
+      });
+    });
+
+    el("remove").addEventListener("click", function () {
+      choose(null, texts.removed + " Clique em Salvar para aplicar (a imagem continua na biblioteca).");
+    });
+
+    // Seletor de imagens da biblioteca (pickImage, acima).
+    el("pick").addEventListener("click", async function () {
+      var m = await pickImage({ currentId: field.image && field.image.id, hint: texts.hint });
+      if (m) choose(m, "Imagem escolhida. " + texts.apply);
+    });
+
+    // O texto alternativo pertence à imagem (fica na biblioteca); é gravado ao salvar o formulário.
+    field.saveAlt = async function () {
+      if (!field.image) return;
+      var alt = el("alt").value.trim();
+      if (alt === (field.image.alt_text || "")) return;
+      var updated = await api("/media/" + encodeURIComponent(field.image.id), { method: "PATCH", body: { alt_text: alt || null } });
+      field.image.alt_text = updated.alt_text;
+    };
+
+    field.clearMessage = function () { showMessage(el("msg"), ""); };
+    return field;
+  }
+
   // Mensagem que sobrevive a um redirecionamento (ex.: excluir na edição e voltar para a lista).
   function setFlash(text) { try { sessionStorage.setItem("admin-flash", text); } catch (e) {} }
   function takeFlash() {
@@ -235,7 +316,8 @@
   window.Admin = {
     api: api, requireSession: requireSession, formatPrice: formatPrice,
     showMessage: showMessage, confirm: confirmAction, setFlash: setFlash, takeFlash: takeFlash,
-    uploadImage: uploadImage, formatBytes: formatBytes, viewImage: viewImage, pickImage: pickImage, STATUS: STATUS,
+    uploadImage: uploadImage, formatBytes: formatBytes, viewImage: viewImage, pickImage: pickImage,
+    imageField: imageField, STATUS: STATUS,
     hasUnsavedChanges: function () { return false; }, // páginas com formulário substituem esta função
     leaving: false
   };

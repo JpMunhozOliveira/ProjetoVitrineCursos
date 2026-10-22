@@ -4,6 +4,18 @@ const { html } = require("../lib/html");
 const { BLOCKS, ICONS, NETWORKS, validBlocks } = require("./blocks");
 const { normalizeTheme, themeHref, DEFAULT_THEME } = require("./theme");
 const { toHtml, paragraphsHtml, alignOf } = require("./richtext");
+const { assetUrl } = require("../lib/assets"); // ?v= nos CSS/JS: cache longo no navegador
+
+// Largura em que cada tipo de imagem aparece na tela (atributo sizes; ver venda.css). Com isso e
+// o srcset, o navegador baixa a menor versão que fica nítida naquela tela.
+const IMAGE_SIZES = {
+  "v-media": "(min-width: 1100px) 480px, (min-width: 860px) 44vw, calc(100vw - 2rem)",
+  "slide-img": "(min-width: 1100px) 700px, (min-width: 760px) 64vw, calc(100vw - 2rem)",
+  "author-photo": "(min-width: 760px) 320px, calc(100vw - 2rem)",
+  "buy-media": "240px",
+  "v-logo": "200px",
+  "quote-photo": "52px",
+};
 
 const brl = (cents) => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -157,7 +169,8 @@ function createContext(data, { live = false } = {}) {
       const m = id && data.media.get(id);
       const editable = ctx.live && path;
       if (!m) return editable ? ctx.imageSlot(cls, path, { optional }) : null;
-      return html`<img class="${cls}" src="${m.url}" alt="${m.alt_text || ""}" width="${m.width}" height="${m.height}" ${priority ? html`fetchpriority="high"` : html`loading="lazy"`} decoding="async"${editable ? html` data-image-field="${path}"` : null}>`;
+      const responsive = m.srcset && IMAGE_SIZES[cls] ? html` srcset="${m.srcset}" sizes="${IMAGE_SIZES[cls]}"` : null;
+      return html`<img class="${cls}" src="${m.url}"${responsive} alt="${m.alt_text || ""}" width="${m.width}" height="${m.height}" ${priority ? html`fetchpriority="high"` : html`loading="lazy"`} decoding="async"${editable ? html` data-image-field="${path}"` : null}>`;
     },
     // Espaço de imagem vazia (só no editor). add: lista onde a imagem escolhida entra (galeria).
     imageSlot(cls, path, { optional = false, add = null } = {}) {
@@ -462,6 +475,8 @@ function renderSalesPage(data, { baseUrl, preview = false }) {
   const description = data.short_description || ""; // o resumo do produto (tela Editar produto)
   const url = `${baseUrl}/p/${data.slug}`;
   const cover = data.media.get(data.image_id);
+  // Ícone da aba: o da empresa do produto (aba Empresas), senão o logo dela, senão o do site.
+  const tabIcon = data.media.get(data.brand_icon_id) || data.media.get(data.brand_logo_id);
 
   return html`<!DOCTYPE html>
 <html lang="pt-BR"${live ? html` data-editor` : null}>
@@ -471,7 +486,9 @@ function renderSalesPage(data, { baseUrl, preview = false }) {
   <title>${title}</title>
   ${description && html`<meta name="description" content="${description}">`}
   ${preview ? html`<meta name="robots" content="noindex, nofollow">` : html`<link rel="canonical" href="${url}">`}
-  <link rel="icon" type="image/png" href="/assets/favicon/favicon.png">
+  ${tabIcon
+    ? html`<link rel="icon" type="image/webp" href="${tabIcon.url}">`
+    : html`<link rel="icon" type="image/png" href="/assets/favicon/favicon.png">`}
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <!-- Prévia do link em WhatsApp, Instagram, Facebook etc. (lidas sem executar JavaScript) -->
   <meta property="og:type" content="product">
@@ -483,17 +500,17 @@ function renderSalesPage(data, { baseUrl, preview = false }) {
   <meta property="og:image:height" content="${cover.height}">`}
   <meta name="twitter:card" content="${cover ? "summary_large_image" : "summary"}">
   <link rel="preload" href="/fonts/inter/InterVariable-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="/css/theme.css">
-  <link rel="stylesheet" href="/css/style.css">
-  <link rel="stylesheet" href="/css/site.css">
-  <link rel="stylesheet" href="/css/venda.css">
+  <link rel="stylesheet" href="${assetUrl("/css/theme.css")}">
+  <link rel="stylesheet" href="${assetUrl("/css/style.css")}">
+  <link rel="stylesheet" href="${assetUrl("/css/site.css")}">
+  <link rel="stylesheet" href="${assetUrl("/css/venda.css")}">
   ${themeLink(data.theme)}${live && html`
-  <link rel="stylesheet" href="/css/venda-editor.css">`}
-  <script src="/js/theme.js"></script>
-  <script src="/data/site.js" defer></script>
-  <script src="/js/components.js" defer></script>
-  <script src="/js/main.js" defer></script>
-  <script src="/js/venda.js" defer></script>
+  <link rel="stylesheet" href="${assetUrl("/css/venda-editor.css")}">`}
+  <script src="${assetUrl("/js/theme.js")}"></script>
+  <script src="${assetUrl("/data/site.js")}" defer></script>
+  <script src="${assetUrl("/js/components.js")}" defer></script>
+  <script src="${assetUrl("/js/main.js")}" defer></script>
+  <script src="${assetUrl("/js/venda.js")}" defer></script>
 </head>
 <body data-page="venda">
   ${preview === true && html`<div class="preview-banner" role="status"><strong>Pré-visualização do rascunho salvo.</strong> ${data.published_at && data.status === "published" ? "O público vê a última versão publicada; publique no editor para levar estas alterações ao ar." : "Esta página ainda não está visível para o público."}</div>`}
@@ -504,11 +521,12 @@ function renderSalesPage(data, { baseUrl, preview = false }) {
 ${body}
   </main>
   <footer class="site-footer v-footer">
-    <div class="container foot3">
+    <div class="container foot3 foot4">
       <div>${data.brand_name
         ? html`<p><strong>${data.brand_name}</strong> © <span data-year></span></p>`
         : html`<p><strong data-site="nome"></strong> © <span data-year></span></p><p data-site="slogan"></p>`}</div>
-      <div><p><strong>Navegação</strong></p><p><a href="/catalogo.html">Catálogo</a></p><p><a href="/sobre.html">Sobre</a></p><p><a href="/contato.html">Contato</a></p></div>
+      <nav aria-label="Rodapé: navegação"><p><strong>Navegação</strong></p><p><a href="/catalogo.html">Catálogo</a></p><p><a href="/sobre.html">Sobre</a></p><p><a href="/contato.html">Contato</a></p></nav>
+      <nav aria-label="Rodapé: ajuda"><p><strong>Ajuda</strong></p><p><a href="/duvidas.html">Dúvidas frequentes</a></p><p><a href="/termos.html">Termos de uso</a></p><p><a href="/privacidade.html">Política de privacidade</a></p></nav>
       <div><p><strong>Compra segura</strong></p><p>Pagamentos e acesso aos cursos processados pela Kiwify.</p></div>
     </div>
   </footer>

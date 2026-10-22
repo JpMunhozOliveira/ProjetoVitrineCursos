@@ -1,31 +1,38 @@
 const pool = require("../config/database");
 const storage = require("../lib/storage");
+const { normalizeCategory } = require("../lib/categories");
 
-// Colunas do produto (alias "p") + dados da capa (alias "m") e do logo da marca (alias "bl").
-const COLUMNS = `p.id, p.title, p.slug, p.short_description, p.status, p.category, p.featured,
-  p.format, p.workload, p.price_cents, p.checkout_url, p.image_id, p.brand_name, p.brand_logo_id,
+// Colunas do produto (alias "p") + dados da capa (alias "m") e da empresa (alias "b", aba Empresas)
+// com o logo dela (alias "bl"). brand_name / brand_logo_id / brand_logo mantêm os nomes de quando
+// ficavam no próprio produto: o site e a página de vendas leem esses campos.
+const COLUMNS = `p.id, p.title, p.slug, p.short_description, p.status, p.category, p.area, p.featured,
+  p.format, p.workload, p.price_cents, p.checkout_url, p.image_id, p.brand_id,
+  b.name AS brand_name, b.logo_id AS brand_logo_id,
   p.created_at, p.updated_at,
   CASE WHEN m.id IS NULL THEN NULL ELSE json_build_object(
     'id', m.id, 'storage_key', m.storage_key, 'alt_text', m.alt_text,
-    'width', m.width, 'height', m.height) END AS image,
+    'width', m.width, 'height', m.height, 'variants', m.variants) END AS image,
   CASE WHEN bl.id IS NULL THEN NULL ELSE json_build_object(
     'id', bl.id, 'storage_key', bl.storage_key, 'alt_text', bl.alt_text,
     'width', bl.width, 'height', bl.height) END AS brand_logo`;
 
 // "source" é a tabela products ou um CTE com o resultado de um INSERT/UPDATE.
 const selectFrom = (source, extra = "") => `SELECT ${COLUMNS}${extra} FROM ${source} p
-  LEFT JOIN media m ON m.id = p.image_id LEFT JOIN media bl ON bl.id = p.brand_logo_id`;
+  LEFT JOIN media m ON m.id = p.image_id
+  LEFT JOIN brands b ON b.id = p.brand_id LEFT JOIN media bl ON bl.id = b.logo_id`;
 
 // Site público: o produto tem página de vendas PUBLICADA? (o catálogo leva direto para /p/endereco)
 const HAS_SALES_PAGE = `,
   EXISTS (SELECT 1 FROM sales_pages sp WHERE sp.product_id = p.id AND sp.published_sections IS NOT NULL) AS has_sales_page`;
 
-// Troca a chave interna do arquivo pela URL pública (capa e logo da marca).
+// Troca a chave interna do arquivo pela URL pública (capa e logo da marca). A capa também leva o
+// srcset (versões menores, ver lib/images.js) para os cards do catálogo.
 function toResponse(row) {
   for (const field of ["image", "brand_logo"]) {
     if (!row[field]) continue;
-    const { storage_key: key, ...image } = row[field];
+    const { storage_key: key, variants, ...image } = row[field];
     row[field] = { ...image, url: storage.publicUrl(key) };
+    if (field === "image") row[field].srcset = storage.srcset(key, image.width, variants);
   }
   return row;
 }
@@ -36,17 +43,17 @@ const MAX_PRICE_CENTS = 100_000_000; // R$ 1.000.000,00
 // Textos opcionais: campo -> tamanho máximo. Vazio vira null (o site oculta campos nulos).
 const OPTIONAL_TEXT = {
   short_description: 500, // cards do catálogo e descrição no Google / prévia do link
-  category: 80,
   format: 120,
   workload: 60,
-  brand_name: 80,       // nome da empresa do professor na página de vendas (vazio = marca do site)
+  area: 60, // área de conhecimento (página inicial e filtro do catálogo)
 };
 
-// Imagens do produto (a existência é conferida pelo banco, chave estrangeira).
-const IMAGE_FIELDS = ["image_id", "brand_logo_id"];
+// Referências: capa (biblioteca de imagens) e empresa (null = marca do site). A existência é
+// conferida pelo banco (chave estrangeira).
+const IMAGE_FIELDS = ["image_id", "brand_id"];
 
 const FIELDS = new Set([
-  "title", "slug", "status", "featured", "price_cents", "checkout_url",
+  "title", "slug", "status", "category", "featured", "price_cents", "checkout_url",
   ...IMAGE_FIELDS, ...Object.keys(OPTIONAL_TEXT),
 ]);
 
@@ -92,6 +99,13 @@ function normalizeProductInput(body, isCreate = false) {
     const text = body[field]?.trim() || null;
     if (text && text.length > max) return { error: `${field} deve ter no máximo ${max} caracteres.` };
     values[field] = text;
+  }
+
+  // Categoria: uma da lista fixa (lib/categories.js) ou null.
+  if ("category" in body) {
+    const { value, error } = normalizeCategory(body.category);
+    if (error) return { error };
+    values.category = value;
   }
 
   if ("featured" in body) {
@@ -146,10 +160,11 @@ function isValidId(value) {
 }
 
 const isDuplicateSlug = (error) => error.code === "23505" && error.constraint === "products_slug_key";
-const isMissingImage = (error) => error.code === "23503"
-  && ["products_image_id_fkey", "products_brand_logo_id_fkey"].includes(error.constraint);
+const isMissingImage = (error) => error.code === "23503" && error.constraint === "products_image_id_fkey";
+const isMissingBrand = (error) => error.code === "23503" && error.constraint === "products_brand_id_fkey";
 const DUPLICATE_SLUG = { error: "Já existe um produto com este endereço (slug)." };
 const MISSING_IMAGE = { error: "A imagem escolhida não existe mais. Escolha outra." };
+const MISSING_BRAND = { error: "A empresa escolhida não existe mais. Escolha outra." };
 const INVALID_ID = { error: "ID de produto inválido." };
 const NOT_FOUND = { error: "Produto não encontrado." };
 
@@ -202,6 +217,7 @@ async function createProduct(req, res) {
   } catch (error) {
     if (isDuplicateSlug(error)) return res.status(409).json(DUPLICATE_SLUG);
     if (isMissingImage(error)) return res.status(400).json(MISSING_IMAGE);
+    if (isMissingBrand(error)) return res.status(400).json(MISSING_BRAND);
     throw error;
   }
 }
@@ -228,6 +244,7 @@ async function updateProduct(req, res) {
   } catch (error) {
     if (isDuplicateSlug(error)) return res.status(409).json(DUPLICATE_SLUG);
     if (isMissingImage(error)) return res.status(400).json(MISSING_IMAGE);
+    if (isMissingBrand(error)) return res.status(400).json(MISSING_BRAND);
     throw error;
   }
 }

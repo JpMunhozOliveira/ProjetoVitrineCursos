@@ -49,7 +49,7 @@ test("página pública não tem nenhuma marcação do editor", () => {
 });
 
 test("modo ao vivo carrega o CSS do editor", () => {
-  assert.ok(render(sample(), "live").includes('href="/css/venda-editor.css"'));
+  assert.match(render(sample(), "live"), /href="\/css\/venda-editor\.css(\?v=[\w-]+)?"/); // com ?v= quando o arquivo existe
 });
 
 test("todo data-field aponta para um campo de texto do bloco certo", () => {
@@ -399,6 +399,19 @@ test("marca do professor: nome e logo vão para o menu e o rodapé, como texto (
   assert.match(plain, /<strong data-site="nome"><\/strong>/);
 });
 
+test("ícone da aba: o da empresa, senão o logo dela, senão o do site", () => {
+  const logoId = "11111111-1111-4111-8111-111111111111", iconId = "22222222-2222-4222-8222-222222222222";
+  const media = new Map([
+    [logoId, { id: logoId, url: "/uploads/logo.webp", width: 300, height: 90, alt_text: "" }],
+    [iconId, { id: iconId, url: "/uploads/icone.webp", width: 64, height: 64, alt_text: "" }],
+  ]);
+  const page = (extra) => renderSalesPage({ ...product(defaultSections()), media, ...extra },
+    { baseUrl: "http://localhost", preview: false });
+  assert.match(page({ brand_logo_id: logoId, brand_icon_id: iconId }), /<link rel="icon" type="image\/webp" href="\/uploads\/icone.webp">/);
+  assert.match(page({ brand_logo_id: logoId }), /<link rel="icon" type="image\/webp" href="\/uploads\/logo.webp">/);
+  assert.match(page({}), /<link rel="icon" type="image\/png" href="\/assets\/favicon\/favicon.png">/);
+});
+
 test("botão voltar: na página pública aponta para o catálogo; fora do editor ao vivo", () => {
   assert.match(render(defaultSections(), false), /<a class="v-back" href="\/catalogo.html" data-back>/);
   assert.match(render(defaultSections(), true), /class="v-back"/);
@@ -452,4 +465,17 @@ test("bloco salvo sem nenhuma rede com link: no editor vira aviso com o nome do 
   const live = renderSalesPage(data, { baseUrl: "http://localhost", preview: "live" });
   assert.ok(live.includes("editor-hidden-block"));
   assert.ok(live.includes("Prof. Vazio"));
+});
+
+test("imagens com versões menores levam srcset e sizes; sem versões, só src", () => {
+  const big = "11111111-1111-4111-8111-111111111111", small = "22222222-2222-4222-8222-222222222222";
+  const data = product([{ type: "hero", title: "T", image: big }, { type: "offer", title: "Oferta", image: small }]);
+  data.media = new Map([
+    [big, { id: big, url: "/uploads/a.webp", width: 1024, height: 1536, alt_text: "",
+      srcset: "/uploads/a-480.webp 480w, /uploads/a-960.webp 960w, /uploads/a.webp 1024w" }],
+    [small, { id: small, url: "/uploads/b.webp", width: 200, height: 200, alt_text: "", srcset: null }],
+  ]);
+  const page = renderSalesPage(data, { baseUrl: "http://localhost" });
+  assert.match(page, /<img class="v-media" src="\/uploads\/a\.webp" srcset="\/uploads\/a-480\.webp 480w, \/uploads\/a-960\.webp 960w, \/uploads\/a\.webp 1024w" sizes="[^"]+480px[^"]*"/);
+  assert.match(page, /<img class="buy-media" src="\/uploads\/b\.webp" alt=""/);
 });

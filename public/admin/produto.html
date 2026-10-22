@@ -30,6 +30,7 @@
         <a href="./" aria-current="page">Produtos</a>
         <a href="imagens.html">Imagens</a>
         <a href="blocos.html">Blocos salvos</a>
+        <a href="empresas.html">Empresas</a>
       </nav>
     </div>
     <main class="section">
@@ -68,8 +69,20 @@
           </div>
           <div class="field">
             <label for="category">Categoria</label>
-            <input id="category" name="category" maxlength="80" aria-describedby="category-help">
-            <p id="category-help" class="hint">Usada no filtro do catálogo.</p>
+            <select id="category" name="category" aria-describedby="category-help">
+              <option value="">Sem categoria</option>
+              <option>Curso</option>
+              <option>Guia</option>
+              <option>Manual</option>
+            </select>
+            <p id="category-help" class="hint">Aparece no cartão do produto e no filtro do catálogo.</p>
+          </div>
+          <div class="field">
+            <label for="area">Área de conhecimento</label>
+            <input id="area" name="area" maxlength="60" list="area-options" autocomplete="off" aria-describedby="area-help"
+              placeholder="Ex.: Contabilidade, Tributário, Gestão">
+            <datalist id="area-options"></datalist>
+            <p id="area-help" class="hint">A página inicial mostra as áreas com produtos publicados, e o catálogo filtra por elas. Escreva igual nos produtos da mesma área (as já usadas aparecem como sugestão).</p>
           </div>
           <div class="field check">
             <input id="featured" name="featured" type="checkbox">
@@ -95,7 +108,8 @@
                 <button id="cover-pick" class="btn btn-sm btn-outline" type="button">Escolher da biblioteca</button>
                 <button id="cover-remove" class="btn btn-sm btn-danger" type="button" hidden>Remover capa</button>
               </div>
-              <p class="hint">PNG, JPEG ou WebP, até 5 MB. A imagem é otimizada automaticamente.</p>
+              <p class="hint"><strong>Tamanho recomendado: 1200 × 675 px</strong> (formato 16:9, como uma tela de TV). Outros formatos são cortados nas bordas no catálogo.
+                PNG, JPEG ou WebP, até 5 MB; a imagem é otimizada automaticamente.</p>
               <div id="cover-alt-field" class="field" hidden>
                 <label for="cover-alt">Texto alternativo</label>
                 <input id="cover-alt" maxlength="300" aria-describedby="cover-alt-help">
@@ -134,33 +148,21 @@
 
         <fieldset>
           <legend>Marca na página de vendas</legend>
-          <p class="hint">Nome e logo da empresa de quem vende este produto, no menu e no rodapé da página de vendas. O logo também aparece nos cards do catálogo, ao lado da categoria. Vazio = marca do site.</p>
-          <div class="field">
-            <label for="brand_name">Nome da empresa</label>
-            <input id="brand_name" name="brand_name" maxlength="80" placeholder="Ex.: Coutinho Treinamentos">
-          </div>
+          <p class="hint">Empresa de quem vende este produto: nome e logo aparecem no menu e no rodapé da página de vendas, e o logo também nos cards do catálogo. As empresas são cadastradas uma vez na aba <a href="empresas.html">Empresas</a>, e trocar o nome ou o logo lá muda todos os produtos dela.</p>
           <div class="cover-field">
-            <div class="cover-preview brand-preview">
-              <button id="brand-zoom" class="media-zoom" type="button" aria-label="Ampliar logo" hidden>
-                <img id="brand-img" alt="">
-              </button>
-              <span id="brand-empty" class="muted">Sem logo</span>
+            <div class="cover-preview brand-preview brand-pick-preview" aria-hidden="true">
+              <img id="brand-img" alt="" hidden>
+              <span id="brand-name-preview" class="muted">Marca do site</span>
             </div>
             <div class="cover-controls">
-              <div class="row-actions">
-                <label class="btn btn-sm btn-outline file-btn">Enviar logo
-                  <input id="brand-file" type="file" accept="image/png,image/jpeg,image/webp">
-                </label>
-                <button id="brand-pick" class="btn btn-sm btn-outline" type="button">Escolher da biblioteca</button>
-                <button id="brand-remove" class="btn btn-sm btn-danger" type="button" hidden>Remover logo</button>
+              <div class="field">
+                <label for="brand_id">Empresa</label>
+                <select id="brand_id" name="brand_id" aria-describedby="brand-usage">
+                  <option value="">Marca do site (padrão)</option>
+                </select>
+                <p id="brand-usage" class="hint"></p>
               </div>
-              <p class="hint">PNG com fundo transparente fica melhor (o menu é escuro). Altura exibida: 34 px.</p>
-              <div id="brand-alt-field" class="field" hidden>
-                <label for="brand-alt">Texto alternativo</label>
-                <input id="brand-alt" maxlength="300" aria-describedby="brand-alt-help">
-                <p id="brand-alt-help" class="hint">Usado quando não há nome da empresa. Ex.: “Logo da Coutinho Treinamentos”.</p>
-              </div>
-              <p id="brand-msg" class="msg" role="status" aria-live="polite"></p>
+              <p class="hint"><a href="empresas.html">Cadastrar ou editar empresas</a></p>
             </div>
           </div>
         </fieldset>
