@@ -12,8 +12,16 @@
 	# exatamente 1 proxy (TRUST_PROXY=1), então o limite de tentativas de login vê o IP real.
 	reverse_proxy app:3000
 	# Log de acesso no stdout do container (o Docker faz a rotação, ver docker-compose.prod.yml).
+	# O Caddy já esconde Cookie e Authorization; a chave de API e o token CSRF do painel vão em
+	# cabeçalhos próprios e são apagados aqui para não ficarem gravados no log.
 	log {
-		format json
+		format filter {
+			wrap json
+			fields {
+				request>headers>X-Admin-Api-Key delete
+				request>headers>X-Csrf-Token delete
+			}
+		}
 	}
 }
 

@@ -15,13 +15,16 @@ Não precisa de conta na Cloudflare, de mexer no roteador nem de liberar porta n
    docker compose up --build
    ```
 
-   Confirme que `http://localhost:3000` abre no seu navegador.
+   Confirme que `http://127.0.0.1:3000` abre no seu navegador.
 
 2. Em **outro** terminal, abra o túnel:
 
    ```powershell
-   npx cloudflared tunnel --url http://localhost:3000
+   npx cloudflared tunnel --url http://127.0.0.1:3000
    ```
+
+   Use `127.0.0.1`, e não `localhost`: no Windows, `localhost` tenta primeiro o endereço IPv6,
+   que o Docker não atende, e cada conexão demora uns 200 ms a mais (o site fica lento pelo link).
 
    Na primeira vez o `npx` pergunta se pode instalar o `cloudflared`: responda `y`.
 
@@ -54,11 +57,15 @@ Deixe esse terminal aberto: o link só funciona enquanto o comando estiver rodan
 
 - **O link muda a cada vez** que você abre o túnel. Mande o novo link sempre que reabrir.
 - **Seu computador precisa ficar ligado** e com o site rodando enquanto a outra pessoa usa.
-- **Não precisa mudar a porta** no `docker-compose.yml`: o túnel acessa o `localhost`, então a
+- **Não precisa mudar a porta** no `docker-compose.yml`: o túnel acessa o próprio computador (`127.0.0.1`), então a
   linha `127.0.0.1:3000:3000` pode continuar como está.
 - **Painel pelo link:** para mostrar o site, o túnel basta. Para editar conteúdo, prefira
-  usar o painel direto no seu computador (`http://localhost:3000`): pelo link público o
+  usar o painel direto no seu computador (`http://127.0.0.1:3000`): pelo link público o
   painel pode recusar alterações, porque ele confere se o pedido veio do mesmo endereço do site.
 - **O link parou de abrir?** Veja se o terminal do túnel ainda está rodando e se
-  `http://localhost:3000` abre no seu computador. Se não abrir, o problema está no Docker,
+  `http://127.0.0.1:3000` abre no seu computador. Se não abrir, o problema está no Docker,
   não no túnel.
+- **Lento pelo link?** O túnel gratuito (`trycloudflare.com`) é para testes e não tem garantia
+  de velocidade: o tráfego passa por servidores compartilhados da Cloudflare. Para saber se a
+  lentidão é do túnel ou do site, compare com o teste de carga local:
+  `node scripts/teste-carga.js` (no seu computador) e `node scripts/teste-carga.js https://<link>.trycloudflare.com 5 5`.

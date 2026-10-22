@@ -6,13 +6,19 @@ x-app-build: &app-build
   context: .
   dockerfile: Dockerfile
 
+# Dono do banco (POSTGRES_USER): só para migrations e backups.
 x-database-url: &database-url postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+# Usuário do app (APP_DB_USER): só lê e grava dados; criado pelo serviço migrate (server/scripts/app-db-role.js).
+x-app-database-url: &app-database-url "postgres://${APP_DB_USER:?Defina APP_DB_USER no arquivo .env - rode node scripts/gerar-env.js}:${APP_DB_PASSWORD:?Defina APP_DB_PASSWORD no arquivo .env - rode node scripts/gerar-env.js}@db:5432/${POSTGRES_DB}"
 
 services:
   db:
     image: postgres:17-alpine
     container_name: vitrine-cursos-db
     restart: unless-stopped
+    # Registra no log (docker compose logs db) toda consulta que levar mais de 500 ms: é por aí
+    # que se descobre uma consulta lenta antes de ela virar problema.
+    command: ["postgres", "-c", "log_min_duration_statement=500"]
     environment:
       POSTGRES_DB: "${POSTGRES_DB:?Defina POSTGRES_DB no arquivo .env - rode: node scripts/gerar-env.js}"
       POSTGRES_USER: "${POSTGRES_USER:?Defina POSTGRES_USER no arquivo .env}"
@@ -26,14 +32,17 @@ services:
       retries: 10
       start_period: 10s
 
-  # Roda as migrations pendentes e termina. A API só sobe depois que ele conclui com sucesso.
+  # Roda as migrations pendentes, acerta o usuário do app e termina. A API só sobe depois que ele
+  # conclui com sucesso.
   migrate:
     build: *app-build
     image: vitrine-cursos:local
-    command: ["npm", "run", "db:migrate"]
+    command: ["npm", "run", "db:setup"]
     restart: "no"
     environment:
       DATABASE_URL: *database-url
+      APP_DB_USER: ${APP_DB_USER}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD}
     depends_on:
       db:
         condition: service_healthy
@@ -50,7 +59,7 @@ services:
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
       PUBLIC_URL: ${PUBLIC_URL:-}
       TRUST_PROXY: ${TRUST_PROXY:-}
-      DATABASE_URL: *database-url
+      DATABASE_URL: *app-database-url
       UPLOAD_DIR: /data/uploads
       KIWIFY_CLIENT_ID: ${KIWIFY_CLIENT_ID:-}
       KIWIFY_CLIENT_SECRET: ${KIWIFY_CLIENT_SECRET:-}
