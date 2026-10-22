@@ -6,7 +6,9 @@ const adminProductRoutes = require("./routes/admin-product.routes");
 const adminAuthRoutes = require("./routes/admin-auth.routes");
 const adminMediaRoutes = require("./routes/admin-media.routes");
 const adminSharedBlockRoutes = require("./routes/admin-shared-block.routes");
+const adminBrandRoutes = require("./routes/admin-brand.routes");
 const storage = require("./lib/storage");
+const assets = require("./lib/assets");
 const { showPublicPage, showPreview } = require("./controllers/page-view.controller");
 const requireAdmin = require("./middleware/admin-auth");
 const { findSession } = requireAdmin;
@@ -63,6 +65,7 @@ app.use("/api/admin/auth", adminAuthRoutes);
 app.use("/api/admin/products", adminProductRoutes);
 app.use("/api/admin/media", adminMediaRoutes);
 app.use("/api/admin/shared-blocks", adminSharedBlockRoutes);
+app.use("/api/admin/brands", adminBrandRoutes);
 app.get("/api/admin/sales-blocks", requireAdmin, getBlockSchema);
 
 // Cores da página de vendas (ver sales/theme.js). As cores vêm na URL e são validadas; como a
@@ -127,9 +130,39 @@ app.use("/uploads", express.static(storage.UPLOAD_DIR, {
   }),
 }));
 
+// Páginas HTML do site e do painel: entregues com a versão (?v=) nos links de CSS e JS (ver
+// lib/assets.js). O HTML em si é sempre revalidado (no-cache; o painel continua no-store), então
+// uma mudança publicada aparece na próxima visita.
+app.use((req, res, next) => {
+  if (req.method !== "GET" && req.method !== "HEAD") return next();
+  let urlPath;
+  try { urlPath = decodeURIComponent(req.path); } catch { return next(); }
+  if (urlPath.endsWith("/")) urlPath += "index.html";
+  if (!/\.html$/.test(urlPath) || urlPath.includes("\0") || /\/\./.test(urlPath)) return next();
+  const body = assets.htmlPage(urlPath);
+  if (body === null) return next();
+  if (!res.get("Cache-Control")) res.set("Cache-Control", "no-cache");
+  return res.type("html").send(body); // send() gera o ETag e responde 304 se nada mudou
+});
+
+// Cache dos demais arquivos do site (CSS, JS, fontes, ícones):
+//  - com ?v= igual à versão atual: 1 ano sem revalidar (a URL muda quando o arquivo muda);
+//  - fontes: 30 dias (praticamente nunca mudam); favicon: 1 dia;
+//  - o resto: o navegador revalida a cada uso (ETag; resposta 304 sem corpo se não mudou).
+// No /admin vale o no-store definido acima, exceto para os CSS/JS com versão atual.
+app.use((req, res, next) => {
+  if (assets.isCurrentVersion(req.path, req.query.v)) {
+    res.set("Cache-Control", "public, max-age=31536000, immutable");
+  } else if (!res.get("Cache-Control")) {
+    if (req.path.startsWith("/fonts/")) res.set("Cache-Control", "public, max-age=2592000");
+    else if (req.path.startsWith("/assets/")) res.set("Cache-Control", "public, max-age=86400");
+    else res.set("Cache-Control", "no-cache");
+  }
+  next();
+});
+
 // Mantém API e frontend na mesma origem no ambiente local, evitando CORS.
-const publicDir = process.env.PUBLIC_DIR || path.join(__dirname, "public");
-app.use(express.static(publicDir));
+app.use(express.static(assets.PUBLIC_DIR, { cacheControl: false }));
 
 // Tratador de erros: o Express 5 encaminha para cá também as exceções de funções async.
 // Detalhes técnicos ficam só no log do servidor; o cliente recebe uma mensagem genérica.

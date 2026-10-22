@@ -116,7 +116,7 @@ git clone https://github.com/JpMunhozOliveira/ProjetoVitrineCursos.git .
 
 ## 6. Configurar o `.env`
 
-**6.1. Gerar o arquivo com senha do banco e chave de API aleatórias** (o Node roda dentro de um container, então não precisa instalá-lo no servidor):
+**6.1. Gerar o arquivo com senhas do banco e chave de API aleatórias** (o Node roda dentro de um container, então não precisa instalá-lo no servidor):
 ```bash
 docker run --rm --user "$(id -u):$(id -g)" -v "$PWD":/w -w /w node:22-alpine node scripts/gerar-env.js
 ```
@@ -136,7 +136,7 @@ docker run --rm --user "$(id -u):$(id -g)" -v "$PWD":/w -w /w node:22-alpine nod
 
 **6.3. Proteger o arquivo:** `chmod 600 .env`
 
-**6.4. Guardar a senha do banco e a `ADMIN_API_KEY`** num gerenciador de senhas. Sem elas, os backups continuam restauráveis, mas você perde o acesso de automação.
+**6.4. Guardar as senhas do banco (`POSTGRES_PASSWORD` e `APP_DB_PASSWORD`) e a `ADMIN_API_KEY`** num gerenciador de senhas. O app conecta ao banco com o usuário `APP_DB_USER`, que só lê e grava dados; o `POSTGRES_USER` (dono do banco) fica para as migrations e os backups. Sem elas, os backups continuam restauráveis, mas você perde o acesso de automação.
 
 ## 7. Subir o site
 
@@ -202,6 +202,7 @@ No seu PC, faça commit e `git push`. No servidor:
 ```bash
 cd /srv/vitrine
 git pull
+docker run --rm --user "$(id -u):$(id -g)" -v "$PWD":/w -w /w node:22-alpine node scripts/gerar-env.js   # acrescenta ao .env variáveis novas (não mexe nas existentes)
 docker compose up -d --build     # as migrations do banco rodam sozinhas antes do app subir
 docker image prune -f            # apaga imagens antigas (economiza disco)
 ```
@@ -212,6 +213,26 @@ Se algo der errado, volte para a versão anterior com `git log --oneline` e `git
 - Confira no painel os **links de checkout da Kiwify** de cada produto.
 - Revise `public/data/site.js` (nome, slogan, contato e redes sociais), faça commit e atualize (etapa 11).
 - Opcional: cadastre o site no [Google Search Console](https://search.google.com/search-console) para acompanhar como ele aparece nas buscas.
+- Recomendado: cadastre um **monitor de disponibilidade** gratuito (ex.: UptimeRobot) apontando para
+  `https://SEU-DOMINIO/api/health`. Ele avisa por e-mail se o site sair do ar.
+
+## 13. Desempenho
+
+- **Teste de carga:** `node scripts/teste-carga.js https://SEU-DOMINIO 20 10` (20 visitantes ao mesmo
+  tempo por 10 s em cada página principal). Mostra pedidos por segundo, tempo médio, p95/p99 e erros.
+  Rode fora do horário de vendas e compare com rodadas anteriores depois de mudanças grandes.
+  Referência no computador de desenvolvimento (Docker local, 20 conexões): páginas do site
+  ~4.000 pedidos/s, API do catálogo ~2.000/s, página de vendas ~650/s, todas sem erros e com p99
+  abaixo de 60 ms.
+- **Consultas lentas:** o banco registra toda consulta acima de 500 ms. Para ver:
+  `docker compose logs db | grep duration`. Vazio = nenhuma consulta lenta.
+- **Uso de CPU, memória e disco:** `docker stats --no-stream` e `df -h`.
+- **Cache no navegador:** CSS e JS saem com a versão na URL (`site.css?v=…`) e ficam guardados no
+  navegador por 1 ano. Ao atualizar o site (etapa 11), as páginas passam a apontar para a versão nova
+  sozinhas, sem precisar limpar o cache.
+- **Imagens:** cada imagem enviada ganha versões de 480 e 960 px, e o navegador baixa a que serve
+  para a tela. As imagens enviadas antes disso são convertidas sozinhas quando o app inicia (veja
+  `docker compose logs app`).
 
 ---
 
@@ -221,6 +242,7 @@ Se algo der errado, volte para a versão anterior com `git log --oneline` e `git
 |---|---|
 | O site não abre e o log do Caddy fala em "challenge failed" | DNS ainda não aponta para o servidor (etapa 4) ou portas 80/443 bloqueadas no firewall do painel do provedor. Corrija e rode `docker compose restart caddy`. |
 | `docker compose` reclama de `DOMAIN` ou `ACME_EMAIL` | Faltou preencher no `.env` (etapa 6.2). |
+| `docker compose` reclama de `APP_DB_USER` ou `APP_DB_PASSWORD` | `.env` criado antes dessas variáveis existirem. Rode o `gerar-env.js` (comando da etapa 11): ele só acrescenta o que falta. |
 | Login dá "Muitas tentativas" para todo mundo | `TRUST_PROXY` errado. Com o Cloudflare em modo proxy (nuvem laranja) na frente, são 2 proxies: acrescente `TRUST_PROXY: "2"` no `docker-compose.prod.yml`. |
 | O build trava ou o servidor fica lento | Pouca memória: confira a swap (`free -h`) ou aumente o plano. |
 | Ver os erros do app | `docker compose logs app --tail 100` |

@@ -4,6 +4,9 @@ const sharp = require("sharp");
 const MAX_BYTES = 5 * 1024 * 1024;   // 5 MB por envio
 const MAX_PIXELS = 40_000_000;       // ~7300 x 5500: barra "bombas de descompressão"
 const MAX_SIDE = 1600;               // maior lado depois de redimensionar (suficiente para capa e banner)
+// Versões menores (largura em px) para o navegador escolher pelo tamanho da tela (srcset): no
+// celular ou em espaços pequenos baixa um arquivo bem menor. Só as menores que a original.
+const VARIANT_WIDTHS = [480, 960];
 
 // Identifica o tipo pelos primeiros bytes ("assinatura" do formato). Extensão e Content-Type
 // são informados pelo cliente e podem ser falsificados; a assinatura vem do próprio arquivo.
@@ -24,7 +27,16 @@ async function processImage(buf) {
     .resize({ width: MAX_SIDE, height: MAX_SIDE, fit: "inside", withoutEnlargement: true })
     .webp({ quality: 82 })
     .toBuffer({ resolveWithObject: true });
-  return { data, width: info.width, height: info.height, size: info.size };
+  return { data, width: info.width, height: info.height, size: info.size, variants: await makeVariants(data, info.width) };
 }
 
-module.exports = { MAX_BYTES, detectType, processImage };
+// Versões menores de uma imagem já processada (WebP). Devolve [{ width, data }], da menor para a maior.
+async function makeVariants(webp, width) {
+  const variants = [];
+  for (const w of VARIANT_WIDTHS.filter((v) => v < width)) {
+    variants.push({ width: w, data: await sharp(webp).resize({ width: w }).webp({ quality: 80 }).toBuffer() });
+  }
+  return variants;
+}
+
+module.exports = { MAX_BYTES, VARIANT_WIDTHS, detectType, processImage, makeVariants };

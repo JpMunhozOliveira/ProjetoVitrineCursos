@@ -2,6 +2,7 @@ const app = require("./app");
 const pool = require("./config/database");
 const { isUsableApiKey } = require("./middleware/admin-auth");
 const { configuredBaseUrl } = require("./lib/base-url");
+const { backfillVariants } = require("./lib/image-variants");
 
 const port = Number(process.env.PORT || 3000);
 
@@ -21,7 +22,15 @@ try {
 
 const server = app.listen(port, "0.0.0.0", () => {
   console.log(`Vitrine de Cursos API listening on port ${port}`);
+  // Imagens enviadas antes das versões menores existirem: gera em segundo plano.
+  backfillVariants().catch((error) => console.error("Versões menores das imagens:", error.message));
 });
+
+// O Caddy reaproveita conexões ociosas com o app por até 2 min; o Node fecha as dele após 5 s
+// (padrão). Se o Node fecha justo quando o Caddy reaproveita, o visitante recebe um erro 502.
+// Com o Node esperando mais que o proxy, quem fecha é sempre o Caddy.
+server.keepAliveTimeout = 125_000;
+server.headersTimeout = 126_000; // precisa ser maior que keepAliveTimeout
 
 let isShuttingDown = false;
 
