@@ -35,14 +35,19 @@ app.use(express.json({ limit: "300kb" })); // páginas de vendas com muitos bloc
 // A CSP vale também para as páginas estáticas do site (catálogo, produto...): só recursos do
 // próprio site, como rede de segurança caso algum dado escape para o HTML.
 // HSTS só com HTTPS confirmado (COOKIE_SECURE=true): o navegador passa a recusar http:// no domínio.
+// Nenhuma página do site pode ser aberta dentro de outro site (frame-ancestors 'none'); a
+// pré-visualização do editor usa iframe srcdoc dentro do próprio painel, que não é afetada.
+// Permissions-Policy desliga recursos do navegador que o site não usa.
 const HSTS = process.env.COOKIE_SECURE === "true" ? { "Strict-Transport-Security": "max-age=31536000" } : {};
+const CSP = "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; "
+  + "font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
 app.use((_req, res, next) => {
   res.set({
     "X-Content-Type-Options": "nosniff",
-    "X-Frame-Options": "SAMEORIGIN",
+    "X-Frame-Options": "DENY",
     "Referrer-Policy": "strict-origin-when-cross-origin",
-    "Content-Security-Policy":
-      "default-src 'self'; img-src 'self' data:; base-uri 'self'; form-action 'self'; frame-ancestors 'self'",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+    "Content-Security-Policy": CSP,
     ...HSTS,
   });
   next();
@@ -55,8 +60,7 @@ app.use(["/admin", "/api/admin"], (_req, res, next) => {
     "X-Frame-Options": "DENY",
     "X-Content-Type-Options": "nosniff",
     "X-Robots-Tag": "noindex",
-    "Content-Security-Policy":
-      "default-src 'self'; img-src 'self' data:; frame-ancestors 'none'; form-action 'self'",
+    "Content-Security-Policy": CSP,
   });
   next();
 });
@@ -95,8 +99,7 @@ app.get("/curso.html", (req, res) => {
 app.get("/p/:slug", (_req, res, next) => {
   res.set({
     "X-Content-Type-Options": "nosniff",
-    "Content-Security-Policy":
-      "default-src 'self'; img-src 'self' data:; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
+    "Content-Security-Policy": CSP,
   });
   next();
 }, showPublicPage);
