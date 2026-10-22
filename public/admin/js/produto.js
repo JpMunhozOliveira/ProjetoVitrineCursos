@@ -80,9 +80,15 @@
       return b.name || ("Só logo" + (b.logo && (b.logo.alt_text || b.logo.original_name) ? " — " + (b.logo.alt_text || b.logo.original_name) : ""));
     }
 
+    // Empresa padrão do site (aba Empresas): produto sem empresa mostra a dela na página de vendas.
+    function fallback() {
+      return brands.find(function (x) { return x.is_default; }) || null;
+    }
+
     // Pré-visualização como no menu da página de vendas: logo e/ou nome sobre fundo escuro.
     function preview() {
-      var b = brands.find(function (x) { return x.id === select.value; });
+      var chosen = brands.find(function (x) { return x.id === select.value; });
+      var b = chosen || fallback();
       var img = $("brand-img"), name = $("brand-name-preview");
       img.hidden = !(b && b.logo);
       if (b && b.logo) {
@@ -92,9 +98,10 @@
         img.removeAttribute("src");
       }
       name.textContent = b ? b.name || "" : "Marca do site";
-      name.classList.toggle("muted", !b);
-      $("brand-usage").textContent = b && b.usage.length > 1
-        ? "Usada em " + b.usage.length + " produtos: alterações na aba Empresas valem para todos eles." : "";
+      name.classList.toggle("muted", !chosen);
+      $("brand-usage").textContent = chosen && chosen.usage.length > 1
+        ? "Usada em " + chosen.usage.length + " produtos: alterações na aba Empresas valem para todos eles."
+        : !chosen && b ? "Sem empresa: a página de vendas usa a empresa padrão do site (o preço e o link são preenchidos à mão)." : "";
     }
 
     function current() {
@@ -103,7 +110,8 @@
 
     function draw(current) {
       var none = document.createElement("option");
-      none.value = ""; none.textContent = "Marca do site (padrão)";
+      var def = fallback();
+      none.value = ""; none.textContent = def ? "Empresa padrão (" + label(def) + ")" : "Marca do site (padrão)";
       var options = brands.map(function (b) {
         var o = document.createElement("option");
         o.value = b.id; o.textContent = label(b);

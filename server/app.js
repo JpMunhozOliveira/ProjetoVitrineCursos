@@ -9,6 +9,8 @@ const adminSharedBlockRoutes = require("./routes/admin-shared-block.routes");
 const adminBrandRoutes = require("./routes/admin-brand.routes");
 const storage = require("./lib/storage");
 const assets = require("./lib/assets");
+const defaultBrand = require("./lib/default-brand");
+const { injectSiteBrand } = require("./lib/site-brand");
 const { showPublicPage, showPreview } = require("./controllers/page-view.controller");
 const requireAdmin = require("./middleware/admin-auth");
 const { findSession } = requireAdmin;
@@ -133,14 +135,16 @@ app.use("/uploads", express.static(storage.UPLOAD_DIR, {
 // Páginas HTML do site e do painel: entregues com a versão (?v=) nos links de CSS e JS (ver
 // lib/assets.js). O HTML em si é sempre revalidado (no-cache; o painel continua no-store), então
 // uma mudança publicada aparece na próxima visita.
-app.use((req, res, next) => {
+app.use(async (req, res, next) => {
   if (req.method !== "GET" && req.method !== "HEAD") return next();
   let urlPath;
   try { urlPath = decodeURIComponent(req.path); } catch { return next(); }
   if (urlPath.endsWith("/")) urlPath += "index.html";
   if (!/\.html$/.test(urlPath) || urlPath.includes("\0") || /\/\./.test(urlPath)) return next();
-  const body = assets.htmlPage(urlPath);
+  let body = assets.htmlPage(urlPath);
   if (body === null) return next();
+  // Páginas do site (fora do painel): logo e ícone da aba da empresa padrão (aba Empresas).
+  if (!urlPath.startsWith("/admin/")) body = injectSiteBrand(body, await defaultBrand.get());
   if (!res.get("Cache-Control")) res.set("Cache-Control", "no-cache");
   return res.type("html").send(body); // send() gera o ETag e responde 304 se nada mudou
 });

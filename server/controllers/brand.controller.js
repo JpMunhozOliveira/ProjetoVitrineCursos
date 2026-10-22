@@ -4,6 +4,7 @@
 const pool = require("../config/database");
 const storage = require("../lib/storage");
 const { UUID, normalizeBrandBody } = require("../lib/brand-input");
+const defaultBrand = require("../lib/default-brand");
 
 const NOT_FOUND = { error: "Empresa não encontrada." };
 const MISSING_LOGO = { error: "A imagem escolhida para o logo ou o ícone não existe mais. Escolha outra." };
@@ -11,7 +12,7 @@ const MISSING_LOGO = { error: "A imagem escolhida para o logo ou o ícone não e
 // "usage": produtos que usam a empresa. "kiwify": conta Kiwify conectada (sem o segredo; do
 // Client ID, só os 4 últimos caracteres, para conferir qual chave está em uso).
 const SELECT_BRAND = `
-  SELECT b.id, b.name, b.created_at, b.updated_at,
+  SELECT b.id, b.name, b.is_default, b.created_at, b.updated_at,
          (SELECT json_build_object('account_id', k.account_id, 'client_id_hint', right(k.client_id, 4),
              'updated_at', k.updated_at) FROM kiwify_accounts k WHERE k.brand_id = b.id) AS kiwify,
          CASE WHEN m.id IS NULL THEN NULL ELSE json_build_object(
@@ -47,14 +48,33 @@ async function listBrands(_req, res) {
   return res.json({ data: rows.map(toResponse) });
 }
 
+// Grava numa transação: marcar uma empresa como padrão desmarca a anterior (só pode haver uma).
+// write(client) faz o INSERT/UPDATE e devolve o id (ou null se a empresa não existe).
+async function saveBrand(value, write) {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    if (value.isDefault) await client.query("UPDATE brands SET is_default = false WHERE is_default");
+    const id = await write(client);
+    await client.query(id ? "COMMIT" : "ROLLBACK");
+    return id;
+  } catch (err) {
+    await client.query("ROLLBACK").catch(() => {});
+    throw err;
+  } finally {
+    client.release();
+    defaultBrand.invalidate(); // menu e ícone da aba das páginas do site
+  }
+}
+
 async function createBrand(req, res) {
   const { value, error } = normalizeBrandBody(req.body);
   if (error) return res.status(400).json({ error });
   try {
-    const { rows } = await pool.query(
-      "INSERT INTO brands (name, logo_id, icon_id) VALUES ($1, $2, $3) RETURNING id",
-      [value.name, value.logoId, value.iconId]);
-    return res.status(201).json({ data: await findBrand(rows[0].id) });
+    const id = await saveBrand(value, async (client) => (await client.query(
+      "INSERT INTO brands (name, logo_id, icon_id, is_default) VALUES ($1, $2, $3, $4) RETURNING id",
+      [value.name, value.logoId, value.iconId, value.isDefault])).rows[0].id);
+    return res.status(201).json({ data: await findBrand(id) });
   } catch (err) {
     if (isMissingLogo(err)) return res.status(400).json(MISSING_LOGO);
     throw err;
@@ -66,11 +86,12 @@ async function updateBrand(req, res) {
   const { value, error } = normalizeBrandBody(req.body);
   if (error) return res.status(400).json({ error });
   try {
-    const { rowCount } = await pool.query(
-      "UPDATE brands SET name = $2, logo_id = $3, icon_id = $4, updated_at = CURRENT_TIMESTAMP WHERE id = $1",
-      [req.params.id, value.name, value.logoId, value.iconId]);
-    if (!rowCount) return res.status(404).json(NOT_FOUND);
-    return res.json({ data: await findBrand(req.params.id) });
+    const id = await saveBrand(value, async (client) => (await client.query(
+      `UPDATE brands SET name = $2, logo_id = $3, icon_id = $4, is_default = $5, updated_at = CURRENT_TIMESTAMP
+        WHERE id = $1 RETURNING id`,
+      [req.params.id, value.name, value.logoId, value.iconId, value.isDefault])).rows[0]?.id || null);
+    if (!id) return res.status(404).json(NOT_FOUND);
+    return res.json({ data: await findBrand(id) });
   } catch (err) {
     if (isMissingLogo(err)) return res.status(400).json(MISSING_LOGO);
     throw err;
@@ -90,7 +111,10 @@ async function deleteBrand(req, res) {
   } catch (err) {
     if (err.code !== "23503") throw err; // passou a ser usada no meio do caminho -> 409 abaixo
   }
-  if (deleted) return res.status(204).end();
+  if (deleted) {
+    defaultBrand.invalidate(); // se era a padrão, o site volta à marca dos arquivos
+    return res.status(204).end();
+  }
 
   const found = await findBrand(req.params.id);
   if (!found) return res.status(404).json(NOT_FOUND);

@@ -1,4 +1,5 @@
 const pool = require("../config/database");
+const defaultBrand = require("../lib/default-brand");
 const storage = require("../lib/storage");
 const { detectType, processImage } = require("../lib/images");
 
@@ -109,6 +110,7 @@ async function updateMedia(req, res) {
 
   const updated = await pool.query("UPDATE media SET alt_text = $2 WHERE id = $1", [req.params.id, alt]);
   if (!updated.rowCount) return res.status(404).json(NOT_FOUND);
+  defaultBrand.invalidate(); // pode ser o logo da empresa padrão (menu do site)
 
   const { rows } = await pool.query(`${SELECT_MEDIA} WHERE m.id = $1`, [req.params.id]);
   return res.json({ data: toResponse(rows[0]) });

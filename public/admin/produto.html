@@ -122,6 +122,24 @@
 
         <fieldset>
           <legend>Venda</legend>
+          <p class="hint">Empresa de quem vende este produto: nome e logo aparecem no menu e no rodapé da página de vendas, e o logo também nos cards do catálogo.
+            A conta Kiwify dela fornece o preço e o link. As empresas são cadastradas uma vez na aba <a href="empresas.html">Empresas</a>, e trocar o nome ou o logo lá muda todos os produtos dela.</p>
+          <div class="cover-field">
+            <div class="cover-preview brand-preview brand-pick-preview" aria-hidden="true">
+              <img id="brand-img" alt="" hidden>
+              <span id="brand-name-preview" class="muted">Marca do site</span>
+            </div>
+            <div class="cover-controls">
+              <div class="field">
+                <label for="brand_id">Empresa</label>
+                <select id="brand_id" name="brand_id" aria-describedby="brand-usage">
+                  <option value="">Marca do site (padrão)</option>
+                </select>
+                <p id="brand-usage" class="hint"></p>
+              </div>
+              <p class="hint"><a href="empresas.html">Cadastrar ou editar empresas</a></p>
+            </div>
+          </div>
           <div id="kiwify-link" class="kiwify-link" hidden>
             <div class="grid-2">
               <div class="field">
@@ -129,7 +147,7 @@
                 <select id="kiwify_product" aria-describedby="kiwify-help">
                   <option value="">Não vincular (preencher à mão)</option>
                 </select>
-                <p id="kiwify-help" class="hint">Da conta Kiwify da empresa escolhida em “Marca na página de vendas”.</p>
+                <p id="kiwify-help" class="hint">Da conta Kiwify da empresa escolhida acima.</p>
               </div>
               <div class="field">
                 <label for="kiwify_link">Link de checkout na Kiwify</label>
@@ -152,27 +170,6 @@
               <label for="checkout_url">Link de checkout</label>
               <input id="checkout_url" name="checkout_url" type="url" maxlength="2048" pattern="https://.+"
                 title="O link deve começar com https://" placeholder="https://pay.kiwify.com.br/..." spellcheck="false">
-            </div>
-          </div>
-        </fieldset>
-
-        <fieldset>
-          <legend>Marca na página de vendas</legend>
-          <p class="hint">Empresa de quem vende este produto: nome e logo aparecem no menu e no rodapé da página de vendas, e o logo também nos cards do catálogo. As empresas são cadastradas uma vez na aba <a href="empresas.html">Empresas</a>, e trocar o nome ou o logo lá muda todos os produtos dela.</p>
-          <div class="cover-field">
-            <div class="cover-preview brand-preview brand-pick-preview" aria-hidden="true">
-              <img id="brand-img" alt="" hidden>
-              <span id="brand-name-preview" class="muted">Marca do site</span>
-            </div>
-            <div class="cover-controls">
-              <div class="field">
-                <label for="brand_id">Empresa</label>
-                <select id="brand_id" name="brand_id" aria-describedby="brand-usage">
-                  <option value="">Marca do site (padrão)</option>
-                </select>
-                <p id="brand-usage" class="hint"></p>
-              </div>
-              <p class="hint"><a href="empresas.html">Cadastrar ou editar empresas</a></p>
             </div>
           </div>
         </fieldset>

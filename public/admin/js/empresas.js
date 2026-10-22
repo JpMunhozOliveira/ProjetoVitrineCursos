@@ -114,6 +114,7 @@
     editing = brand;
     $("form-title").textContent = brand ? "Editar “" + title(brand) + "”" : "Nova empresa";
     $("name").value = brand ? brand.name || "" : "";
+    $("is_default").checked = !!(brand && brand.is_default);
     logo.show(brand && brand.logo ? Object.assign({}, brand.logo) : null);
     logo.clearMessage();
     icon.show(brand && brand.icon ? Object.assign({}, brand.icon) : null);
@@ -141,6 +142,7 @@
   }
 
   $("name").addEventListener("input", function () { dirty = true; });
+  $("is_default").addEventListener("change", function () { dirty = true; });
   $("logo-alt").addEventListener("input", function () { dirty = true; });
   $("icon-alt").addEventListener("input", function () { dirty = true; });
   $("new").addEventListener("click", async function () {
@@ -152,7 +154,8 @@
   form.addEventListener("submit", async function (e) {
     e.preventDefault();
     var body = {
-      name: $("name").value, logo_id: logo.image ? logo.image.id : null, icon_id: icon.image ? icon.image.id : null
+      name: $("name").value, logo_id: logo.image ? logo.image.id : null, icon_id: icon.image ? icon.image.id : null,
+      is_default: $("is_default").checked
     };
     if (!body.name.trim() && !body.logo_id) {
       Admin.showMessage(formMsg, "Informe o nome da empresa, o logo ou os dois.", "error");
@@ -175,7 +178,7 @@
       await load();
       Admin.showMessage(msg, saved.usage.length
         ? "“" + title(saved) + "” salva: os " + saved.usage.length + " produto(s) dela já mostram a versão nova."
-        : "“" + title(saved) + "” salva. Para usá-la, abra um produto e escolha-a em “Marca na página de vendas”.", "success");
+        : "“" + title(saved) + "” salva." + (saved.is_default ? " Ela é a empresa padrão: o menu do site já mostra o logo dela." : " Para usá-la, abra um produto e escolha-a na parte Venda."), "success");
       focusCard(saved.id);
     } catch (err) {
       Admin.showMessage(formMsg, err.status === 401
@@ -206,7 +209,13 @@
     li.id = b.id;
     li.dataset.id = b.id;
     var body = el("div", "media-body");
-    body.append(el("strong", "media-name", title(b)));
+    var name = el("strong", "media-name", title(b));
+    if (b.is_default) {
+      var def = el("span", "badge badge-default", "Padrão");
+      def.title = "Empresa padrão do site: logo no menu e ícone na aba do navegador";
+      name.append(" ", def);
+    }
+    body.append(name);
     body.append(el("span", "muted small", "Atualizada em " + new Date(b.updated_at).toLocaleDateString("pt-BR")));
     // Ícone da aba: próprio, o logo ou o do site (mesma regra da página de vendas).
     var tab = el("p", "brand-tab small");
@@ -248,7 +257,8 @@
       var del = button("Excluir", "btn btn-sm btn-danger", async function () {
         var ok = await Admin.confirm({
           title: "Excluir “" + title(b) + "”?",
-          text: "A empresa será apagada definitivamente (o logo continua na biblioteca de imagens).",
+          text: "A empresa será apagada definitivamente (o logo continua na biblioteca de imagens)."
+            + (b.is_default ? " Ela é a empresa padrão: o menu do site volta a mostrar o logo dos arquivos." : ""),
           action: "Excluir definitivamente", danger: true
         });
         if (!ok) return;

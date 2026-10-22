@@ -5,6 +5,7 @@ const { BLOCKS, ICONS, NETWORKS, validBlocks } = require("./blocks");
 const { normalizeTheme, themeHref, DEFAULT_THEME } = require("./theme");
 const { toHtml, paragraphsHtml, alignOf } = require("./richtext");
 const { assetUrl } = require("../lib/assets"); // ?v= nos CSS/JS: cache longo no navegador
+const { headerAttrs } = require("../lib/site-brand");
 
 // Largura em que cada tipo de imagem aparece na tela (atributo sizes; ver venda.css). Com isso e
 // o srcset, o navegador baixa a menor versão que fica nítida naquela tela.
@@ -115,13 +116,11 @@ const COLUMNS = { two: 2, three: 3, four: 4 };
 const cols = (b) => (COLUMNS[b.columns] ? ` cols-${COLUMNS[b.columns]}` : "");
 
 // Marca do professor no menu (montado por public/js/components.js a partir destes atributos).
-// Sem nome nem logo, o menu mostra a marca do site.
+// Sem nome nem logo, o menu mostra a marca do site. Produto sem empresa usa a empresa padrão
+// (ver PRODUCT_FROM em pages.js).
 function brandAttrs(data) {
   const logo = data.brand_logo_id && data.media.get(data.brand_logo_id);
-  if (!data.brand_name && !logo) return null;
-  return html` data-brand-name="${data.brand_name || ""}"${logo
-    ? html` data-brand-logo="${logo.url}" data-brand-logo-w="${logo.width}" data-brand-logo-h="${logo.height}" data-brand-logo-alt="${logo.alt_text || ""}"`
-    : null}`;
+  return headerAttrs({ name: data.brand_name, logo: logo && { ...logo, alt: logo.alt_text } });
 }
 
 // Contexto de uma renderização: produto, imagens e contadores (ids de títulos, fundo alternado).
