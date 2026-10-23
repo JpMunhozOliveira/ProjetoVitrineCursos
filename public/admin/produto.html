@@ -29,6 +29,8 @@
       <nav class="admin-nav" aria-label="Seções do painel">
         <a href="./" aria-current="page">Produtos</a>
         <a href="imagens.html">Imagens</a>
+        <a href="blocos.html">Blocos salvos</a>
+        <a href="empresas.html">Empresas</a>
       </nav>
     </div>
     <main class="section">
@@ -49,7 +51,13 @@
           <legend>Identificação</legend>
           <div class="field">
             <label for="title">Título <span class="req">(obrigatório)</span></label>
-            <input id="title" name="title" required maxlength="180">
+            <input id="title" name="title" required maxlength="180" aria-describedby="title-help">
+            <p id="title-help" class="hint">Aparece no catálogo, na aba do navegador, no Google e na prévia do link no WhatsApp.</p>
+          </div>
+          <div class="field">
+            <label for="short_description">Resumo</label>
+            <textarea id="short_description" name="short_description" rows="2" maxlength="500" aria-describedby="short-help"></textarea>
+            <p id="short-help" class="hint">Texto curto exibido nos cards do catálogo. É também a descrição que aparece no Google e na prévia do link no WhatsApp (lá aparecem só as primeiras ~160 letras).</p>
           </div>
           <div class="field">
             <label for="slug">Endereço (slug) <span class="req">(obrigatório)</span></label>
@@ -61,8 +69,20 @@
           </div>
           <div class="field">
             <label for="category">Categoria</label>
-            <input id="category" name="category" maxlength="80" aria-describedby="category-help">
-            <p id="category-help" class="hint">Usada no filtro do catálogo.</p>
+            <select id="category" name="category" aria-describedby="category-help">
+              <option value="">Sem categoria</option>
+              <option>Curso</option>
+              <option>Guia</option>
+              <option>Manual</option>
+            </select>
+            <p id="category-help" class="hint">Aparece no cartão do produto e no filtro do catálogo.</p>
+          </div>
+          <div class="field">
+            <label for="area">Área de conhecimento</label>
+            <select id="area" name="area" aria-describedby="area-help">
+              <option value="">Sem área</option>
+            </select>
+            <p id="area-help" class="hint">A página inicial mostra as áreas com produtos publicados, e o catálogo filtra por elas.</p>
           </div>
           <div class="field check">
             <input id="featured" name="featured" type="checkbox">
@@ -88,7 +108,8 @@
                 <button id="cover-pick" class="btn btn-sm btn-outline" type="button">Escolher da biblioteca</button>
                 <button id="cover-remove" class="btn btn-sm btn-danger" type="button" hidden>Remover capa</button>
               </div>
-              <p class="hint">PNG, JPEG ou WebP, até 5 MB. A imagem é otimizada automaticamente.</p>
+              <p class="hint"><strong>Tamanho recomendado: 1200 × 675 px</strong> (formato 16:9, como uma tela de TV). Outros formatos são cortados nas bordas no catálogo.
+                PNG, JPEG ou WebP, até 5 MB; a imagem é otimizada automaticamente.</p>
               <div id="cover-alt-field" class="field" hidden>
                 <label for="cover-alt">Texto alternativo</label>
                 <input id="cover-alt" maxlength="300" aria-describedby="cover-alt-help">
@@ -100,25 +121,44 @@
         </fieldset>
 
         <fieldset>
-          <legend>Catálogo</legend>
-          <div class="field">
-            <label for="short_description">Resumo</label>
-            <textarea id="short_description" name="short_description" rows="2" maxlength="500" aria-describedby="short-help"></textarea>
-            <p id="short-help" class="hint">Texto curto exibido nos cards do catálogo. O conteúdo completo do produto fica na página de vendas.</p>
-          </div>
-        </fieldset>
-
-        <fieldset>
           <legend>Venda</legend>
-          <div class="grid-2">
-            <div class="field">
-              <label for="format">Formato</label>
-              <input id="format" name="format" maxlength="120" placeholder="Ex.: E-book em PDF">
+          <p class="hint">Empresa de quem vende este produto: nome e logo aparecem no menu e no rodapé da página de vendas, e o logo também nos cards do catálogo.
+            A conta Kiwify dela fornece o preço e o link. As empresas são cadastradas uma vez na aba <a href="empresas.html">Empresas</a>, e trocar o nome ou o logo lá muda todos os produtos dela.</p>
+          <div class="cover-field">
+            <div class="cover-preview brand-preview brand-pick-preview" aria-hidden="true">
+              <img id="brand-img" alt="" hidden>
+              <span id="brand-name-preview" class="muted">Marca do site</span>
             </div>
-            <div class="field">
-              <label for="workload">Carga horária</label>
-              <input id="workload" name="workload" maxlength="60" placeholder="Ex.: 20 horas">
+            <div class="cover-controls">
+              <div class="field">
+                <label for="brand_id">Empresa</label>
+                <select id="brand_id" name="brand_id" aria-describedby="brand-usage">
+                  <option value="">Marca do site (padrão)</option>
+                </select>
+                <p id="brand-usage" class="hint"></p>
+              </div>
+              <p class="hint"><a href="empresas.html">Cadastrar ou editar empresas</a></p>
             </div>
+          </div>
+          <div id="kiwify-link" class="kiwify-link" hidden>
+            <div class="grid-2">
+              <div class="field">
+                <label for="kiwify_product">Produto na Kiwify</label>
+                <select id="kiwify_product" aria-describedby="kiwify-help">
+                  <option value="">Não vincular (preencher à mão)</option>
+                </select>
+                <p id="kiwify-help" class="hint">Da conta Kiwify da empresa escolhida acima.</p>
+              </div>
+              <div class="field">
+                <label for="kiwify_link">Link de checkout na Kiwify</label>
+                <select id="kiwify_link" disabled></select>
+              </div>
+            </div>
+            <div class="kiwify-sync">
+              <span id="kiwify-info" class="hint"></span>
+              <button id="kiwify-refresh" class="btn btn-sm btn-outline" type="button" hidden>Atualizar agora</button>
+            </div>
+            <p id="kiwify-msg" class="msg" role="status" aria-live="polite"></p>
           </div>
           <div class="grid-2">
             <div class="field">
@@ -132,6 +172,37 @@
                 title="O link deve começar com https://" placeholder="https://pay.kiwify.com.br/..." spellcheck="false">
             </div>
           </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Oferta</legend>
+          <p class="hint">Preço promocional com “de/por” na página de vendas e no catálogo. Com data de fim, aparece um cronômetro; quando o prazo acaba, o site volta sozinho ao preço e ao link normais.</p>
+          <div id="offer-kiwify" class="field" hidden>
+            <label for="offer_link">Link promocional na Kiwify</label>
+            <select id="offer_link" aria-describedby="offer-link-help">
+              <option value="">Sem oferta</option>
+            </select>
+            <p id="offer-link-help" class="hint">Crie na Kiwify um link de checkout com o preço promocional e escolha-o aqui.</p>
+          </div>
+          <div class="grid-2">
+            <div class="field">
+              <label for="offer_price">Preço da oferta (R$)</label>
+              <input id="offer_price" name="offer_price" inputmode="decimal" maxlength="15" placeholder="97,00">
+            </div>
+            <div class="field">
+              <label for="offer_checkout_url">Link de checkout da oferta</label>
+              <input id="offer_checkout_url" name="offer_checkout_url" type="url" maxlength="2048" pattern="https://.+"
+                title="O link deve começar com https://" placeholder="https://pay.kiwify.com.br/..." spellcheck="false">
+            </div>
+          </div>
+          <div class="field">
+            <label for="offer_ends_at">Fim da oferta</label>
+            <input id="offer_ends_at" name="offer_ends_at" type="datetime-local" aria-describedby="offer-ends-help">
+            <p id="offer-ends-help" class="hint">Horário de Brasília. Deixe vazio para uma oferta sem prazo (sem cronômetro).</p>
+          </div>
+          <p id="offer-info" class="msg" role="status" aria-live="polite"></p>
+          <p><button id="offer-clear" class="btn btn-sm btn-outline" type="button">Encerrar oferta</button></p>
+          <p class="hint">Atenção: o fim do prazo só muda o site. O link promocional continua funcionando na Kiwify para quem já o tiver guardado; desative-o lá se quiser bloquear a compra com desconto.</p>
         </fieldset>
 
         <div class="form-actions">

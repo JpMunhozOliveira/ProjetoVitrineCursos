@@ -33,6 +33,10 @@
   --v-shadow-hover: 0 2px 4px rgb(7 21 42 / 0.06), 0 18px 40px rgb(7 21 42 / 0.13);
   /* Laranja para TEXTO em fundo claro: o laranja puro não tem contraste suficiente com o branco. */
   --v-accent-ink: color-mix(in srgb, var(--color-accent) 58%, #000);
+  /* Cores de texto escolhidas no editor (ver venda.css, "Texto formatado"): versão para fundo claro. */
+  --tx-primary: var(--color-hero);
+  --tx-green: #15803d;
+  --tx-red: #b91c1c;
   --v-font: "Inter Variable", Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
   --v-card: var(--color-bg);         /* fundo dos cartões */
   --v-nav-space: 76px;               /* altura do menu flutuante sobre a primeira seção */
@@ -47,6 +51,10 @@
   --v-shadow: inset 0 1px 0 rgb(255 255 255 / 0.03), 0 10px 30px rgb(0 0 0 / 0.35);
   --v-shadow-hover: inset 0 1px 0 rgb(255 255 255 / 0.05), 0 18px 40px rgb(0 0 0 / 0.5);
   --v-accent-ink: var(--color-accent);
+  --tx-primary: color-mix(in srgb, var(--color-hero) 35%, #fff);
+  --tx-primary: oklch(from var(--color-hero) 0.8 0.11 h); /* mesmo tom, claro e vivo (navegadores novos) */
+  --tx-green: #4ade80;
+  --tx-red: #f87171;
 }
 
 /* Cores de cada tipo de faixa, para a transição suave entre blocos (ver "Transições" abaixo).
@@ -74,6 +82,10 @@ body {
   --v-line: rgb(255 255 255 / 0.12);
   --v-card: rgb(255 255 255 / 0.05);
   --v-accent-ink: var(--v-cta);
+  --tx-primary: color-mix(in srgb, var(--color-hero) 35%, #fff);
+  --tx-primary: oklch(from var(--color-hero) 0.8 0.11 h); /* mesmo tom, claro e vivo (navegadores novos) */
+  --tx-green: #4ade80;
+  --tx-red: #f87171;
   --v-shadow: none;
   --v-shadow-hover: 0 18px 40px rgb(0 0 0 / 0.35);
   color: var(--color-text);
@@ -330,6 +342,14 @@ main p {
   line-height: 1.3;
   letter-spacing: -0.015em;
 }
+/* Texto de apoio abaixo da frase de destaque (ex.: página Sobre). */
+.v-strip-sub {
+  margin: 0.5rem 0 0;
+  max-width: 60ch;
+  font-size: 0.98rem;
+  line-height: 1.55;
+  opacity: 0.85;
+}
 .v-strip-action {
   display: flex;
   flex-wrap: wrap;
@@ -374,6 +394,30 @@ main p {
 }
 .v-card > .ico {
   margin-bottom: 1.1rem;
+}
+/* Cartão com ícone seguido de título: o título fica ao lado do ícone e o resto do texto ocupa a largura toda. */
+.v-card:has(> .ico + h3) {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-content: start;
+  gap: 1rem;
+}
+.v-card:has(> .ico + h3) > * {
+  grid-column: 1 / -1;
+  margin-block: 0;
+}
+.v-card:has(> .ico + h3) > .ico {
+  grid-column: 1;
+}
+.v-card:has(> .ico + h3) > .ico + h3 {
+  grid-column: 2;
+  align-self: center;
+}
+.v-card:has(> .ico + h3) > div > p:first-child {
+  margin-top: 0;
+}
+.v-card:has(> .ico + h3) > div > p:last-child {
+  margin-bottom: 0;
 }
 .v-card p {
   color: var(--color-muted);
@@ -426,6 +470,14 @@ main p {
 @media (min-width: 720px) {
   .foot3 {
     grid-template-columns: repeat(3, 1fr);
+  }
+  .foot4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (min-width: 980px) {
+  .foot4 {
+    grid-template-columns: 1.3fr 1fr 1fr 1.3fr;
   }
 }
 
@@ -520,7 +572,6 @@ body :focus-visible {
   .js body .nav.open li:nth-child(2) { animation-delay: 0.04s; }
   .js body .nav.open li:nth-child(3) { animation-delay: 0.08s; }
   .js body .nav.open li:nth-child(4) { animation-delay: 0.12s; }
-  .js body .nav.open li:nth-child(5) { animation-delay: 0.16s; }
 }
 @keyframes nav-item-in {
   from {
@@ -683,9 +734,77 @@ main > section.v-hero:last-child::before {
   height: 32px;
   border-radius: 9px;
 }
+/* Logo da empresa do professor (página de vendas com marca própria, ver components.js). */
+.brand-logo {
+  display: block;
+  flex: none;
+  width: auto;
+  max-width: 150px;
+  height: 34px;
+  object-fit: contain;
+}
 @media (max-width: 420px) {
   .brand {
     font-size: 0.95rem;
+  }
+  .brand-logo {
+    max-width: 110px;
+  }
+}
+
+/* ---------- Botão "voltar ao topo" ----------
+   Criado por main.js; aparece depois de rolar a página. */
+.to-top {
+  position: fixed;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--v-navy) 90%, transparent);
+  color: var(--v-on-navy);
+  box-shadow: 0 12px 28px -10px rgb(0 0 0 / 0.5);
+  backdrop-filter: blur(10px);
+  cursor: pointer;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(12px);
+  transition:
+    opacity 0.25s,
+    transform 0.25s,
+    visibility 0.25s,
+    background 0.15s,
+    color 0.15s;
+}
+.to-top.is-visible {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+}
+.to-top:hover {
+  background: var(--v-cta);
+  color: var(--v-cta-text);
+}
+.to-top:focus-visible {
+  outline: 3px solid var(--v-cta);
+  outline-offset: 3px;
+}
+.to-top svg {
+  width: 22px;
+  height: 22px;
+}
+html[data-editor] .to-top {
+  display: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .to-top {
+    transform: none;
+    transition: opacity 0.01s, visibility 0.01s;
   }
 }
 
@@ -785,8 +904,17 @@ main > section.v-hero:last-child::before {
     box-shadow 0.2s,
     transform 0.2s;
 }
-.card:hover,
-.card:focus-within {
+/* Destaque do cartão: com o mouse em cima ou com foco de TECLADO (:focus-visible). Com foco de
+   clique (:focus-within) o cartão ficaria destacado ao voltar para a página, porque o navegador
+   restaura o foco no link clicado. Em telas de toque não há hover: o último toque ficaria preso. */
+@media (hover: hover) {
+  .card:hover {
+    border-color: var(--v-cta);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--v-cta) 14%, transparent);
+    transform: translateY(-3px);
+  }
+}
+.card:has(:focus-visible) {
   border-color: var(--v-cta);
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--v-cta) 14%, transparent);
   transform: translateY(-3px);
@@ -803,11 +931,10 @@ main > section.v-hero:last-child::before {
   background: linear-gradient(135deg, var(--v-navy-2), var(--v-navy));
   transition: transform 0.4s ease;
 }
-.card-cover:hover .cover {
-  transform: scale(1.03);
-}
-.card .cover img {
-  transition: transform 0.4s ease;
+@media (hover: hover) {
+  .card-cover:hover .cover {
+    transform: scale(1.03);
+  }
 }
 .card-body {
   padding: 1.1rem 0.6rem 0.6rem;
@@ -826,6 +953,32 @@ main > section.v-hero:last-child::before {
 .card-body p {
   margin: 0;
 }
+/* "Por <empresa>": de quem é o produto (empresa ligada ao produto), no topo do cartão e dos detalhes. */
+.card-by {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-muted);
+}
+.card-by strong {
+  color: var(--color-text);
+  font-weight: 700;
+}
+
+/* Logo da marca do produto à esquerda da categoria. Altura fixa: logos largos ou quadrados
+   ficam do mesmo tamanho visual. */
+.card-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 28px;
+}
+.card-brand {
+  flex: none;
+  width: auto;
+  height: 28px;
+  max-width: 110px;
+  object-fit: contain;
+}
 .small {
   font-size: 0.9rem;
 }
@@ -843,28 +996,128 @@ main > section.v-hero:last-child::before {
   font-size: 1.2rem;
   letter-spacing: -0.02em;
 }
+/* Oferta: preço normal riscado antes do preço atual (cartão e detalhes do catálogo). */
+.price > .price-was {
+  margin-right: 0.15em;
+  font-size: 0.75em;
+  font-weight: 500;
+  color: var(--color-muted);
+}
+/* "Ver detalhes": botão cheio na cor de destaque (mesmo estilo do botão de compra, menor). */
 .card-link {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.45rem;
   min-height: 44px;
   margin-left: auto;
-  font-weight: 700;
-  color: var(--v-accent-ink);
+  padding: 0.55rem 1.1rem;
+  border-radius: 10px;
+  background: var(--v-cta);
+  color: var(--v-cta-text);
+  font-weight: 800;
   text-decoration: none;
+  white-space: nowrap;
+  box-shadow: 0 10px 22px -10px color-mix(in srgb, var(--v-cta) 75%, transparent);
+  transition:
+    background 0.15s,
+    box-shadow 0.15s;
 }
 .card-link::after {
   content: "→";
   transition: transform 0.15s;
 }
-.card:hover .card-link::after {
-  transform: translateX(3px);
+@media (hover: hover) {
+  .card:hover .card-link {
+    background: var(--v-cta-hover);
+    box-shadow: 0 14px 28px -10px color-mix(in srgb, var(--v-cta) 85%, transparent);
+  }
+  .card:hover .card-link::after {
+    transform: translateX(3px);
+  }
 }
 .card-link:focus-visible {
-  outline: none; /* o contorno do cartão inteiro (:focus-within) já mostra o foco */
+  outline: none; /* o contorno do cartão inteiro (:has(:focus-visible)) já mostra o foco */
+  background: var(--v-cta-hover);
 }
 .more {
   margin-top: 2.5rem;
+}
+
+/* Página inicial: áreas de conhecimento (cada cartão leva ao catálogo filtrado). */
+.area-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.area-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  height: 100%;
+  padding: 1.1rem 1.25rem;
+  border: 1px solid var(--v-line);
+  border-radius: var(--v-radius);
+  background: var(--v-card);
+  box-shadow: var(--v-shadow);
+  color: var(--color-text);
+  text-decoration: none;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s,
+    border-color 0.2s;
+}
+.area-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--v-cta);
+  box-shadow: var(--v-shadow-hover);
+}
+.area-card .ico {
+  width: 44px;
+  height: 44px;
+  padding: 11px;
+}
+.area-card strong {
+  display: block;
+  font-size: 1.05rem;
+  line-height: 1.3;
+}
+.area-card span span {
+  font-size: 0.9rem;
+  color: var(--color-muted);
+}
+@media (prefers-reduced-motion: reduce) {
+  .area-card,
+  .area-card:hover {
+    transition: none;
+    transform: none;
+  }
+}
+
+/* Página inicial: chamada final centralizada, com a linha de "Dúvidas?" abaixo do botão. */
+.final-cta {
+  max-width: 720px;
+  text-align: center;
+}
+.final-cta .v-eyebrow {
+  margin-inline: auto;
+}
+.final-cta .lead {
+  margin-inline: auto;
+}
+.final-help {
+  margin: 2rem 0 0;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--v-line);
+  color: var(--color-muted);
+}
+.final-help strong {
+  color: var(--color-text);
+}
+.final-help a {
+  color: var(--v-cta);
 }
 
 /* Busca e filtros do catálogo */
@@ -888,6 +1141,19 @@ main > section.v-hero:last-child::before {
   border-color: var(--v-cta);
   outline: 3px solid color-mix(in srgb, var(--v-cta) 25%, transparent);
   outline-offset: 0;
+}
+/* Busca larga + filtros (Área, Tipo) lado a lado; o que estiver escondido não ocupa espaço. */
+@media (min-width: 640px) {
+  .filters {
+    display: flex;
+    flex-wrap: wrap;
+  }
+  .filters > div {
+    flex: 1 1 180px;
+  }
+  .filters > div:first-child {
+    flex: 2 1 260px;
+  }
 }
 #resultado {
   margin: 0 0 1.5rem;
@@ -913,10 +1179,6 @@ main > section.v-hero:last-child::before {
 }
 
 /* Sobre */
-.about-text > p:not(.v-eyebrow) {
-  font-size: 1.1rem;
-  color: var(--color-muted);
-}
 .about-text #sobre-texto p {
   font-size: 1.1rem;
   color: var(--color-muted);
@@ -976,17 +1238,80 @@ main > section.v-hero:last-child::before {
   text-align: center;
 }
 
-/* Esqueletos de carregamento no modo noturno: tons do azul-ardósia */
-:root[data-theme="dark"] body {
-  --color-skeleton-base: #15223b;
-  --color-skeleton-shine: #1d2d4b;
-}
-
 @media (prefers-reduced-motion: reduce) {
   .card:hover,
-  .card:focus-within,
+  .card:has(:focus-visible),
   .contact-card:hover,
   .card-cover:hover .cover {
     transform: none;
   }
+}
+
+/* ---------- Dúvidas frequentes (duvidas.html) ----------
+   Mesmo visual do FAQ das páginas de vendas (venda.css), com outro nome de classe para não
+   misturar as regras. */
+.qa {
+  margin-bottom: 0.75rem;
+  border: 1px solid var(--v-line);
+  border-radius: 14px;
+  background: var(--v-card);
+  box-shadow: var(--v-shadow);
+}
+.qa[open] {
+  border-color: color-mix(in srgb, var(--v-cta) 45%, var(--v-line));
+}
+.qa summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  min-height: 44px;
+  padding: 1.1rem 1.35rem;
+  font-weight: 700;
+  cursor: pointer;
+  list-style: none;
+}
+.qa summary::-webkit-details-marker {
+  display: none;
+}
+.qa summary::after {
+  content: "+";
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  font-size: 1.3rem;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--v-accent-ink);
+  background: color-mix(in srgb, var(--v-cta) 14%, transparent);
+  transition: transform 0.2s;
+}
+.qa[open] summary::after {
+  transform: rotate(45deg);
+}
+.qa p {
+  margin: 0;
+  padding: 0 1.35rem 1.2rem;
+  color: var(--color-muted);
+}
+
+/* ---------- Termos e privacidade: texto corrido, títulos alinhados à esquerda ---------- */
+.v-section > .legal-text > h2 {
+  max-width: none;
+  margin: 2.25rem 0 0.75rem;
+  font-size: 1.3rem;
+  text-align: left;
+}
+.legal-text p,
+.legal-text li {
+  line-height: 1.7;
+}
+.legal-text ul {
+  padding-left: 1.25rem;
+}
+.legal-text li + li {
+  margin-top: 0.5rem;
 }

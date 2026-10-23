@@ -8,7 +8,7 @@ const { BLOCKS, defaultSections } = require("../sales/blocks");
 const product = (sections) => ({
   title: "Produto de Teste", slug: "produto-teste", short_description: "", status: "published",
   price_cents: 4990, checkout_url: "https://pay.example.com/x", image_id: null,
-  sections, seo_title: "", seo_description: "", theme: null, published_at: null, media: new Map(),
+  sections, brand_name: null, brand_logo_id: null, theme: null, published_at: null, media: new Map(),
 });
 const render = (sections, preview) => renderSalesPage(product(sections), { baseUrl: "http://localhost", preview });
 
@@ -49,7 +49,7 @@ test("página pública não tem nenhuma marcação do editor", () => {
 });
 
 test("modo ao vivo carrega o CSS do editor", () => {
-  assert.ok(render(sample(), "live").includes('href="/css/venda-editor.css"'));
+  assert.match(render(sample(), "live"), /href="\/css\/venda-editor\.css(\?v=[\w-]+)?"/); // com ?v= quando o arquivo existe
 });
 
 test("todo data-field aponta para um campo de texto do bloco certo", () => {
@@ -381,4 +381,101 @@ test("oferta antiga (só os campos de antes) continua válida: preço, botão, e
   assert.match(live, /<div class="offer-proof" data-empty>/);
   assert.match(live, /<div class="buy-guarantee" data-empty>/);
   assert.match(live, /<p class="buy-note" data-field="note" data-fallback>/);
+});
+
+test("marca do professor: nome e logo vão para o menu e o rodapé, como texto (sem HTML)", () => {
+  const logoId = "11111111-1111-4111-8111-111111111111";
+  const data = {
+    ...product(defaultSections()), brand_name: "Coutinho <b>Treinamentos</b>", brand_logo_id: logoId,
+    media: new Map([[logoId, { id: logoId, url: "/uploads/logo.webp", width: 300, height: 90, alt_text: "Logo" }]]),
+  };
+  const page = renderSalesPage(data, { baseUrl: "http://localhost", preview: false });
+  assert.match(page, /<div id="site-header" data-brand-name="Coutinho &lt;b&gt;Treinamentos&lt;\/b&gt;" data-brand-logo="\/uploads\/logo.webp"/);
+  assert.match(page, /<strong>Coutinho &lt;b&gt;Treinamentos&lt;\/b&gt;<\/strong> ©/);
+  assert.doesNotMatch(page, /data-site="slogan"/);
+  // Sem marca: menu e rodapé do site.
+  const plain = render(defaultSections(), false);
+  assert.match(plain, /<div id="site-header"><\/div>/);
+  assert.match(plain, /<strong data-site="nome"><\/strong>/);
+});
+
+test("ícone da aba: o da empresa, senão o logo dela, senão o do site", () => {
+  const logoId = "11111111-1111-4111-8111-111111111111", iconId = "22222222-2222-4222-8222-222222222222";
+  const media = new Map([
+    [logoId, { id: logoId, url: "/uploads/logo.webp", width: 300, height: 90, alt_text: "" }],
+    [iconId, { id: iconId, url: "/uploads/icone.webp", width: 64, height: 64, alt_text: "" }],
+  ]);
+  const page = (extra) => renderSalesPage({ ...product(defaultSections()), media, ...extra },
+    { baseUrl: "http://localhost", preview: false });
+  assert.match(page({ brand_logo_id: logoId, brand_icon_id: iconId }), /<link rel="icon" type="image\/webp" href="\/uploads\/icone.webp">/);
+  assert.match(page({ brand_logo_id: logoId }), /<link rel="icon" type="image\/webp" href="\/uploads\/logo.webp">/);
+  assert.match(page({}), /<link rel="icon" type="image\/png" href="\/assets\/favicon\/favicon.png">/);
+});
+
+test("botão voltar: na página pública aponta para o catálogo; fora do editor ao vivo", () => {
+  assert.match(render(defaultSections(), false), /<a class="v-back" href="\/catalogo.html" data-back>/);
+  assert.match(render(defaultSections(), true), /class="v-back"/);
+  assert.doesNotMatch(render(defaultSections(), "live"), /class="v-back"/);
+});
+
+test("grades: colunas escolhidas viram classe; automático não leva classe", () => {
+  const item = { icon: "check", title: "T", text: "x" };
+  assert.match(render([{ type: "topics", title: "T", items: [item], columns: "four" }], false), /<ul class="grid8 cols-4">/);
+  assert.match(render([{ type: "audience", title: "T", items: [{ icon: "user", text: "A" }], columns: "three" }], false), /<ul class="who cols-3">/);
+  assert.match(render([{ type: "topics", title: "T", items: [item] }], false), /<ul class="grid8">/);
+});
+
+test("texto formatado: negrito, cor e alinhamento na página pública e no editor", () => {
+  const sections = [{ type: "faq", title: "[align=center]Dúvidas [b]frequentes[/b]", items: [
+    { question: "[c=accent]Pergunta[/c]", answer: "[align=right][i]um[/i]\n\ndois" }] }];
+  const page = render(sections, false);
+  assert.match(page, /<h2 id="t-\d+" data-align="center">Dúvidas <strong>frequentes<\/strong><\/h2>/);
+  // Texto formatado dentro de elemento flex (pergunta do FAQ) ganha um <span> em volta.
+  assert.match(page, /<summary><span><span class="tx-c-accent">Pergunta<\/span><\/span><\/summary>/);
+  assert.match(page, /<p data-align="right"><em>um<\/em><\/p><p data-align="right">dois<\/p>/);
+  assert.doesNotMatch(page, /\[b\]|\[align/);
+  const live = render(sections, "live");
+  assert.match(live, /data-field="title" data-align="center">Dúvidas <strong>frequentes<\/strong>/);
+});
+
+/* ---------- Blocos salvos (já resolvidos por pages.js: conteúdo do bloco salvo + campos locais) ---------- */
+test("bloco vindo de bloco salvo: público igual a um bloco comum; no editor, trancado e com etiqueta", () => {
+  const sections = [
+    { type: "faq", title: "Dúvidas", items: [{ question: "P?", answer: "R" }] },
+    { type: "social", title: "Siga o professor", background: "dark",
+      items: [{ network: "instagram", url: "https://instagram.com/prof", label: "" }] },
+  ];
+  const data = { ...product(sections), shared: new Map([[1, { id: "x", name: "Redes — <Prof>" }]]) };
+  const pub = renderSalesPage(data, { baseUrl: "http://localhost", preview: false });
+  assert.ok(pub.includes('href="https://instagram.com/prof"'));
+  assert.ok(!pub.includes("data-shared"));
+
+  const live = renderSalesPage(data, { baseUrl: "http://localhost", preview: "live" });
+  const [faq, social] = sectionsOf(live).map(([, html]) => html);
+  assert.ok(faq.includes("data-field"), "os outros blocos continuam editáveis");
+  assert.ok(social.includes('data-shared="Redes — &lt;Prof&gt;"'), "etiqueta com o nome escapado");
+  for (const marker of ["data-field", "data-item", "item-add", "item-remove", "data-icon-field"]) {
+    assert.ok(!social.includes(marker), `"${marker}" apareceu no bloco salvo`);
+  }
+  assert.ok(social.includes("is-dark"), "o fundo escolhido na página vale");
+});
+
+test("bloco salvo sem nenhuma rede com link: no editor vira aviso com o nome do bloco", () => {
+  const data = { ...product([{ type: "social", items: [] }]), shared: new Map([[0, { id: "x", name: "Prof. Vazio" }]]) };
+  const live = renderSalesPage(data, { baseUrl: "http://localhost", preview: "live" });
+  assert.ok(live.includes("editor-hidden-block"));
+  assert.ok(live.includes("Prof. Vazio"));
+});
+
+test("imagens com versões menores levam srcset e sizes; sem versões, só src", () => {
+  const big = "11111111-1111-4111-8111-111111111111", small = "22222222-2222-4222-8222-222222222222";
+  const data = product([{ type: "hero", title: "T", image: big }, { type: "offer", title: "Oferta", image: small }]);
+  data.media = new Map([
+    [big, { id: big, url: "/uploads/a.webp", width: 1024, height: 1536, alt_text: "",
+      srcset: "/uploads/a-480.webp 480w, /uploads/a-960.webp 960w, /uploads/a.webp 1024w" }],
+    [small, { id: small, url: "/uploads/b.webp", width: 200, height: 200, alt_text: "", srcset: null }],
+  ]);
+  const page = renderSalesPage(data, { baseUrl: "http://localhost" });
+  assert.match(page, /<img class="v-media" src="\/uploads\/a\.webp" srcset="\/uploads\/a-480\.webp 480w, \/uploads\/a-960\.webp 960w, \/uploads\/a\.webp 1024w" sizes="[^"]+480px[^"]*"/);
+  assert.match(page, /<img class="buy-media" src="\/uploads\/b\.webp" alt=""/);
 });

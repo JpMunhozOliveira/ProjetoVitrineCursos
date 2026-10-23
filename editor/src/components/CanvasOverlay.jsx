@@ -1,6 +1,7 @@
 // Controles desenhados SOBRE a página, dentro da moldura (iframe): a barra do bloco selecionado
-// (mover, duplicar, configurar, remover) e os botões "+" nas bordas do bloco selecionado ou sob
-// o mouse. Ficam num <div> próprio no fim do <body> da moldura (createPortal), com estilos do
+// (mover, duplicar, configurar, remover), o botão "Remover imagem" sobre as imagens do bloco
+// selecionado, os botões "+" nas bordas do bloco selecionado ou sob
+// o mouse e a barra de formatação do texto em edição (TextToolbar). Ficam num <div> próprio no fim do <body> da moldura (createPortal), com estilos do
 // venda-editor.css, e não mexem no layout da página: as posições são calculadas a partir das seções.
 //
 // A moldura é desenhada em escala (ex.: 1280 px exibidos a 60%); os controles recebem a escala
@@ -8,6 +9,7 @@
 import { useLayoutEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { BlockIcon } from "../ui/BlockIcon.jsx";
+import { TextToolbar } from "./TextToolbar.jsx";
 
 const ICONS = {
   up: "M12 19V5M6 11l6-6 6 6",
@@ -15,6 +17,7 @@ const ICONS = {
   duplicate: "M9 9h11v11H9zM5 15H4V4h11v1",
   settings: "M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1M15 4v4M9 10v4M17 16v4",
   remove: "M4 7h16M10 11v6M14 11v6M9 7V4h6v3M6 7l1 13h10l1-13",
+  close: "M6 6l12 12M18 6L6 18",
   plus: "M12 5v14M5 12h14",
 };
 
@@ -38,6 +41,7 @@ function ToolButton({ icon, label, onClick, disabled, danger }) {
 export function CanvasOverlay({ doc, scale, canvas, selectedIndex }) {
   const [host, setHost] = useState(null);
   const [hoverIndex, setHoverIndex] = useState(null);
+  const [hoverImage, setHoverImage] = useState(null); // imagem sob o mouse (o X de remover aparece nela)
   const [, setTick] = useState(0); // redesenha ao rolar / redimensionar (posições mudam)
 
   useLayoutEffect(() => {
@@ -54,8 +58,9 @@ export function CanvasOverlay({ doc, scale, canvas, selectedIndex }) {
       if (e.target.closest?.(".editor-overlay")) return;
       const section = e.target.closest?.("[data-block]");
       setHoverIndex(section ? Number(section.dataset.block) : null);
+      setHoverImage(e.target.closest?.("img[data-image-field]") || null);
     };
-    const onLeave = () => setHoverIndex(null);
+    const onLeave = () => { setHoverIndex(null); setHoverImage(null); };
     win.addEventListener("scroll", update, { passive: true });
     win.addEventListener("resize", update);
     doc.addEventListener("mouseover", onOver);
@@ -83,7 +88,8 @@ export function CanvasOverlay({ doc, scale, canvas, selectedIndex }) {
 
   // Botões "+": bordas de cima e de baixo dos blocos em foco (o de baixo de um é o de cima do próximo).
   const inserts = new Map(); // posição de inserção -> { x, y }
-  for (const i of new Set([selectedIndex, hoverIndex])) {
+  // canvas.single (bloco salvo): sem "+" nem mover/duplicar/remover blocos.
+  for (const i of canvas.single ? [] : new Set([selectedIndex, hoverIndex])) {
     if (i === null || i === undefined) continue;
     const r = rectOf(i);
     if (!r) continue;
@@ -109,13 +115,37 @@ export function CanvasOverlay({ doc, scale, canvas, selectedIndex }) {
       <div className="eo-toolbar" role="toolbar" aria-label={`Bloco ${n}: ${label}`}
         style={{ top: `${top + win.scrollY}px`, left: `${right - 10 * k + win.scrollX}px`, transform: `translateX(-100%) scale(${k})` }}>
         <span className="eo-label"><BlockIcon type={block.type} /> {label}</span>
-        <ToolButton icon="up" label={`Mover bloco ${n} (${label}) para cima`} disabled={i === 0} onClick={() => canvas.move(i, -1)} />
-        <ToolButton icon="down" label={`Mover bloco ${n} (${label}) para baixo`} disabled={i === sections.length - 1} onClick={() => canvas.move(i, 1)} />
-        <ToolButton icon="duplicate" label={`Duplicar bloco ${n} (${label})`} disabled={full} onClick={() => canvas.duplicate(i)} />
+        {!canvas.single && <>
+          <ToolButton icon="up" label={`Mover bloco ${n} (${label}) para cima`} disabled={i === 0} onClick={() => canvas.move(i, -1)} />
+          <ToolButton icon="down" label={`Mover bloco ${n} (${label}) para baixo`} disabled={i === sections.length - 1} onClick={() => canvas.move(i, 1)} />
+          <ToolButton icon="duplicate" label={`Duplicar bloco ${n} (${label})`} disabled={full} onClick={() => canvas.duplicate(i)} />
+        </>}
         <ToolButton icon="settings" label={`Configurar bloco ${n} (${label}): imagens, ícones e itens`} onClick={() => canvas.configure(i)} />
-        <ToolButton icon="remove" label={`Remover bloco ${n} (${label})`} danger onClick={() => canvas.remove(i)} />
+        {!canvas.single && <ToolButton icon="remove" label={`Remover bloco ${n} (${label})`} danger onClick={() => canvas.remove(i)} />}
       </div>
     );
+  }
+
+  // X de "Remover imagem" no canto das imagens visíveis do bloco selecionado (as do carrossel fora
+  // da tela ficam sem botão; a galeria remove pelo × do item). Só aparece com o mouse sobre a
+  // imagem (ou sobre o próprio X), ao chegar pelo Tab ou, em tela de toque, sempre.
+  const imageButtons = [];
+  if (selRect && sections[selectedIndex]) {
+    doc.querySelectorAll(`[data-block="${selectedIndex}"] img[data-image-field]`).forEach((img) => {
+      const field = img.dataset.imageField;
+      const r = img.getBoundingClientRect();
+      const visible = r.width > 24 && r.height > 24 && r.bottom > 0 && r.top < viewport
+        && r.left >= selRect.left - 1 && r.right <= selRect.right + 1;
+      if (!visible || !canvas.canRemoveImage(selectedIndex, field)) return;
+      imageButtons.push(
+        <button key={field} type="button" className={`eo-image-remove${img === hoverImage ? " is-shown" : ""}`} title="Remover imagem (o espaço fica vazio)"
+          aria-label={`Remover imagem do bloco ${selectedIndex + 1}`}
+          style={{ top: `${r.top + win.scrollY + 8 * k}px`, left: `${r.right + win.scrollX - 8 * k}px`, transform: `translateX(-100%) scale(${k})` }}
+          onClick={() => canvas.removeImage(selectedIndex, field)}>
+          <Icon name="close" />
+        </button>,
+      );
+    });
   }
 
   // Página sem blocos: um botão grande no lugar do conteúdo.
@@ -143,8 +173,10 @@ export function CanvasOverlay({ doc, scale, canvas, selectedIndex }) {
           <Icon name="plus" />
         </button>
       ))}
+      {imageButtons}
       {toolbar}
       {first}
+      <TextToolbar doc={doc} scale={scale} labels={{ colors: schema.textColors, aligns: schema.textAligns }} />
     </>,
     host,
   );

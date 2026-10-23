@@ -1,7 +1,7 @@
 // Testes do esquema de blocos (validação do que chega na API). Rodar: npm test (node --test)
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const { BLOCKS, MAX_BLOCKS, validateSections, validBlocks, mediaIds, defaultSections } = require("../sales/blocks");
+const { BLOCKS, ICONS, ICON_GROUPS, MAX_BLOCKS, validateSections, validBlocks, mediaIds, defaultSections } = require("../sales/blocks");
 const { createLimiter } = require("../lib/security");
 
 test("aceita o modelo padrão inteiro", () => {
@@ -89,20 +89,12 @@ test("chamada intermediária: texto e botão com limites", () => {
 });
 
 test("ícones: todos têm nome e um desenho SVG válido (só comandos de caminho e números)", () => {
-  const { ICONS } = require("../sales/blocks");
-  assert.ok(Object.keys(ICONS).length >= 50);
+  assert.ok(Object.keys(ICONS).length >= 140);
   for (const [name, icon] of Object.entries(ICONS)) {
     assert.match(name, /^[a-z]+$/, name);
     assert.ok(icon.label, name);
     assert.match(icon.d, /^M[MLHVCSQTAZmlhvcsqtaz0-9.,\s-]+$/, name);
   }
-});
-
-test("ícones: cada um está em exatamente um grupo do seletor", () => {
-  const { ICONS, ICON_GROUPS } = require("../sales/blocks");
-  const listed = ICON_GROUPS.flatMap(([, keys]) => keys);
-  assert.deepEqual([...listed].sort(), Object.keys(ICONS).sort());
-  assert.equal(new Set(listed).size, listed.length);
 });
 
 test("validBlocks descarta só o bloco inválido e mantém as imagens dos outros", () => {
@@ -126,4 +118,81 @@ test("limitador de tentativas não passa do número máximo de chaves", () => {
   limiter.hit("e"); limiter.hit("e");
   assert.equal(limiter.isBlocked("e"), true);
   assert.equal(limiter.isBlocked("a"), false); // a mais antiga foi descartada para caber a nova
+});
+
+test("ícones: cada um está em exatamente um grupo do seletor", () => {
+  const grouped = ICON_GROUPS.flatMap(([, keys]) => keys);
+  assert.deepEqual([...grouped].sort(), Object.keys(ICONS).sort());
+  assert.equal(new Set(grouped).size, grouped.length, "ícone repetido em mais de um grupo");
+});
+
+test("grades: colunas aceitam automático, 2, 3 ou 4 (two/three/four)", () => {
+  for (const type of ["topics", "audience"]) {
+    assert.equal(validateSections([{ type }]).sections[0].columns, "auto");
+    assert.equal(validateSections([{ type, columns: "four" }]).sections[0].columns, "four");
+    assert.match(validateSections([{ type, columns: "five" }]).error, /opção inválida/);
+  }
+});
+
+/* ---------- Blocos salvos ---------- */
+const { validateSharedData, sharedIds } = require("../sales/blocks");
+const SHARED_ID = "3f2b8c1e-4d5a-4b6c-8d7e-9f0a1b2c3d4e";
+
+test("aceita referência a bloco salvo só com os campos locais", () => {
+  const { sections, error } = validateSections([{ type: "social", shared: SHARED_ID.toUpperCase(), background: "dark" }]);
+  assert.equal(error, undefined);
+  assert.deepEqual(sections[0], { type: "social", shared: SHARED_ID, background: "dark" });
+  assert.deepEqual(validateSections([{ type: "social", shared: SHARED_ID }]).sections[0].background, "auto");
+});
+
+test("recusa referência com conteúdo junto, ID inválido ou tipo não compartilhável", () => {
+  assert.match(validateSections([{ type: "social", shared: SHARED_ID, items: [] }]).error, /não suportado/);
+  assert.match(validateSections([{ type: "social", shared: "abc" }]).error, /bloco salvo inválido/);
+  assert.match(validateSections([{ type: "social", shared: null }]).error, /bloco salvo inválido/);
+  assert.match(validateSections([{ type: "nada", shared: SHARED_ID }]).error, /tipo inválido/);
+});
+
+test("conteúdo do bloco salvo: valida os campos e não aceita os locais", () => {
+  const ok = validateSharedData("social", { title: "Siga", items: [{ network: "instagram", url: "instagram.com/prof" }] });
+  assert.equal(ok.error, undefined);
+  assert.equal(ok.data.items[0].url, "https://instagram.com/prof");
+  assert.ok(!("background" in ok.data));
+  assert.match(validateSharedData("social", { background: "dark" }).error, /não suportado/);
+  assert.match(validateSharedData("social", { items: [{ network: "x", url: "javascript:alert(1)" }] }).error, /endereço inválido/);
+  assert.match(validateSharedData("nada", {}).error, /Tipo de bloco inválido/);
+  assert.match(validateSharedData("constructor", {}).error, /Tipo de bloco inválido/);
+  assert.match(validateSharedData("social", "texto").error, /formato inválido/);
+});
+
+test("lista os blocos salvos usados, sem repetir", () => {
+  const { sections } = validateSections([
+    { type: "social", shared: SHARED_ID }, { type: "faq" }, { type: "social", shared: SHARED_ID },
+  ]);
+  assert.deepEqual(sharedIds(sections), [SHARED_ID]);
+  assert.deepEqual(mediaIds(sections), []);
+});
+
+test("bloco salvo de Autor: foto, nome e links vêm do bloco salvo; o fundo fica na página", () => {
+  const photo = "8c1e3f2b-4d5a-4b6c-8d7e-9f0a1b2c3d4e";
+  const ok = validateSharedData("author", { photo, name: "Ana", role: "Contadora", links: [{ label: "Lattes", url: "lattes.cnpq.br/1" }] });
+  assert.equal(ok.error, undefined);
+  assert.equal(ok.data.photo, photo);
+  assert.equal(ok.data.links[0].url, "https://lattes.cnpq.br/1");
+  assert.deepEqual(mediaIds([{ type: "author", ...ok.data }]), [photo]); // registrado como imagem em uso
+  assert.match(validateSharedData("author", { background: "dark" }).error, /não suportado/);
+  assert.match(validateSharedData("author", { photo: "../x" }).error, /imagem inválida/);
+  const { sections } = validateSections([{ type: "author", shared: SHARED_ID, background: "soft" }]);
+  assert.deepEqual(sections[0], { type: "author", shared: SHARED_ID, background: "soft" });
+});
+
+test("qualquer tipo de bloco pode ser salvo; só o fundo fica em cada página", () => {
+  const { BLOCKS, SHAREABLE } = require("../sales/blocks");
+  for (const [type, def] of Object.entries(BLOCKS)) {
+    assert.deepEqual(SHAREABLE[type], "background" in def.fields ? ["background"] : [], type);
+  }
+  const faq = validateSharedData("faq", { title: "Dúvidas", items: [{ question: "Tem garantia?", answer: "Sim." }] });
+  assert.equal(faq.error, undefined);
+  assert.equal(faq.data.items[0].answer, "Sim.");
+  assert.equal(validateSharedData("hero", { title: "Curso", badges: [{ strong: "PDF", text: "Prático" }] }).error, undefined);
+  assert.deepEqual(validateSections([{ type: "hero", shared: SHARED_ID }]).sections[0], { type: "hero", shared: SHARED_ID });
 });

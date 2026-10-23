@@ -8,6 +8,7 @@
     "start": "node index.js",
     "dev": "node --watch index.js",
     "db:migrate": "node-pg-migrate up -m migrations",
+    "db:setup": "node-pg-migrate up -m migrations && node scripts/app-db-role.js",
     "db:rollback": "node-pg-migrate down -m migrations",
     "db:new": "node-pg-migrate create -m migrations",
     "admin:user": "node scripts/admin-user.js",

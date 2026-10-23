@@ -23,15 +23,12 @@
   --color-hero-2: #13294a;
   --color-on-hero: #f4f6fa;
   --color-on-hero-muted: #b9c6d8;
-  --color-footer-bg: #0f1d33;
-  --color-footer-text: #e8edf4;
   --color-skeleton-base: #e2e7ee;    /* Cards em carregamento */
   --color-skeleton-shine: #f3f5f8;   /* Brilho que atravessa o card */
   --color-notice-bg: #fbf5e6;        /* Aviso (ex.: JavaScript desativado) */
   --color-notice-text: #6b4a0a;
   --color-danger: #b42318;           /* Mensagens de erro e ações destrutivas */
   --color-warning: #9a5b00;          /* Avisos (ex.: ação com efeito colateral) */
-  --shadow-hover: 0 8px 24px rgb(15 36 64 / .12);
   color-scheme: light;
 
   --font-base: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
@@ -65,14 +62,11 @@
   --color-hero-2: #10223f;
   --color-on-hero: #f4f6fa;
   --color-on-hero-muted: #b9c6d8;
-  --color-footer-bg: #081226;
-  --color-footer-text: #e8edf5;
-  --color-skeleton-base: #1a2844;
-  --color-skeleton-shine: #243556;
+  --color-skeleton-base: #15223b;
+  --color-skeleton-shine: #1d2d4b;
   --color-notice-bg: #332c1a;
   --color-notice-text: #f3d38a;
   --color-danger: #f28b82;
   --color-warning: #efbe56;
-  --shadow-hover: 0 8px 24px rgb(0 0 0 / .45);
   color-scheme: dark;
 }

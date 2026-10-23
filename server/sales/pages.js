@@ -2,22 +2,31 @@
 // /p/:slug, pela pré-visualização e pelo script de importação).
 //
 // Duas versões por página:
-//   RASCUNHO  (sections, seo_title, seo_description, theme)  -> o que o editor salva
-//   PUBLICADA (published_*)                                   -> o que o público vê
+//   RASCUNHO  (sections, theme)  -> o que o editor salva
+//   PUBLICADA (published_*)      -> o que o público vê
 // "Publicar" copia o rascunho para a versão publicada. Salvar nunca muda o site.
+// Título e descrição para buscadores (título e resumo do produto) e marca vêm do PRODUTO (tela
+// "Editar produto") e valem assim que ele é salvo.
 const pool = require("../config/database");
 const storage = require("../lib/storage");
-const { validateSections, validBlocks, mediaIds } = require("./blocks");
+const { validateSections, validBlocks, mediaIds, sharedIds } = require("./blocks");
 
 // Blocos válidos de uma lista gravada (os inválidos são ignorados um a um, ver validBlocks).
 const storedBlocks = (sections) => validBlocks(sections).map((x) => x.block);
 const { normalizeTheme, ThemeError } = require("./theme");
 
 // has_unpublished_changes: o rascunho difere do que está publicado (ou nunca foi publicado).
-const PAGE_COLUMNS = `id, product_id, sections, seo_title, seo_description, theme, published_at, created_at, updated_at,
-  (published_sections IS DISTINCT FROM sections OR published_seo_title IS DISTINCT FROM seo_title
-    OR published_seo_description IS DISTINCT FROM seo_description OR published_theme IS DISTINCT FROM theme
-  ) AS has_unpublished_changes`;
+const PAGE_COLUMNS = `id, product_id, sections, theme, published_at, created_at, updated_at,
+  (published_sections IS DISTINCT FROM sections OR published_theme IS DISTINCT FROM theme) AS has_unpublished_changes`;
+
+// Dados do produto que a página usa (preço, checkout, título, resumo e marca vêm sempre do cadastro).
+// A marca vem da empresa escolhida no produto (aba Empresas): PRODUCT_FROM junta as duas tabelas.
+// Produto sem empresa usa a empresa padrão (menu, rodapé e ícone da aba; o catálogo não muda).
+// A oferta (offer_*) é resolvida na hora de desenhar (ver lib/offer.js).
+const PRODUCT_COLUMNS = `p.id, p.title, p.slug, p.short_description, p.price_cents, p.checkout_url, p.image_id, p.status,
+  p.offer_price_cents, p.offer_checkout_url, p.offer_ends_at,
+  b.name AS brand_name, b.logo_id AS brand_logo_id, b.icon_id AS brand_icon_id`;
+const PRODUCT_FROM = "products p LEFT JOIN brands b ON b.id = COALESCE(p.brand_id, (SELECT id FROM brands WHERE is_default))";
 
 class PageInputError extends Error {}
 
@@ -33,17 +42,9 @@ function storedTheme(input) {
   }
 }
 
-function text(value, max, label) {
-  if (value === undefined || value === null) return null;
-  if (typeof value !== "string") throw new PageInputError(`${label} deve ser texto.`);
-  const v = value.trim();
-  if (v.length > max) throw new PageInputError(`${label}: máximo de ${max} caracteres.`);
-  return v || null;
-}
-
 function normalizeInput(body) {
   if (!body || typeof body !== "object" || Array.isArray(body)) throw new PageInputError("Envie um objeto JSON.");
-  const allowed = ["sections", "seo_title", "seo_description", "theme"];
+  const allowed = ["sections", "theme"];
   const unknown = Object.keys(body).filter((k) => !allowed.includes(k));
   if (unknown.length) throw new PageInputError(`Campo(s) não suportado(s): ${unknown.join(", ")}.`);
 
@@ -51,8 +52,6 @@ function normalizeInput(body) {
   if (error) throw new PageInputError(error);
   return {
     sections,
-    seo_title: text(body.seo_title, 220, "Título para buscadores"),
-    seo_description: text(body.seo_description, 320, "Descrição para buscadores"),
     theme: storedTheme(body.theme),
   };
 }
@@ -69,6 +68,38 @@ async function syncPageMedia(client, pageId) {
   if (ids.size) {
     await client.query("INSERT INTO sales_page_media (sales_page_id, media_id) SELECT $1, unnest($2::uuid[])", [pageId, [...ids]]);
   }
+
+  // Blocos salvos usados (rascunho + publicada): o banco recusa excluir um bloco salvo em uso.
+  const shared = new Set([...sharedIds(storedBlocks(rows[0].sections)), ...sharedIds(storedBlocks(rows[0].published_sections))]);
+  await client.query("DELETE FROM sales_page_shared_blocks WHERE sales_page_id = $1", [pageId]);
+  if (shared.size) {
+    await client.query("INSERT INTO sales_page_shared_blocks (sales_page_id, shared_block_id) SELECT $1, unnest($2::uuid[])", [pageId, [...shared]]);
+  }
+}
+
+// Troca cada referência a bloco salvo pelo conteúdo dele (mais os campos locais da página, como
+// o fundo). Devolve { sections, shared }: shared = Map posição -> { id, name } dos blocos que vieram
+// de um bloco salvo (no editor, eles aparecem trancados). Referência a bloco que não existe:
+// "strict" (pré-visualização do editor) avisa; na página pública o bloco só some.
+async function resolveShared(sections, { strict = false } = {}) {
+  const list = Array.isArray(sections) ? sections : [];
+  const ids = sharedIds(storedBlocks(list));
+  const shared = new Map();
+  if (!ids.length) return { sections: list, shared };
+  const { rows } = await pool.query("SELECT id, name, type, data FROM shared_blocks WHERE id = ANY($1::uuid[])", [ids]);
+  const byId = new Map(rows.map((r) => [r.id, r]));
+  const out = list.map((block, index) => {
+    if (!block || typeof block.shared !== "string") return block;
+    const saved = byId.get(block.shared.toLowerCase());
+    if (!saved || saved.type !== block.type) {
+      if (strict) throw new PageInputError(`Bloco ${index + 1}: o bloco salvo escolhido não existe mais. Escolha outro ou remova o bloco.`);
+      return null;
+    }
+    shared.set(index, { id: saved.id, name: saved.name });
+    const { shared: _id, ...local } = block;
+    return { ...saved.data, ...local };
+  });
+  return { sections: out, shared };
 }
 
 // Executa fn(client) numa transação; traduz "imagem não existe mais" para mensagem do painel.
@@ -85,6 +116,9 @@ async function inTransaction(fn) {
     if (error.code === "23503" && error.constraint === "sales_page_media_media_fkey") {
       throw new PageInputError("Uma das imagens escolhidas não existe mais. Escolha outra.");
     }
+    if (error.code === "23503" && error.constraint === "sales_page_shared_blocks_block_fkey") {
+      throw new PageInputError("Um dos blocos salvos usados na página não existe mais. Escolha outro ou remova o bloco.");
+    }
     throw error;
   } finally {
     client.release(broken);
@@ -97,14 +131,12 @@ async function savePage(productId, body) {
   const input = normalizeInput(body);
   return inTransaction(async (client) => {
     const { rows } = await client.query(
-      `INSERT INTO sales_pages (product_id, sections, seo_title, seo_description, theme)
-       VALUES ($1, $2::jsonb, $3, $4, $5::jsonb)
+      `INSERT INTO sales_pages (product_id, sections, theme)
+       VALUES ($1, $2::jsonb, $3::jsonb)
        ON CONFLICT (product_id) DO UPDATE SET
-         sections = EXCLUDED.sections, seo_title = EXCLUDED.seo_title,
-         seo_description = EXCLUDED.seo_description, theme = EXCLUDED.theme,
-         updated_at = CURRENT_TIMESTAMP
+         sections = EXCLUDED.sections, theme = EXCLUDED.theme, updated_at = CURRENT_TIMESTAMP
        RETURNING id, (xmax = 0) AS created`,
-      [productId, JSON.stringify(input.sections), input.seo_title, input.seo_description, JSON.stringify(input.theme)]
+      [productId, JSON.stringify(input.sections), JSON.stringify(input.theme)]
     );
     await syncPageMedia(client, rows[0].id);
     const page = (await client.query(`SELECT ${PAGE_COLUMNS} FROM sales_pages WHERE id = $1`, [rows[0].id])).rows[0];
@@ -117,9 +149,7 @@ async function publishPage(productId) {
   return inTransaction(async (client) => {
     const { rows } = await client.query(
       `UPDATE sales_pages SET
-         published_sections = sections, published_seo_title = seo_title,
-         published_seo_description = seo_description, published_theme = theme,
-         published_at = CURRENT_TIMESTAMP
+         published_sections = sections, published_theme = theme, published_at = CURRENT_TIMESTAMP
        WHERE product_id = $1 RETURNING id`,
       [productId]
     );
@@ -134,15 +164,17 @@ async function getPage(productId) {
   return rows[0] || null;
 }
 
-// Map id -> imagem (com URL pública) das imagens usadas nos blocos e da capa do produto.
-async function loadMedia(sections, coverId) {
+// Map id -> imagem (com URL pública) das imagens usadas nos blocos, da capa e do logo da marca.
+async function loadMedia(sections, ...productImageIds) {
   const ids = mediaIds(sections);
-  if (coverId) ids.push(coverId);
+  productImageIds.forEach((id) => id && ids.push(id));
   const media = new Map();
   if (ids.length) {
     const result = await pool.query(
-      "SELECT id, storage_key, width, height, alt_text FROM media WHERE id = ANY($1::uuid[])", [ids]);
-    result.rows.forEach(({ storage_key: key, ...m }) => media.set(m.id, { ...m, url: storage.publicUrl(key) }));
+      "SELECT id, storage_key, width, height, alt_text, variants FROM media WHERE id = ANY($1::uuid[])", [ids]);
+    result.rows.forEach(({ storage_key: key, variants, ...m }) => media.set(m.id, {
+      ...m, url: storage.publicUrl(key), srcset: storage.srcset(key, m.width, variants),
+    }));
   }
   return media;
 }
@@ -152,12 +184,12 @@ async function loadMedia(sections, coverId) {
 async function loadDraftForRender(productId, body) {
   const input = normalizeInput(body);
   const { rows } = await pool.query(
-    `SELECT id, title, slug, short_description, price_cents, checkout_url, image_id, status
-       FROM products WHERE id = $1`, [productId]);
+    `SELECT ${PRODUCT_COLUMNS} FROM ${PRODUCT_FROM} WHERE p.id = $1`, [productId]);
   if (!rows.length) return null;
+  const { sections, shared } = await resolveShared(input.sections, { strict: true });
   return {
-    ...rows[0], sections: input.sections, seo_title: input.seo_title, seo_description: input.seo_description, theme: input.theme,
-    published_at: null, media: await loadMedia(input.sections, rows[0].image_id),
+    ...rows[0], sections, shared, theme: input.theme,
+    published_at: null, media: await loadMedia(storedBlocks(sections), rows[0].image_id, rows[0].brand_logo_id, rows[0].brand_icon_id),
   };
 }
 
@@ -168,18 +200,18 @@ async function loadForRender({ slug, productId, version }) {
   const where = slug ? "p.slug = $1" : "p.id = $1";
   const published = version === "published";
   const columns = published
-    ? "sp.published_sections AS sections, sp.published_seo_title AS seo_title, sp.published_seo_description AS seo_description, sp.published_theme AS theme"
-    : "sp.sections, sp.seo_title, sp.seo_description, sp.theme";
+    ? "sp.published_sections AS sections, sp.published_theme AS theme"
+    : "sp.sections, sp.theme";
   const { rows } = await pool.query(
-    `SELECT p.id, p.title, p.slug, p.short_description, p.price_cents, p.checkout_url, p.image_id, p.status,
-            ${columns}, sp.published_at
-       FROM products p JOIN sales_pages sp ON sp.product_id = p.id
+    `SELECT ${PRODUCT_COLUMNS}, ${columns}, sp.published_at
+       FROM ${PRODUCT_FROM} JOIN sales_pages sp ON sp.product_id = p.id
       WHERE ${where} ${published ? "AND p.status = 'published' AND sp.published_sections IS NOT NULL" : ""}`,
     [slug || productId]
   );
   if (!rows.length) return null;
-  const data = rows[0];
-  const media = await loadMedia(storedBlocks(data.sections), data.image_id);
+  const { sections, shared } = await resolveShared(rows[0].sections);
+  const data = { ...rows[0], sections, shared };
+  const media = await loadMedia(storedBlocks(sections), data.image_id, data.brand_logo_id, data.brand_icon_id);
   return { ...data, media };
 }
 

@@ -1,6 +1,6 @@
 // Compila o editor React para public/admin/editor/, onde o Express já serve o painel.
-// Nomes fixos (editor.js / editor.css): o painel usa Cache-Control: no-store, então não há
-// risco de o navegador guardar uma versão antiga.
+// Nomes fixos (editor.js / editor.css): o servidor põe a versão na URL (?v=<hash do conteúdo>,
+// ver server/lib/assets.js), então o navegador guarda o arquivo e baixa de novo só quando ele muda.
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 

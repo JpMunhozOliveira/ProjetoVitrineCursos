@@ -3,12 +3,51 @@
 const { html } = require("../lib/html");
 const { BLOCKS, ICONS, NETWORKS, validBlocks } = require("./blocks");
 const { normalizeTheme, themeHref, DEFAULT_THEME } = require("./theme");
+const { toHtml, paragraphsHtml, alignOf } = require("./richtext");
+const { assetUrl } = require("../lib/assets"); // ?v= nos CSS/JS: cache longo no navegador
+const { headerAttrs } = require("../lib/site-brand");
+const { effectiveOffer, formatEnd } = require("../lib/offer");
+
+// Largura em que cada tipo de imagem aparece na tela (atributo sizes; ver venda.css). Com isso e
+// o srcset, o navegador baixa a menor versão que fica nítida naquela tela.
+const IMAGE_SIZES = {
+  "v-media": "(min-width: 1100px) 480px, (min-width: 860px) 44vw, calc(100vw - 2rem)",
+  "slide-img": "(min-width: 1100px) 700px, (min-width: 760px) 64vw, calc(100vw - 2rem)",
+  "author-photo": "(min-width: 760px) 320px, calc(100vw - 2rem)",
+  "buy-media": "240px",
+  "v-logo": "200px",
+  "quote-photo": "52px",
+};
 
 const brl = (cents) => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+// Textos dos blocos podem ter formatação (negrito, cor, alinhamento: ver richtext.js). Antes de
+// desenhar, cada texto vira HTML seguro já formatado, guardando o original em .raw: assim os
+// ${x.title} dos blocos saem formatados, e "vazio" continua sendo "" (some da página).
+function rich(value) {
+  if (!value) return "";
+  const out = toHtml(value);
+  out.raw = value;
+  return out;
+}
+function richFields(value, fields) {
+  const out = { ...value };
+  for (const [name, field] of Object.entries(fields)) {
+    if (field.type === "text" || field.type === "textarea") out[name] = rich(value[name]);
+    if (field.type === "list") out[name] = (value[name] || []).map((item) => richFields(item, field.item));
+  }
+  return out;
+}
+// Texto formatado que divide um elemento flex com um ícone (itens de lista, pergunta do FAQ,
+// botões): ganha um <span>, senão cada trecho em negrito/cor viraria um item separado da linha.
+const inline = (value) => (value && String(value).includes("<") ? html`<span>${value}</span>` : value);
+const rawOf = (value) => (value && value.raw !== undefined ? value.raw : value || "");
+// Alinhamento escolhido no texto: atributo (a política de segurança bloqueia style="" inline).
+const alignAttr = (value) => { const a = alignOf(rawOf(value)); return a ? html` data-align="${a}"` : null; };
+
 // Textos com várias linhas: cada parágrafo (separado por linha em branco) vira um <p>.
-const paragraphs = (text, cls) => (text || "").split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean)
-  .map((p) => (cls ? html`<p class="${cls}">${p}</p>` : html`<p>${p}</p>`));
+const paragraphs = (value, cls) => paragraphsHtml(rawOf(value)).map((p) =>
+  html`<p${cls ? html` class="${cls}"` : null}${alignAttr(value)}>${p}</p>`);
 
 const svg = (name, cls = "ico") => html`<svg class="${cls}" aria-hidden="true"><use href="#i-${name}"/></svg>`;
 const mark = (positive) => html`<svg aria-hidden="true"><use href="#i-${positive ? "check" : "x"}"/></svg>`;
@@ -46,7 +85,7 @@ function linkItem(ctx, list, i, x, kind) {
   const external = x.url && !x.url.startsWith("mailto:");
   const label = ctx.live
     ? html`<span${ctx.field(`${list}.${i}.label`, x.label, { fallback: true })}>${x.label || kind.label}</span>`
-    : x.label || kind.label;
+    : inline(x.label) || kind.label;
   const target = x.url
     ? html` href="${x.url}"${external ? html` target="_blank" rel="noopener noreferrer"` : null}`
     : html` data-no-url title="Defina o endereço em Configurar bloco ⚙"`;
@@ -73,6 +112,18 @@ const IMAGE_GLYPH = html`<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3
 // o autor fica numa faixa escura). Abertura, oferta e chamada são sempre escuras.
 const BACKGROUND_DEFAULT = { author: "dark" };
 
+// Número de colunas escolhido no bloco (grades): "auto" não leva classe.
+const COLUMNS = { two: 2, three: 3, four: 4 };
+const cols = (b) => (COLUMNS[b.columns] ? ` cols-${COLUMNS[b.columns]}` : "");
+
+// Marca do professor no menu (montado por public/js/components.js a partir destes atributos).
+// Sem nome nem logo, o menu mostra a marca do site. Produto sem empresa usa a empresa padrão
+// (ver PRODUCT_FROM em pages.js).
+function brandAttrs(data) {
+  const logo = data.brand_logo_id && data.media.get(data.brand_logo_id);
+  return headerAttrs({ name: data.brand_name, logo: logo && { ...logo, alt: logo.alt_text } });
+}
+
 // Contexto de uma renderização: produto, imagens e contadores (ids de títulos, fundo alternado).
 // live = true: pré-visualização dentro do editor, com os textos marcados para edição direta.
 function createContext(data, { live = false } = {}) {
@@ -88,26 +139,27 @@ function createContext(data, { live = false } = {}) {
     // Atributos de um texto editável: data-field="items.0.question" (caminho dentro do bloco).
     // Vazio -> data-empty + data-placeholder (o editor mostra o rótulo só no bloco selecionado).
     // fallback: o texto exibido é um padrão (ex.: título do produto); editar grava o campo do bloco.
+    // O alinhamento do texto (data-align) vale também na página pública.
     field(path, value, { fallback = false } = {}) {
-      if (!live) return null;
+      if (!ctx.live) return alignAttr(value);
       const empty = !value && !fallback;
-      return html` data-field="${path}"${empty ? html` data-empty data-placeholder="${fieldLabel(ctx.type, path)}"` : null}${fallback && !value ? html` data-fallback` : null}`;
+      return html` data-field="${path}"${alignAttr(value)}${empty ? html` data-empty data-placeholder="${fieldLabel(ctx.type, path)}"` : null}${fallback && !value ? html` data-fallback` : null}`;
     },
     // Texto que divide o elemento com outra coisa (ícone, outro texto): ganha um <span> só no editor.
     text(path, value) {
-      return live ? html`<span${ctx.field(path, value)}>${value}</span>` : value;
+      return ctx.live ? html`<span${ctx.field(path, value)}>${value}</span>` : inline(value);
     },
     // Texto longo (parágrafos): no editor, os <p> ficam dentro de um <div> editável.
     paras(path, value, cls) {
-      return live ? html`<div${ctx.field(path, value)} data-multiline>${paragraphs(value, cls)}</div>` : paragraphs(value, cls);
+      return ctx.live ? html`<div${ctx.field(path, value)} data-multiline>${paragraphs(value, cls)}</div>` : paragraphs(value, cls);
     },
     // Ícone de um campo "icon". No editor leva data-icon-field (clicar nele abre a escolha de ícone).
     icon(path, name, cls = "ico") {
-      if (!live) return svg(name, cls);
+      if (!ctx.live) return svg(name, cls);
       return html`<svg class="${cls}" aria-hidden="true" data-icon-field="${path}"><use href="#i-${name}"/></svg>`;
     },
     // Campo opcional: na página pública só aparece preenchido; no editor, sempre (vazio = espaço para digitar).
-    show: (value) => live || !!value,
+    show: (value) => ctx.live || !!value,
 
     // <img> de uma imagem da biblioteca; "priority" para a primeira dobra (não espera rolar).
     // No editor (com path, o caminho do campo): a imagem leva data-image-field (clicar troca) e,
@@ -115,9 +167,10 @@ function createContext(data, { live = false } = {}) {
     // aparece no bloco selecionado (como os textos vazios), para não pesar na prévia.
     img(id, cls, { priority = false, path = null, optional = false } = {}) {
       const m = id && data.media.get(id);
-      const editable = live && path;
+      const editable = ctx.live && path;
       if (!m) return editable ? ctx.imageSlot(cls, path, { optional }) : null;
-      return html`<img class="${cls}" src="${m.url}" alt="${m.alt_text || ""}" width="${m.width}" height="${m.height}" ${priority ? html`fetchpriority="high"` : html`loading="lazy"`} decoding="async"${editable ? html` data-image-field="${path}"` : null}>`;
+      const responsive = m.srcset && IMAGE_SIZES[cls] ? html` srcset="${m.srcset}" sizes="${IMAGE_SIZES[cls]}"` : null;
+      return html`<img class="${cls}" src="${m.url}"${responsive} alt="${m.alt_text || ""}" width="${m.width}" height="${m.height}" ${priority ? html`fetchpriority="high"` : html`loading="lazy"`} decoding="async"${editable ? html` data-image-field="${path}"` : null}>`;
     },
     // Espaço de imagem vazia (só no editor). add: lista onde a imagem escolhida entra (galeria).
     imageSlot(cls, path, { optional = false, add = null } = {}) {
@@ -128,10 +181,10 @@ function createContext(data, { live = false } = {}) {
     },
     /* ---- Itens das listas, direto na página (só no editor) ---- */
     // Atributo do item: data-item="items.3" (caminho do item dentro do bloco).
-    item: (list, i) => (live ? html` data-item="${list}.${i}"` : null),
+    item: (list, i) => (ctx.live ? html` data-item="${list}.${i}"` : null),
     // Botão × que remove o item (aparece ao passar o mouse, no bloco selecionado).
     remove(list, i) {
-      if (!live) return null;
+      if (!ctx.live) return null;
       const noun = BLOCKS[ctx.type].fields[list].noun;
       return html`<button type="button" class="item-remove" data-item-remove="${list}.${i}" aria-label="Remover ${noun} ${i + 1}" title="Remover ${noun}">${svg("x", "item-remove-ico")}</button>`;
     },
@@ -139,7 +192,7 @@ function createContext(data, { live = false } = {}) {
     // tag: "li" dentro de <ul>; "div" nas grades de <article>, <details> e <figure>.
     addItem(list, items, tag = "li") {
       const field = BLOCKS[ctx.type].fields[list];
-      if (!live || items.length >= field.max) return null;
+      if (!ctx.live || items.length >= field.max) return null;
       const button = html`<button type="button" class="item-add-btn" data-item-add="${list}">+ Adicionar ${field.noun}</button>`;
       return tag === "li" ? html`<li class="item-add">${button}</li>` : html`<div class="item-add">${button}</div>`;
     },
@@ -148,12 +201,26 @@ function createContext(data, { live = false } = {}) {
     // icon: ícone antes do texto (ex.: o cadeado do cartão de compra).
     cta(label, fallback, path, { icon = null } = {}) {
       if (!data.checkout_url) return html`<span class="btn-cta is-disabled" aria-disabled="true">Em breve</span>`;
-      const text = live ? html`<span${ctx.field(path, label, { fallback: true })}>${label || fallback}</span>` : label || fallback;
+      const text = ctx.live ? html`<span${ctx.field(path, label, { fallback: true })}>${label || fallback}</span>` : inline(label) || fallback;
       return html`<a class="btn-cta" href="${data.checkout_url}" target="_blank" rel="noopener noreferrer">${icon && svg(icon, "cta-ico")}${text}<span class="sr-only"> (abre em nova aba)</span></a>`;
     },
+    // Preço que vale agora. Com oferta ativa: "de R$ X por R$ Y" e, com prazo, o cronômetro.
     price(label, path) {
       if (data.price_cents === null || data.price_cents === undefined) return null;
-      return html`<p class="price-big">${ctx.show(label) && html`<span class="muted-on-dark"${ctx.field(path, label)}>${label}</span>`} ${brl(data.price_cents)}</p>`;
+      return html`<p class="price-big">${ctx.show(label) && html`<span class="muted-on-dark"${ctx.field(path, label)}>${label}</span>`} ${ctx.amount()}</p>${ctx.timer()}`;
+    },
+    amount() {
+      const was = data.offer.compare_cents;
+      if (was === null || was === undefined) return brl(data.price_cents);
+      return html`<s class="price-was"><span class="sr-only">De </span>${brl(was)}</s> <span class="sr-only">por </span>${brl(data.price_cents)}`;
+    },
+    // Cronômetro da oferta: o texto com a data já vem pronto (funciona sem JavaScript); venda.js
+    // acrescenta a contagem e recarrega a página quando o prazo acaba. data-now: horário do servidor
+    // (corrige relógio errado no aparelho do visitante).
+    timer() {
+      const ends = data.offer.ends_at;
+      if (!ends) return null;
+      return html`<p class="offer-timer" data-ends-at="${ends}" data-now="${new Date(data.now).toISOString()}">${svg("stopwatch", "offer-timer-ico")}<span>Oferta válida até ${formatEnd(ends)}</span><span class="offer-timer-count" data-countdown hidden></span></p>`;
     },
     // Rótulo curto em caixa alta acima do título (opcional).
     eyebrow: (b) => ctx.show(b.eyebrow) && html`<p class="v-eyebrow"${ctx.field("eyebrow", b.eyebrow)}>${b.eyebrow}</p>`,
@@ -215,7 +282,7 @@ const RENDERERS = {
     const id = ctx.headingId();
     return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark({ hidden: !b.items.length })}><div class="container">
   ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
-  <ul class="grid8">${b.items.map((x, i) => html`<li${ctx.item("items", i)}>${ctx.icon(`items.${i}.icon`, x.icon)}<strong${ctx.field(`items.${i}.title`, x.title)}>${x.title}</strong><span${ctx.field(`items.${i}.text`, x.text)}>${x.text}</span>${ctx.remove("items", i)}</li>`)}${ctx.addItem("items", b.items)}</ul>
+  <ul class="grid8${cols(b)}">${b.items.map((x, i) => html`<li${ctx.item("items", i)}>${ctx.icon(`items.${i}.icon`, x.icon)}<strong${ctx.field(`items.${i}.title`, x.title)}>${x.title}</strong><span${ctx.field(`items.${i}.text`, x.text)}>${x.text}</span>${ctx.remove("items", i)}</li>`)}${ctx.addItem("items", b.items)}</ul>
 </div></section>`;
   },
 
@@ -273,7 +340,7 @@ const RENDERERS = {
     const id = ctx.headingId();
     return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark({ hidden: !b.items.length })}><div class="container">
   ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
-  <ul class="who">${b.items.map((x, i) => html`<li${ctx.item("items", i)}>${ctx.icon(`items.${i}.icon`, x.icon)}${ctx.text(`items.${i}.text`, x.text)}${ctx.remove("items", i)}</li>`)}${ctx.addItem("items", b.items)}</ul>
+  <ul class="who${cols(b)}">${b.items.map((x, i) => html`<li${ctx.item("items", i)}>${ctx.icon(`items.${i}.icon`, x.icon)}${ctx.text(`items.${i}.text`, x.text)}${ctx.remove("items", i)}</li>`)}${ctx.addItem("items", b.items)}</ul>
 </div></section>`;
   },
 
@@ -290,10 +357,10 @@ const RENDERERS = {
   // Faixa compacta de compra no meio da página: texto à esquerda, preço e botão à direita.
   cta(b, ctx) {
     const price = ctx.product.price_cents === null || ctx.product.price_cents === undefined ? null
-      : html`<span class="v-strip-price">${brl(ctx.product.price_cents)}</span>`;
+      : html`<span class="v-strip-price">${ctx.amount()}</span>`;
     return html`<section class="v-strip" aria-label="Chamada para compra"${ctx.mark()}><div class="container v-strip-row">
   <div>${ctx.eyebrow(b)}${ctx.show(b.title) && html`<p class="v-strip-text"${ctx.field("title", b.title)}>${b.title}</p>`}</div>
-  <div class="v-strip-action">${price}${ctx.cta(b.cta_label, "Quero garantir", "cta_label")}</div>
+  <div class="v-strip-action">${price}${ctx.cta(b.cta_label, "Quero garantir", "cta_label")}${price && ctx.timer()}</div>
 </div></section>`;
   },
 
@@ -391,29 +458,45 @@ function themeLink(stored) {
 
 // data: resultado de loadForRender. options:
 //   preview: false (público) | true (pré-visualização salva, com faixa) | "live" (dentro do editor, sem faixa)
-function renderSalesPage(data, { baseUrl, preview = false }) {
+//   now: horário usado para decidir se a oferta vale (padrão: agora; os testes passam outro).
+function renderSalesPage(product, { baseUrl, preview = false, now = Date.now() }) {
   const live = preview === "live";
+  // Preço e link que valem agora: os da oferta (se ativa) ou os normais. Nada da oferta encerrada
+  // (nem o link promocional) chega à página.
+  const offer = effectiveOffer(product, now);
+  const { offer_price_cents: _p, offer_checkout_url: _u, offer_ends_at: _e, ...rest } = product;
+  const data = { ...rest, price_cents: offer.price_cents, checkout_url: offer.checkout_url, offer, now };
   const ctx = createContext(data, { live });
   // Blocos inválidos são ignorados um a um; index (posição original) liga a seção ao bloco do editor.
   const body = validBlocks(data.sections).map(({ block, index }) => {
+    // Bloco que vem de um bloco salvo: no editor é desenhado como na página pública (sem textos
+    // editáveis), com a etiqueta data-shared; o conteúdo se edita na aba "Blocos salvos".
+    const shared = data.shared?.get(index);
+    ctx.live = live && !shared;
     // Na pré-visualização, cada seção leva data-block="N" (clicar nela abre o bloco N no editor).
     // hidden: a seção só aparece no editor (ex.: depoimentos ainda sem texto) — marcada como oculta.
-    ctx.mark = ({ hidden = false } = {}) => (preview ? html` data-block="${index}"${live && hidden ? html` data-hidden` : null}` : null);
+    ctx.mark = ({ hidden = false } = {}) => (preview
+      ? html` data-block="${index}"${live && hidden ? html` data-hidden` : null}${live && shared ? html` data-shared="${shared.name}"` : null}`
+      : null);
     ctx.type = block.type;
-    const section = RENDERERS[block.type](block, ctx);
+    const section = RENDERERS[block.type](richFields(block, BLOCKS[block.type].fields), ctx);
     // No editor, um bloco que não aparece na página vira um aviso selecionável (senão ficaria inalcançável).
     if (!section && live) {
+      const reason = shared ? `o bloco salvo “${shared.name}” está vazio (preencha na aba Blocos salvos)`
+        : HIDDEN_REASON[block.type] || "preencha o conteúdo principal do bloco";
       return html`<section class="editor-hidden-block" data-block="${index}" data-hidden><div class="container">
-  <p><strong>${BLOCKS[block.type].label}</strong> — não aparece na página: ${HIDDEN_REASON[block.type] || "preencha o conteúdo principal do bloco"}.</p>
+  <p><strong>${BLOCKS[block.type].label}</strong> — não aparece na página: ${reason}.</p>
 </div></section>`;
     }
     return section;
   }).filter(Boolean);
 
-  const title = data.seo_title || data.title;
-  const description = data.seo_description || data.short_description || "";
+  const title = data.title;
+  const description = data.short_description || ""; // o resumo do produto (tela Editar produto)
   const url = `${baseUrl}/p/${data.slug}`;
   const cover = data.media.get(data.image_id);
+  // Ícone da aba: o da empresa do produto (aba Empresas), senão o logo dela, senão o do site.
+  const tabIcon = data.media.get(data.brand_icon_id) || data.media.get(data.brand_logo_id);
 
   return html`<!DOCTYPE html>
 <html lang="pt-BR"${live ? html` data-editor` : null}>
@@ -423,7 +506,9 @@ function renderSalesPage(data, { baseUrl, preview = false }) {
   <title>${title}</title>
   ${description && html`<meta name="description" content="${description}">`}
   ${preview ? html`<meta name="robots" content="noindex, nofollow">` : html`<link rel="canonical" href="${url}">`}
-  <link rel="icon" type="image/png" href="/assets/favicon/favicon.png">
+  ${tabIcon
+    ? html`<link rel="icon" type="image/webp" href="${tabIcon.url}">`
+    : html`<link rel="icon" type="image/png" href="/assets/favicon/favicon.png">`}
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <!-- Prévia do link em WhatsApp, Instagram, Facebook etc. (lidas sem executar JavaScript) -->
   <meta property="og:type" content="product">
@@ -435,29 +520,33 @@ function renderSalesPage(data, { baseUrl, preview = false }) {
   <meta property="og:image:height" content="${cover.height}">`}
   <meta name="twitter:card" content="${cover ? "summary_large_image" : "summary"}">
   <link rel="preload" href="/fonts/inter/InterVariable-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="/css/theme.css">
-  <link rel="stylesheet" href="/css/style.css">
-  <link rel="stylesheet" href="/css/site.css">
-  <link rel="stylesheet" href="/css/venda.css">
+  <link rel="stylesheet" href="${assetUrl("/css/theme.css")}">
+  <link rel="stylesheet" href="${assetUrl("/css/style.css")}">
+  <link rel="stylesheet" href="${assetUrl("/css/site.css")}">
+  <link rel="stylesheet" href="${assetUrl("/css/venda.css")}">
   ${themeLink(data.theme)}${live && html`
-  <link rel="stylesheet" href="/css/venda-editor.css">`}
-  <script src="/js/theme.js"></script>
-  <script src="/data/site.js" defer></script>
-  <script src="/js/components.js" defer></script>
-  <script src="/js/main.js" defer></script>
-  <script src="/js/venda.js" defer></script>
+  <link rel="stylesheet" href="${assetUrl("/css/venda-editor.css")}">`}
+  <script src="${assetUrl("/js/theme.js")}"></script>
+  <script src="${assetUrl("/data/site.js")}" defer></script>
+  <script src="${assetUrl("/js/components.js")}" defer></script>
+  <script src="${assetUrl("/js/main.js")}" defer></script>
+  <script src="${assetUrl("/js/venda.js")}" defer></script>
 </head>
 <body data-page="venda">
   ${preview === true && html`<div class="preview-banner" role="status"><strong>Pré-visualização do rascunho salvo.</strong> ${data.published_at && data.status === "published" ? "O público vê a última versão publicada; publique no editor para levar estas alterações ao ar." : "Esta página ainda não está visível para o público."}</div>`}
   ${SPRITE}
-  <div id="site-header"></div>
+  <div id="site-header"${brandAttrs(data)}></div>
+  ${!live && html`<a class="v-back" href="/catalogo.html" data-back>${svg("arrowleft", "v-back-ico")}<span class="v-back-text">Voltar</span></a>`}
   <main id="conteudo" class="venda">
 ${body}
   </main>
   <footer class="site-footer v-footer">
-    <div class="container foot3">
-      <div><p><strong data-site="nome"></strong> © <span data-year></span></p><p data-site="slogan"></p></div>
-      <div><p><strong>Navegação</strong></p><p><a href="/catalogo.html">Catálogo</a></p><p><a href="/sobre.html">Sobre</a></p><p><a href="/contato.html">Contato</a></p></div>
+    <div class="container foot3 foot4">
+      <div>${data.brand_name
+        ? html`<p><strong>${data.brand_name}</strong> © <span data-year></span></p>`
+        : html`<p><strong data-site="nome"></strong> © <span data-year></span></p><p data-site="slogan"></p>`}</div>
+      <nav aria-label="Rodapé: navegação"><p><strong>Navegação</strong></p><p><a href="/catalogo.html">Catálogo</a></p><p><a href="/sobre.html">Sobre</a></p><p><a href="/contato.html">Contato</a></p></nav>
+      <nav aria-label="Rodapé: ajuda"><p><strong>Ajuda</strong></p><p><a href="/duvidas.html">Dúvidas frequentes</a></p><p><a href="/termos.html">Termos de uso</a></p><p><a href="/privacidade.html">Política de privacidade</a></p></nav>
       <div><p><strong>Compra segura</strong></p><p>Pagamentos e acesso aos cursos processados pela Kiwify.</p></div>
     </div>
   </footer>

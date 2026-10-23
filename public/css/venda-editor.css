@@ -54,7 +54,36 @@
 }
 /* Resposta do FAQ vazia: mesmo recuo dos parágrafos. */
 .is-editor-preview .faq [data-multiline]:empty {
-  padding: 0 1.25rem 1.1rem;
+  padding: 0 1.35rem 1.2rem;
+}
+
+/* ---------- Bloco salvo (conteúdo vem da aba "Blocos salvos"; não se edita aqui) ---------- */
+/* Marca pequena e laranja (destaque) acima do conteúdo; o nome do bloco salvo só aparece com o
+   mouse em cima ou com o bloco selecionado. Fica no .container, e não na seção: o ::before/::after da seção já
+   desenham as transições de cor entre blocos (site.css) e esticariam a marca pelo bloco inteiro.
+   Sobe o próprio tamanho para ficar no espaço livre acima do conteúdo (padding da seção). */
+.is-editor-preview [data-shared] > .container::before {
+  content: "Bloco salvo";
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  max-width: 100%;
+  transform: translateY(calc(-100% - 0.75rem));
+  padding: 0.1rem 0.5rem;
+  overflow: hidden;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1.5;
+  color: var(--color-on-accent);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  background: var(--color-accent);
+  border-radius: 6px;
+  pointer-events: none;
+}
+.is-editor-preview [data-shared]:is(:hover, .is-hovered, .is-selected) > .container::before {
+  content: "Bloco salvo: " attr(data-shared) " · edite na aba Blocos salvos";
 }
 
 /* ---------- Bloco que não aparece na página ---------- */
@@ -167,6 +196,39 @@
 .eo-insert:disabled {
   background: var(--color-muted);
   cursor: not-allowed;
+}
+
+/* "Remover imagem" no canto das imagens do bloco selecionado */
+.eo-image-remove {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  color: var(--color-text);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  box-shadow: 0 3px 10px rgb(0 0 0 / 0.2);
+  cursor: pointer;
+  transform-origin: 100% 0;
+}
+.eo-image-remove svg {
+  width: 16px;
+  height: 16px;
+}
+.eo-image-remove:hover {
+  color: var(--color-danger);
+  border-color: currentColor;
+}
+/* Escondido até o mouse passar sobre a imagem (is-shown) ou sobre o X; o Tab também mostra. */
+.eo-image-remove:not(.is-shown, :hover, :focus-visible) {
+  opacity: 0;
+}
+@media (hover: none) {
+  .eo-image-remove {
+    opacity: 1 !important;
+  }
 }
 
 /* Página vazia */
@@ -348,7 +410,7 @@
   width: 12px;
   height: 12px;
 }
-/* Galeria: o slide corta o que passa da borda; o × fica dentro da imagem. */
+/* Galeria: o × fica dentro do slide, no canto de cima. */
 .slide > .item-remove {
   top: 10px;
   right: 10px;
@@ -424,4 +486,64 @@ html[data-editor] .site-footer {
 html[data-editor] {
   scroll-padding-block: 24px 110px;
   scroll-behavior: auto;
+}
+
+/* Barra de formatação do texto em edição (TextToolbar): mesma cara da barra do bloco. */
+.eo-text-toolbar {
+  z-index: 2;
+}
+.eo-format {
+  font: 700 16px/1 Georgia, "Times New Roman", serif;
+}
+.eo-format em {
+  font-weight: 400;
+}
+.eo-btn[aria-pressed="true"] {
+  color: var(--color-primary);
+  background: var(--color-surface);
+  box-shadow: inset 0 0 0 1px var(--color-border);
+}
+.eo-color-a {
+  padding-bottom: 1px;
+  border-bottom: 3px solid var(--v-accent-ink);
+}
+.eo-sep {
+  width: 1px;
+  height: 24px;
+  margin: 0 4px;
+  background: var(--color-border);
+}
+.eo-colors {
+  position: relative;
+}
+/* Paleta: as amostras usam as mesmas classes do texto (.tx-c-*), então mostram a cor real do tema. */
+.eo-color-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  display: flex;
+  gap: 4px;
+  padding: 6px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  box-shadow: 0 10px 28px rgb(0 0 0 / 0.18);
+}
+.eo-swatch {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  font: 800 16px/1 system-ui, sans-serif;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.eo-swatch:hover {
+  border-color: var(--color-primary);
+}
+.eo-swatch-none {
+  color: var(--color-muted);
 }

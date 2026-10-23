@@ -8,6 +8,7 @@
 // Os ouvintes ficam no document da moldura e chamam sempre a versão atual das funções do editor
 // através de api.current (a moldura é recriada a cada atualização; o editor, não).
 import { resolveField, normalizeText } from "../state/fields.js";
+import { serialize } from "../state/richtext.js";
 
 const FIELD = "[data-field]";
 
@@ -58,7 +59,9 @@ export function lockFields(doc) {
 function makeEditable(el, api) {
   const target = resolve(el, api);
   if (!target) return;
-  try { el.contentEditable = "plaintext-only"; } catch { el.contentEditable = "true"; } // texto puro (sem negrito colado etc.)
+  // Editável com formatação (negrito, itálico, cor pela barra: TextToolbar). O que é colado ou
+  // solto entra sempre como texto puro (ouvintes de paste/drop abaixo).
+  el.contentEditable = "true";
   el.setAttribute("role", "textbox");
   el.setAttribute("aria-label", target.field.label);
   if (target.field.type === "textarea") el.setAttribute("aria-multiline", "true");
@@ -87,6 +90,15 @@ export function attachCanvas(doc, apiRef) {
     const target = el && resolve(el, api());
     if (!target) return;
     const multiline = target.field.type === "textarea";
+    // Formatação: só negrito e itálico pelo teclado (sublinhado, tachado etc. não existem na página).
+    // Negrito num texto que já é negrito (título) viraria "não negrito", que não dá para guardar.
+    if (e.inputType.startsWith("format")) {
+      const bold = e.inputType === "formatBold";
+      if (!(bold || e.inputType === "formatItalic") || (bold && Number(doc.defaultView.getComputedStyle(el).fontWeight) >= 600)) {
+        e.preventDefault();
+      }
+      return;
+    }
     if (!multiline && (e.inputType === "insertParagraph" || e.inputType === "insertLineBreak")) {
       e.preventDefault(); // título, botão etc.: uma linha só
       return;
@@ -111,15 +123,22 @@ export function attachCanvas(doc, apiRef) {
     // Digitou: o texto de exemplo e a marca de "texto padrão" deixam de valer.
     el.removeAttribute("data-empty");
     el.removeAttribute("data-fallback");
-    api().edit(target.path, normalizeText(el.innerText, target.field.type === "textarea"));
+    api().edit(target.path, serialize(el, target.field.type === "textarea"));
   });
 
-  // Colar: só o texto (para navegadores sem contenteditable="plaintext-only").
+  // Colar e soltar: só o texto (formatação de fora, como de um site ou do Word, não entra).
   doc.addEventListener("paste", (e) => {
-    const el = fieldOf(e);
-    if (!el || el.contentEditable === "plaintext-only") return;
+    if (!fieldOf(e)) return;
     e.preventDefault();
     doc.execCommand("insertText", false, e.clipboardData.getData("text/plain"));
+  });
+  doc.addEventListener("drop", (e) => {
+    if (!fieldOf(e)) return;
+    e.preventDefault();
+    const text = e.dataTransfer?.getData("text/plain");
+    const at = doc.caretRangeFromPoint?.(e.clientX, e.clientY);
+    if (at) { const selection = doc.getSelection(); selection.removeAllRanges(); selection.addRange(at); }
+    if (text) doc.execCommand("insertText", false, text);
   });
 
   doc.addEventListener("keydown", (e) => {
@@ -184,8 +203,11 @@ export function attachCanvas(doc, apiRef) {
 
   // Saiu da edição de texto (e não foi para outro campo da página): hora de redesenhar, para
   // ajustar parágrafos, textos padrão e blocos que passam a aparecer ou sumir.
+  // Foco indo para a barra de formatação (teclado) não conta como sair do texto.
   doc.addEventListener("focusout", (e) => {
-    if (!fieldOf(e)) return;
-    setTimeout(() => { if (!activeField(doc)) api().leave(); }, 0);
+    if (!fieldOf(e) || e.relatedTarget?.closest?.(".eo-text-toolbar")) return;
+    setTimeout(() => {
+      if (!activeField(doc) && !doc.activeElement?.closest?.(".eo-text-toolbar")) api().leave();
+    }, 0);
   });
 }

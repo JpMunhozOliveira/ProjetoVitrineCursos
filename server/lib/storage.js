@@ -9,7 +9,9 @@ const PUBLIC_PREFIX = "/uploads/";
 
 // Chave = "ab/ab12...ef.webp": nome aleatório gerado aqui (nunca o nome enviado pelo usuário),
 // em subpastas pelos 2 primeiros caracteres para não juntar milhares de arquivos numa pasta só.
-const KEY_PATTERN = /^[0-9a-f]{2}\/[0-9a-f]{32}\.webp$/;
+// Versões menores da mesma imagem: mesmo nome com a largura, "ab/ab12...ef-480.webp".
+const KEY_PATTERN = /^[0-9a-f]{2}\/[0-9a-f]{32}(?:-[0-9]{2,4})?\.webp$/;
+const ORIGINAL_KEY = /^[0-9a-f]{2}\/[0-9a-f]{32}\.webp$/;
 
 function resolveKey(key) {
   if (!KEY_PATTERN.test(key)) throw new Error(`Chave de arquivo inválida: ${key}`);
@@ -25,7 +27,18 @@ async function save(buffer) {
   return key;
 }
 
-async function remove(key) {
+// Chave da versão de largura "width" de uma imagem: "ab/ab12...ef.webp" -> "ab/ab12...ef-480.webp".
+function variantKey(key, width) {
+  if (!ORIGINAL_KEY.test(key) || !Number.isInteger(width)) throw new Error(`Chave de arquivo inválida: ${key}`);
+  return key.replace(/\.webp$/, `-${width}.webp`);
+}
+
+// Grava uma versão menor ao lado da original (sobrescreve: a versão é sempre gerada da original).
+async function saveVariant(key, width, buffer) {
+  await fs.writeFile(resolveKey(variantKey(key, width)), buffer);
+}
+
+async function unlink(key) {
   try {
     await fs.unlink(resolveKey(key));
   } catch (error) {
@@ -33,6 +46,24 @@ async function remove(key) {
   }
 }
 
-const publicUrl = (key) => PUBLIC_PREFIX + key;
+// Apaga só as versões menores de uma imagem (widths: larguras gravadas em media.variants).
+async function removeVariants(key, widths = []) {
+  for (const w of widths || []) await unlink(variantKey(key, w));
+}
 
-module.exports = { UPLOAD_DIR, save, remove, publicUrl };
+// Apaga a imagem e as versões menores dela.
+async function remove(key, widths = []) {
+  await unlink(key);
+  await removeVariants(key, widths);
+}
+
+const publicUrl = (key) => PUBLIC_PREFIX + key;
+const variantUrl = (key, width) => publicUrl(variantKey(key, width));
+
+// Valor do atributo srcset (versões menores + a original), ou null se não houver versões.
+function srcset(key, width, variants) {
+  if (!variants || !variants.length) return null;
+  return [...variants.map((w) => `${variantUrl(key, w)} ${w}w`), `${publicUrl(key)} ${width}w`].join(", ");
+}
+
+module.exports = { UPLOAD_DIR, save, saveVariant, remove, removeVariants, publicUrl, variantUrl, variantKey, srcset };

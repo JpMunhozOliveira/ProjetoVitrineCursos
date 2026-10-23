@@ -1,6 +1,5 @@
 (function () {
   "use strict";
-  document.documentElement.classList.add("js");
   var S = window.SITE || {};
 
   // Cria elementos usando textContent (nunca innerHTML com dados)
@@ -17,6 +16,16 @@
     return typeof p === "number" ? p.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : null;
   };
 
+  // Preço do cartão e da página de detalhes: com oferta, "de R$ X" riscado antes do preço atual.
+  function priceEl(c) {
+    if (!brl(c.preco)) return "";
+    if (!brl(c.precoDe)) return el("p", { "class": "price", text: brl(c.preco) });
+    return el("p", { "class": "price" }, [
+      el("s", { "class": "price-was" }, [el("span", { "class": "sr-only", text: "De " }), brl(c.precoDe)]),
+      el("span", { "class": "sr-only", text: " por " }), " " + brl(c.preco)
+    ]);
+  }
+
   // Produtos vêm da API (cadastrados no painel). Esta função converte o formato da API para o
   // formato que o restante deste arquivo já usava — assim os cartões, filtros e detalhes não mudam.
   function fromApi(p) {
@@ -24,17 +33,22 @@
       id: p.slug,
       titulo: p.title,
       resumo: p.short_description || "",
-      descricao: p.description || "",
       categoria: p.category || "",
+      area: (p.area || "").trim(),
+      criado: p.created_at ? new Date(p.created_at).getTime() : 0,
       destaque: !!p.featured,
       imagem: p.image ? p.image.url : null,
       imagemAlt: p.image ? p.image.alt_text || "" : "",
-      publico: p.audience || "",
-      preRequisitos: p.prerequisites || "",
-      conteudo: p.modules || [],
-      formato: p.format || "",
-      cargaHoraria: p.workload || "",
+      imagemSrcset: p.image ? p.image.srcset || null : null,
+      // Empresa do produto (Editar produto > Empresa): "Por <nome>" no topo do cartão e dos detalhes.
+      empresa: p.brand_name || "",
+      // Logo da empresa: aparece no cartão, ao lado da categoria. Com o nome escrito acima, o logo é
+      // só decorativo (alt vazio: leitores de tela não repetem o nome).
+      marca: p.brand_logo ? { url: p.brand_logo.url, alt: p.brand_name ? "" : p.brand_logo.alt_text || "",
+        width: p.brand_logo.width || 1, height: p.brand_logo.height || 1 } : null,
       preco: p.price_cents === null || p.price_cents === undefined ? null : p.price_cents / 100,
+      // Com oferta ativa (cadastro do produto), o preço normal vem em compare_price_cents ("de").
+      precoDe: typeof p.compare_price_cents === "number" ? p.compare_price_cents / 100 : null,
       checkoutUrl: p.checkout_url || "",
       // Com página de vendas publicada, o cartão leva direto para ela.
       pagina: p.has_sales_page ? "/p/" + encodeURIComponent(p.slug) : null,
@@ -75,9 +89,19 @@
     }
   }
 
-  function cover(c) {
+  // sizes: largura em que a capa aparece (card do catálogo ou caixa de compra da página do produto);
+  // com o srcset, o navegador baixa a menor versão que fica nítida.
+  var COVER_SIZES = {
+    card: "(min-width: 1100px) 270px, (min-width: 540px) 50vw, calc(100vw - 2rem)",
+    detail: "(min-width: 900px) 400px, calc(100vw - 2rem)"
+  };
+  function cover(c, where) {
     var box = el("div", { "class": "cover" });
-    if (c.imagem) box.append(el("img", { src: c.imagem, alt: c.imagemAlt || "", loading: "lazy" }));
+    if (c.imagem) {
+      var attrs = { src: c.imagem, alt: c.imagemAlt || "", loading: "lazy" };
+      if (c.imagemSrcset) { attrs.srcset = c.imagemSrcset; attrs.sizes = COVER_SIZES[where || "card"]; }
+      box.append(el("img", attrs));
+    }
     else { box.setAttribute("aria-hidden", "true"); box.textContent = (c.titulo || "?").charAt(0); }
     return box;
   }
@@ -106,12 +130,16 @@
       // Página de vendas publicada = destino principal; sem ela, a página de detalhes.
       var href = c.pagina || ("/produto.html?id=" + encodeURIComponent(c.id));
       var body = el("div", { "class": "card-body" }, [
-        c.categoria ? el("p", { "class": "eyebrow", text: c.categoria }) : "",
+        c.empresa ? el("p", { "class": "card-by" }, ["Por ", el("strong", { text: c.empresa })]) : "",
+        c.categoria || c.marca ? el("div", { "class": "card-meta" }, [
+          c.marca ? el("img", { "class": "card-brand", src: c.marca.url, alt: c.marca.alt,
+            width: c.marca.width, height: c.marca.height, loading: "lazy" }) : "",
+          c.categoria ? el("p", { "class": "eyebrow", text: c.categoria }) : ""
+        ]) : "",
         el("h3", { text: c.titulo }),
         el("p", { "class": "muted", text: c.resumo }),
-        c.publico ? el("p", { "class": "muted small", text: c.publico }) : "",
         el("div", { "class": "card-foot" }, [
-          brl(c.preco) ? el("p", { "class": "price", text: brl(c.preco) }) : "",
+          priceEl(c),
           el("a", { "class": "card-link", href: href, "aria-label": "Ver detalhes: " + c.titulo, text: "Ver detalhes" })
         ])
       ]);
@@ -125,6 +153,7 @@
   // Home (destaques) e catálogo (busca + categorias). Os esqueletos do HTML ficam na tela
   // enquanto a lista chega da API.
   var catalog = document.getElementById("catalogo");
+  var norm = function (t) { return (t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim(); };
   async function initCatalog() {
     var C;
     try { C = (await getJson("/api/products")).map(fromApi); } catch (e) { loadError(catalog); return; }
@@ -141,21 +170,39 @@
       }
       var all = document.getElementById("ver-todos");
       if (all && C.length <= shown.length) all.hidden = true;
+      renderAreas(C);
+      renderNews(C, shown);
       return;
     }
 
     var q = document.getElementById("busca"), sel = document.getElementById("categoria"),
-        out = document.getElementById("resultado"), cats = [];
-    C.forEach(function (c) { if (c.categoria && cats.indexOf(c.categoria) < 0) cats.push(c.categoria); });
-    if (cats.length > 1) cats.forEach(function (t) { sel.append(el("option", { value: t, text: t })); });
-    else document.getElementById("filtro-categoria").hidden = true;
-    if (C.length < 4) document.getElementById("filtros").hidden = true; // poucos produtos: sem filtros
-    var norm = function (t) { return (t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, ""); };
+        areaSel = document.getElementById("area"), out = document.getElementById("resultado");
+    // Opções de um filtro: valores distintos (área sem diferenciar maiúsculas); com menos de 2, some.
+    var fillFilter = function (select, wrap, key) {
+      var vals = groupBy(C, key).map(function (g) { return g.name; });
+      if (vals.length > 1) vals.forEach(function (t) { select.append(el("option", { value: t, text: t })); });
+      else document.getElementById(wrap).hidden = true;
+    };
+    fillFilter(sel, "filtro-categoria", "categoria");
+    fillFilter(areaSel, "filtro-area", "area");
+    // Link vindo da página inicial (?area=Gestão ou ?categoria=Curso): já abre filtrado.
+    var params = new URLSearchParams(location.search), fromLink = false;
+    [[areaSel, "area"], [sel, "categoria"]].forEach(function (f) {
+      var want = norm(params.get(f[1]));
+      if (!want) return;
+      var opt = [].filter.call(f[0].options, function (o) { return o.value && norm(o.value) === want; })[0];
+      if (!opt && f[1] === "area") { // área única no catálogo: o seletor está escondido, mas o filtro vale
+        var only = groupBy(C, "area")[0];
+        if (only && norm(only.name) === want) { opt = el("option", { value: only.name, text: only.name }); f[0].append(opt); }
+      }
+      if (opt) { f[0].value = opt.value; fromLink = true; }
+    });
+    if (C.length < 4 && !fromLink) document.getElementById("filtros").hidden = true; // poucos produtos: sem filtros
     var apply = function () {
-      var term = norm(q.value), cat = sel.value;
+      var term = norm(q.value), cat = sel.value, area = norm(areaSel.value);
       var list = C.filter(function (c) {
-        return (!cat || c.categoria === cat) &&
-          (!term || norm([c.titulo, c.resumo, c.publico, c.categoria].join(" ")).indexOf(term) >= 0);
+        return (!cat || c.categoria === cat) && (!area || norm(c.area) === area) &&
+          (!term || norm([c.titulo, c.resumo, c.categoria, c.area, c.empresa].join(" ")).indexOf(term) >= 0);
       });
       renderCards(catalog, list);
       out.textContent = list.length + (list.length === 1 ? " produto encontrado" : " produtos encontrados");
@@ -170,7 +217,57 @@
     };
     q.addEventListener("input", onChange);
     sel.addEventListener("change", onChange);
+    areaSel.addEventListener("change", onChange);
     apply();
+  }
+
+  // Valores distintos de um campo (ex.: área), juntando "Gestão" e "gestao", com quantos produtos
+  // cada um tem. Fica o primeiro jeito de escrever encontrado. Em ordem alfabética.
+  function groupBy(list, key) {
+    var groups = {};
+    list.forEach(function (c) {
+      var name = c[key];
+      if (!name) return;
+      var k = norm(name);
+      if (!groups[k]) groups[k] = { name: name, count: 0 };
+      groups[k].count++;
+    });
+    return Object.keys(groups).map(function (k) { return groups[k]; })
+      .sort(function (a, b) { return a.name.localeCompare(b.name, "pt-BR"); });
+  }
+
+  // Página inicial: um cartão por área de conhecimento, levando ao catálogo já filtrado.
+  function renderAreas(C) {
+    var section = document.getElementById("areas"), list = document.getElementById("areas-lista");
+    if (!section) return;
+    var areas = groupBy(C, "area");
+    if (!areas.length) return; // nenhum produto com área: a seção continua escondida
+    areas.forEach(function (a) {
+      var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.setAttribute("class", "ico");
+      svg.setAttribute("aria-hidden", "true");
+      var use = document.createElementNS("http://www.w3.org/2000/svg", "use");
+      use.setAttribute("href", "#i-book");
+      svg.append(use);
+      var count = a.count + (a.count === 1 ? " conteúdo" : " conteúdos");
+      list.append(el("li", {}, [el("a", { "class": "area-card", href: "/catalogo.html?area=" + encodeURIComponent(a.name) }, [
+        svg, el("span", {}, [el("strong", { text: a.name }), el("span", { text: count })])
+      ])]));
+    });
+    section.hidden = false;
+  }
+
+  // Página inicial: novidades = publicados nos últimos 60 dias que não aparecem nos destaques.
+  var NEW_DAYS = 60;
+  function renderNews(C, shown) {
+    var section = document.getElementById("novidades"), list = document.getElementById("novidades-lista");
+    if (!section) return;
+    var since = Date.now() - NEW_DAYS * 864e5;
+    var news = C.filter(function (c) { return c.criado >= since && shown.indexOf(c) < 0; })
+      .sort(function (a, b) { return b.criado - a.criado; }).slice(0, 3);
+    if (!news.length) return;
+    renderCards(list, news);
+    section.hidden = false;
   }
   if (catalog) initCatalog();
 
@@ -196,22 +293,15 @@
     document.title = c.titulo + " — " + S.nome;
     var m = document.querySelector('meta[name="description"]');
     if (m) m.setAttribute("content", c.resumo || "");
-    var facts = [["Formato", c.formato], ["Carga horária", c.cargaHoraria], ["Pré-requisitos", c.preRequisitos]]
-      .filter(function (f) { return f[1]; })
-      .map(function (f) { return el("li", {}, [el("strong", { text: f[0] + ": " }), f[1]]); });
     var main = el("div", {}, [
       el("a", { "class": "crumb", href: "/catalogo.html", text: "← Todos os produtos" }),
+      c.empresa ? el("p", { "class": "card-by" }, ["Por ", el("strong", { text: c.empresa })]) : "",
       el("h1", { text: c.titulo }),
-      el("p", { "class": "muted", text: c.resumo }),
-      c.descricao ? el("div", {}, [el("h2", { text: "Sobre" }), el("p", { text: c.descricao })]) : "",
-      c.publico ? el("div", {}, [el("h2", { text: "Para quem é" }), el("p", { text: c.publico })]) : "",
-      (c.conteudo || []).length ? el("div", {}, [el("h2", { text: "Conteúdo" }),
-        el("ul", {}, c.conteudo.map(function (t) { return el("li", { text: t }); }))]) : "",
-      facts.length ? el("div", {}, [el("h2", { text: "Informações" }), el("ul", {}, facts)]) : ""
+      el("p", { "class": "muted", text: c.resumo })
     ]);
     var aside = el("aside", { "class": "buy-box", "aria-label": "Compra" }, [
-      cover(c),
-      brl(c.preco) ? el("p", { "class": "price", text: brl(c.preco) }) : "",
+      cover(c, "detail"),
+      priceEl(c),
       buyButton(c),
       el("p", { "class": "muted", text: "O pagamento e o acesso são feitos pela Kiwify." })
     ]);
@@ -246,13 +336,28 @@
 
   // Menu flutuante: fica mais opaco depois que a página rola (ver site.css).
   var header = document.querySelector(".site-header");
-  if (header) {
-    var onScroll = function () { header.classList.toggle("is-scrolled", window.scrollY > 24); };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    onScroll();
+
+  // Botão "voltar ao topo": aparece depois de rolar um pouco mais de uma tela. Fora do editor do
+  // painel (lá a página é só uma prévia). Ao voltar, o foco vai para o início da página.
+  var toTop = null;
+  if (!document.documentElement.hasAttribute("data-editor")) {
+    toTop = el("button", { "class": "to-top", type: "button", "aria-label": "Voltar ao topo", title: "Voltar ao topo" });
+    toTop.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 19V5M5 12l7-7 7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    toTop.addEventListener("click", function () {
+      var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+      window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
+      var start = document.querySelector(".skip") || document.body;
+      start.focus({ preventScroll: true });
+    });
+    document.body.append(toTop);
   }
 
-  // Modo noturno: o botão é ligado por theme.js (compartilhado com o painel).
+  var onScroll = function () {
+    if (header) header.classList.toggle("is-scrolled", window.scrollY > 24);
+    if (toTop) toTop.classList.toggle("is-visible", window.scrollY > Math.max(600, window.innerHeight));
+  };
+  window.addEventListener("scroll", onScroll, { passive: true });
+  onScroll();
 
   // Menu mobile
   var btn = document.getElementById("menu-btn"), nav = document.getElementById("nav");

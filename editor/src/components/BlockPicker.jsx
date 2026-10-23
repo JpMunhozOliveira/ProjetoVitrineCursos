@@ -8,8 +8,8 @@ import { BlockIcon } from "../ui/BlockIcon.jsx";
 
 const GAP = 10, MARGIN = 8;
 
-export function BlockPicker({ position, anchor, total, onPick, onClose }) {
-  const { schema } = useEditor();
+export function BlockPicker({ position, anchor, total, onPick, onPickShared, onClose }) {
+  const { schema, shared } = useEditor();
   const dialog = useRef(null);
   const isOpen = position !== null;
   const compact = isOpen && !!anchor;
@@ -51,6 +51,22 @@ export function BlockPicker({ position, anchor, total, onPick, onClose }) {
           </button>
         ))}
       </div>
+      {/* Blocos salvos (aba "Blocos salvos"): o conteúdo vem de lá e muda em todas as páginas. */}
+      {shared.list.length > 0 && (
+        <>
+          <h3 className="block-types-title">Blocos salvos</h3>
+          <div className="block-types">
+            {shared.list.map((s) => (
+              <button key={s.id} type="button" className="block-type" onClick={() => onPickShared(s)}
+                title={compact ? `${schema.blocks[s.type].label} · muda junto em todas as páginas que o usam` : undefined}>
+                <BlockIcon type={s.type} />
+                <strong>{s.name}</strong>
+                {!compact && <span className="muted small">{schema.blocks[s.type].label} salvo: muda junto em todas as páginas que o usam.</span>}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
     </dialog>
   );
 }

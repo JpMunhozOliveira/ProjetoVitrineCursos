@@ -36,6 +36,49 @@
   letter-spacing: -0.03em;
   color: var(--v-on-navy);
 }
+/* Oferta (cadastro do produto): preço normal riscado ("de") antes do preço da oferta ("por"). */
+.price-was {
+  margin-right: 0.15em;
+  font-size: 0.5em;
+  font-weight: 600;
+  letter-spacing: 0;
+  vertical-align: middle;
+  color: var(--v-on-navy-muted);
+}
+.v-strip-price .price-was {
+  font-size: 0.65em;
+  color: inherit;
+  opacity: 0.7;
+}
+/* Cronômetro da oferta: ocupa a linha inteira abaixo do preço e do botão. */
+.offer-timer {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.75rem;
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+.offer-timer-ico {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  color: var(--v-cta);
+}
+.offer-timer-count {
+  padding: 0.2rem 0.7rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  color: var(--v-cta-text);
+  background: var(--v-cta);
+  border-radius: 999px;
+}
+.buy-card .offer-timer {
+  justify-content: center;
+  margin-top: -0.5rem;
+}
 /* Imagem do produto na abertura: "objeto" com sombra (drop-shadow respeita fundos transparentes). */
 .v-hero .v-media {
   border-radius: 14px;
@@ -212,10 +255,12 @@
   gap: 1.25rem;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
+/* Ícone e título lado a lado; a descrição vem embaixo, na largura toda. */
 .grid8 li {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-content: start;
+  gap: 0.75rem 0.9rem;
   padding: 1.5rem;
   background: var(--v-card);
   border: 1px solid var(--v-line);
@@ -229,8 +274,15 @@
   transform: translateY(-4px);
   box-shadow: var(--v-shadow-hover);
 }
-.grid8 .ico {
-  margin-bottom: 0.6rem;
+.grid8 li > * {
+  grid-column: 1 / -1;
+}
+.grid8 li > .ico {
+  grid-column: 1;
+}
+.grid8 li > .ico + strong {
+  grid-column: 2;
+  align-self: center;
 }
 .grid8 strong {
   font-size: 1.05rem;
@@ -243,6 +295,27 @@
 @media (min-width: 1000px) {
   .grid8 {
     grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Colunas escolhidas no bloco (campo "Colunas"): 4×2, 3×2... No celular, sempre uma coluna;
+   no tablet, duas; a partir daí, o número escolhido. "Automático" não leva classe. */
+:is(.grid8, .who):is(.cols-2, .cols-3, .cols-4) {
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 640px) {
+  :is(.grid8, .who):is(.cols-2, .cols-3, .cols-4) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 900px) {
+  :is(.grid8, .who).cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1000px) {
+  :is(.grid8, .who).cols-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 
@@ -587,14 +660,21 @@
 .track > li.slide {
   position: relative;
   aspect-ratio: 3/2;
-  transition:
-    transform 0.4s ease,
-    opacity 0.4s ease;
 }
-/* Capas laterais menores e mais apagadas: o olhar vai para a do centro. */
-.carousel.is-ready .slide:not(.is-current) {
-  transform: scale(0.88);
-  opacity: 0.55;
+/* Profundidade: as vizinhas ficam menores, mais apagadas e puxadas para o centro, parcialmente
+   ATRÁS da atual. venda.js calcula tamanho, deslocamento e brilho de cada imagem a cada quadro da
+   rolagem (sem transição no CSS: o efeito segue o dedo/a rolagem e não passa do ponto). O
+   deslocamento vai na IMAGEM, não no <li>: o navegador calcula o snap pela caixa do <li>. O <li>
+   deixa passar os cliques: assim o pedaço visível da vizinha recebe o clique (venda.js leva até
+   ela), mesmo ficando dentro da área do slide atual. */
+.carousel.is-ready .slide {
+  pointer-events: none;
+}
+.carousel.is-ready .slide > * {
+  pointer-events: auto;
+}
+.carousel.is-ready .slide[data-pos] .slide-img {
+  cursor: pointer;
 }
 .slide-img {
   position: absolute;
@@ -610,7 +690,7 @@
 .car-btn {
   position: absolute;
   top: calc(50% - 40px);
-  z-index: 2;
+  z-index: 4; /* acima dos slides (venda.js usa z-index 0 a 3) */
   display: grid;
   place-items: center;
   width: 48px;
@@ -692,8 +772,7 @@
   .btn-cta:hover,
   .v-card:hover,
   .grid8 li:hover,
-  .who li:hover,
-  .carousel.is-ready .slide:not(.is-current) {
+  .who li:hover {
     transform: none;
   }
   .reveal {
@@ -733,4 +812,112 @@
   color: var(--color-notice-text);
   background: var(--color-notice-bg);
   border-bottom: 2px solid var(--color-accent);
+}
+
+/* ---------- Botão "voltar" (páginas de venda) ----------
+   Pílula fixa no canto superior esquerdo, logo abaixo do menu. Ao rolar a página (classe posta
+   por venda.js) vira só a seta, para cobrir menos o conteúdo. No celular é sempre só a seta. */
+.v-back {
+  position: fixed;
+  top: calc(var(--v-nav-space) + 0.5rem);
+  left: max(1rem, calc((100vw - var(--max-width)) / 2));
+  z-index: 35;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 44px;
+  padding: 0 1rem 0 0.8rem;
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--v-navy) 82%, transparent);
+  backdrop-filter: blur(12px) saturate(1.3);
+  color: var(--v-on-navy);
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-decoration: none;
+  box-shadow: 0 10px 26px -12px rgb(0 0 0 / 0.55);
+  transition:
+    background 0.15s,
+    color 0.15s,
+    padding 0.2s;
+}
+.v-back:hover {
+  background: var(--v-cta);
+  color: var(--v-cta-text);
+}
+.v-back:focus-visible {
+  outline: 3px solid var(--v-cta);
+  outline-offset: 3px;
+}
+.v-back-ico {
+  flex: none;
+  width: 20px;
+  height: 20px;
+}
+/* Só a seta: o texto continua lá para leitores de tela. */
+.v-back.is-compact {
+  width: 44px;
+  padding: 0;
+  justify-content: center;
+}
+.v-back.is-compact .v-back-text {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+@media (max-width: 640px) {
+  .v-back {
+    width: 44px;
+    padding: 0;
+    justify-content: center;
+  }
+  .v-back .v-back-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+/* Pré-visualização do rascunho: abaixo da faixa amarela de aviso, como o menu. */
+.preview-banner ~ .v-back {
+  top: calc(var(--v-nav-space) + 3.1rem);
+}
+
+/* ---------- Texto formatado (editor: negrito, itálico, cor, alinhamento) ----------
+   O servidor converte as marcações do texto em <strong>, <em>, .tx-c-* e data-align (ver
+   server/sales/richtext.js). As cores acompanham o tema e o fundo da seção (variáveis em site.css).
+   O alinhamento é escolha explícita de quem edita: vence o alinhamento padrão do bloco (por isso
+   o !important; títulos centralizados, por exemplo, têm seletores mais específicos). */
+[data-align="left"] {
+  text-align: left !important;
+}
+[data-align="center"] {
+  text-align: center !important;
+}
+[data-align="right"] {
+  text-align: right !important;
+}
+[data-align="justify"] {
+  text-align: justify !important;
+  hyphens: auto;
+}
+.tx-c-accent {
+  color: var(--v-accent-ink);
+}
+.tx-c-primary {
+  color: var(--tx-primary);
+}
+.tx-c-muted {
+  color: var(--color-muted);
+}
+.tx-c-green {
+  color: var(--tx-green);
+}
+.tx-c-red {
+  color: var(--tx-red);
 }

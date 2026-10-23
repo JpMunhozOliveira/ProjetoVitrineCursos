@@ -1,4 +1,4 @@
-// Estado do editor: a página como um objeto { sections, seo_title, seo_description, published }.
+// Estado do editor: a página como um objeto { sections, theme }.
 //
 // Toda alteração gera um objeto NOVO (imutabilidade) em vez de modificar o atual. É assim que o
 // React percebe o que mudou, e é o que permite desfazer/refazer (guardar versões anteriores).
@@ -16,7 +16,9 @@ export function withKeys(sections, schema) {
     }
     return out;
   };
-  return sections.map((block) => keyed(block, schema.blocks[block.type]?.fields));
+  // Bloco vinculado a um bloco salvo só tem a referência e os campos locais (sem listas): não
+  // ganha listas vazias, que seriam recusadas pela API como campos a mais.
+  return sections.map((block) => keyed(block, block.shared ? null : schema.blocks[block.type]?.fields));
 }
 
 export function stripKeys(value) {
@@ -94,8 +96,6 @@ const updateIn = (obj, path, fn) => setIn(obj, path, fn(getIn(obj, path)));
 // Reducer: recebe o estado atual e uma ação, devolve o estado novo.
 export function reducer(doc, action) {
   switch (action.type) {
-    case "load":
-      return action.doc;
     case "set":
       return setIn(doc, action.path, action.value);
     case "insert":

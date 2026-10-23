@@ -1,15 +1,24 @@
 const pool = require("../config/database");
+const defaultBrand = require("../lib/default-brand");
 const storage = require("../lib/storage");
 const { detectType, processImage } = require("../lib/images");
 
-// "usage": onde a imagem é usada — como capa de produto ("cover") ou dentro de uma página de
-// vendas ("page"). O painel mostra essa lista e a exclusão de imagem em uso é bloqueada.
+// "usage": onde a imagem é usada — como capa de produto ("cover"), logo ou ícone da aba de uma
+// empresa ("brand" / "brand-icon", aba Empresas), dentro de uma página de vendas ("page") ou num
+// bloco salvo ("shared", ex.: foto do Autor). O painel mostra essa lista e a exclusão de imagem em uso é bloqueada.
 const SELECT_MEDIA = `
   SELECT m.id, m.storage_key, m.mime_type, m.size_bytes, m.width, m.height,
          m.original_name, m.alt_text, m.created_at,
          COALESCE((SELECT json_agg(u ORDER BY u.title) FROM (
              SELECT p.id, p.title, 'cover' AS kind FROM products p WHERE p.image_id = m.id
              UNION ALL
+             SELECT b.id, COALESCE(b.name, 'empresa sem nome') AS title, 'brand' AS kind FROM brands b WHERE b.logo_id = m.id
+             UNION ALL
+             SELECT b.id, COALESCE(b.name, 'empresa sem nome') AS title, 'brand-icon' AS kind FROM brands b WHERE b.icon_id = m.id
+             UNION ALL
+             SELECT sb.id, sb.name AS title, 'shared' AS kind
+               FROM shared_block_media sbm JOIN shared_blocks sb ON sb.id = sbm.shared_block_id
+              WHERE sbm.media_id = m.id             UNION ALL
              SELECT p.id, p.title, 'page' AS kind
                FROM sales_page_media spm
                JOIN sales_pages sp ON sp.id = spm.sales_page_id
@@ -18,7 +27,7 @@ const SELECT_MEDIA = `
            ) u), '[]') AS usage
     FROM media m`;
 
-const USAGE_LABEL = { cover: "capa de", page: "página de vendas de" };
+const USAGE_LABEL = { cover: "capa de", brand: "logo da empresa", "brand-icon": "ícone da aba da empresa", page: "página de vendas de", shared: "bloco salvo" };
 
 // Troca a chave interna pela URL pública; o caminho no disco não sai do servidor.
 function toResponse({ storage_key, ...media }) {
@@ -66,18 +75,20 @@ async function uploadMedia(req, res) {
   }
 
   const key = await storage.save(image.data);
+  const widths = image.variants.map((v) => v.width);
   try {
+    for (const v of image.variants) await storage.saveVariant(key, v.width, v.data);
     const { rows } = await pool.query(
       `WITH m AS (
-         INSERT INTO media (storage_key, mime_type, size_bytes, width, height, original_name)
-         VALUES ($1, 'image/webp', $2, $3, $4, $5) RETURNING *)
+         INSERT INTO media (storage_key, mime_type, size_bytes, width, height, original_name, variants)
+         VALUES ($1, 'image/webp', $2, $3, $4, $5, $6) RETURNING *)
        SELECT m.id, m.storage_key, m.mime_type, m.size_bytes, m.width, m.height,
               m.original_name, m.alt_text, m.created_at, '[]'::json AS usage FROM m`,
-      [key, image.size, image.width, image.height, originalName(req)]
+      [key, image.size, image.width, image.height, originalName(req), widths]
     );
     return res.status(201).json({ data: toResponse(rows[0]) });
   } catch (error) {
-    await storage.remove(key); // não deixa arquivo órfão no disco se o banco falhar
+    await storage.remove(key, widths); // não deixa arquivo órfão no disco se o banco falhar
     throw error;
   }
 }
@@ -99,6 +110,7 @@ async function updateMedia(req, res) {
 
   const updated = await pool.query("UPDATE media SET alt_text = $2 WHERE id = $1", [req.params.id, alt]);
   if (!updated.rowCount) return res.status(404).json(NOT_FOUND);
+  defaultBrand.invalidate(); // pode ser o logo da empresa padrão (menu do site)
 
   const { rows } = await pool.query(`${SELECT_MEDIA} WHERE m.id = $1`, [req.params.id]);
   return res.json({ data: toResponse(rows[0]) });
@@ -116,15 +128,17 @@ async function deleteMedia(req, res) {
       `DELETE FROM media m
         WHERE m.id = $1
           AND NOT EXISTS (SELECT 1 FROM products p WHERE p.image_id = m.id)
+          AND NOT EXISTS (SELECT 1 FROM brands b WHERE b.logo_id = m.id OR b.icon_id = m.id)
           AND NOT EXISTS (SELECT 1 FROM sales_page_media spm WHERE spm.media_id = m.id)
-        RETURNING m.storage_key`,
+          AND NOT EXISTS (SELECT 1 FROM shared_block_media sbm WHERE sbm.media_id = m.id)
+        RETURNING m.storage_key, m.variants`,
       [req.params.id]
     ));
   } catch (error) {
     if (error.code !== "23503") throw error; // 23503: passou a ser usada no meio do caminho -> 409 abaixo
   }
   if (rows.length) {
-    await storage.remove(rows[0].storage_key);
+    await storage.remove(rows[0].storage_key, rows[0].variants);
     return res.status(204).end();
   }
 

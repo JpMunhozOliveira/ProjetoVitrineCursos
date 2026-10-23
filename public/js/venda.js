@@ -4,6 +4,26 @@
   // Vale para todos os .carousel da página (uma página de vendas pode ter mais de uma galeria).
   var reduce =
     window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // Dentro do editor do painel (<html data-editor>) a página é só uma prévia editável.
+  var editing = document.documentElement.hasAttribute("data-editor");
+
+  // Botão "voltar": quem veio de outra página do site volta para ela (mantém filtros e rolagem
+  // do catálogo); quem abriu o link direto (anúncio, WhatsApp...) segue o href, o catálogo.
+  var back = document.querySelector("[data-back]");
+  if (back) {
+    back.addEventListener("click", function (event) {
+      var fromSite = false;
+      try { fromSite = !!document.referrer && new URL(document.referrer).origin === location.origin; } catch (e) {}
+      if (fromSite && history.length > 1) {
+        event.preventDefault();
+        history.back();
+      }
+    });
+    // Depois de rolar, vira só a seta (cobre menos o conteúdo).
+    var compact = function () { back.classList.toggle("is-compact", window.scrollY > 120); };
+    window.addEventListener("scroll", compact, { passive: true });
+    compact();
+  }
 
   function setup(root) {
     var track = root.querySelector(".track"),
@@ -46,12 +66,93 @@
       dots.append(b);
       return b;
     });
-    // Ponto atual e destaque do slide central (os laterais ficam menores, ver venda.css).
-    function sync() {
-      var c = current();
+    // Escala das vizinhas e das mais distantes, quanto da vizinha fica escondido atrás da imagem
+    // atual e quanto da mais distante aparece além da vizinha.
+    var NEAR = 0.8, FAR = 0.62, HIDDEN = 0.35, PEEK = 0.3;
+    // Largura em que a imagem aparece no slide (inteira, sem cortes), calculada pelas dimensões
+    // do <img>: não depende de a imagem já ter carregado.
+    function imageWidth(slide) {
+      var img = slide.querySelector("img"), box = slide.clientWidth, h = slide.clientHeight;
+      var w = img && +img.getAttribute("width"), ih = img && +img.getAttribute("height");
+      if (!w || !ih) return box;
+      return Math.min(box, h * w / ih, w);
+    }
+    // Profundidade: as vizinhas ficam menores, mais apagadas e encostadas na imagem atual,
+    // parcialmente atrás dela. O efeito acompanha a rolagem quadro a quadro: a posição na rolagem
+    // vira um índice fracionário (ex.: 1.4) e cada imagem fica entre o arranjo "atual = 1" e o
+    // arranjo "atual = 2", na proporção do caminho já percorrido. Assim nada anda por conta
+    // própria (sem transição) e as imagens não passam do ponto nem voltam no fim da rolagem.
+    // O deslocamento vai na imagem (filho do <li>), não no <li>: mexer no <li> mudaria o snap.
+    var LOOK = [
+      { scale: 1, bright: 1, sat: 1, op: 1 },
+      { scale: NEAR, bright: 0.62, sat: 0.8, op: 1 },
+      { scale: FAR, bright: 0.45, sat: 0.6, op: 0.55 },
+    ];
+    var widths = [], step = 0;
+    function measure() {
+      widths = slides.map(imageWidth);
+      step = slides[1].offsetLeft - slides[0].offsetLeft; // há sempre 2 ou mais slides aqui
+    }
+    // Distância visual (do centro da atual c ao centro do slide i) no arranjo com c no meio.
+    function offset(i, c) {
+      var d = i - c, dir = d < 0 ? -1 : 1, n = Math.abs(d);
+      if (n === 0) return 0;
+      var near = widths[c + dir] * NEAR;
+      var dist = widths[c] / 2 + near / 2 - near * HIDDEN;
+      if (n === 1) return dir * dist;
+      var far = widths[c + 2 * dir] !== undefined ? widths[c + 2 * dir] * FAR : near;
+      dist += near / 2 - far / 2 + far * PEEK; // aparece um pouco além da vizinha
+      if (n === 2) return dir * dist;
+      return dir * (dist + (n - 2) * step); // mais longe: segue a rolagem, fora de vista
+    }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    var shown = -1;
+    function render() {
+      if (!step) return;
+      var mid = track.scrollLeft + track.clientWidth / 2;
+      var x = (mid - (slides[0].offsetLeft + slides[0].offsetWidth / 2)) / step;
+      x = Math.max(0, Math.min(slides.length - 1, x));
+      var k = Math.min(slides.length - 2, Math.floor(x)), t = x - k;
+      slides.forEach(function (s, i) {
+        var visual = lerp(offset(i, k), offset(i, k + 1), t);
+        var natural = (i - x) * step;
+        var n = Math.min(2, Math.abs(i - x)), lo = Math.floor(n), f = n - lo;
+        var A = LOOK[lo], B = LOOK[Math.min(2, lo + 1)];
+        var transform = "translateX(" + (visual - natural).toFixed(1) + "px) scale(" + lerp(A.scale, B.scale, f).toFixed(3) + ")";
+        var filter = "brightness(" + lerp(A.bright, B.bright, f).toFixed(3) + ") saturate(" + lerp(A.sat, B.sat, f).toFixed(3) + ")";
+        var opacity = lerp(A.op, B.op, f).toFixed(3);
+        s.style.zIndex = String(3 - Math.min(3, Math.round(Math.abs(i - x))));
+        // A imagem e, no editor, o botão × do slide andam juntos.
+        [].forEach.call(s.children, function (child) {
+          child.style.transform = transform;
+          child.style.filter = filter;
+          child.style.opacity = opacity;
+        });
+      });
+      // Ponto atual e data-pos (cursor de clique nas vizinhas): só quando o atual muda.
+      var c = Math.round(x);
+      if (c === shown) return;
+      shown = c;
       buttons.forEach(function (b, i) {
-        b.setAttribute("aria-current", String(i === c));
-        slides[i].classList.toggle("is-current", i === c);
+        var d = i - c;
+        b.setAttribute("aria-current", String(d === 0));
+        if (d === 0) slides[i].removeAttribute("data-pos");
+        else slides[i].setAttribute("data-pos", (Math.abs(d) > 1 ? "far-" : "") + (d < 0 ? "prev" : "next"));
+      });
+    }
+    var pending = false;
+    function sync(force) {
+      if (force === true) measure();
+      if (pending) return;
+      pending = true;
+      window.requestAnimationFrame(function () { pending = false; render(); });
+    }
+    window.addEventListener("resize", function () { sync(true); });
+    // Clicar na imagem vizinha (parcialmente atrás da atual) leva até ela. No editor, clicar numa
+    // imagem serve para trocá-la, então fica de fora.
+    if (!editing) {
+      slides.forEach(function (s, i) {
+        s.addEventListener("click", function () { if (i !== current()) go(i); });
       });
     }
     prev.addEventListener("click", function () {
@@ -63,12 +164,12 @@
     track.addEventListener(
       "scroll",
       function () {
-        window.requestAnimationFrame(sync);
+        sync();
       },
       { passive: true },
     );
     track.tabIndex = 0; // permite usar as setas do teclado para rolar
-    sync();
+    sync(true);
     root.classList.add("is-ready");
   }
 
@@ -76,7 +177,6 @@
 
   // Perguntas frequentes: abrir e fechar deslizando, em vez de saltar. Sem JavaScript, com
   // "menos movimento" ou dentro do editor (onde ficam sempre abertas), o <details> funciona sozinho.
-  var editing = document.documentElement.hasAttribute("data-editor");
   function accordion(details) {
     var summary = details.querySelector("summary"), running = null;
     if (!summary || !details.animate) return;
@@ -110,7 +210,7 @@
   // Animações ao rolar: títulos, cartões e itens surgem suavemente ao entrar na tela.
   // Fora quando a pessoa pede menos movimento e dentro do editor do painel (<html data-editor>),
   // onde a página é redesenhada a cada mudança e nada pode ficar escondido.
-  if (reduce || !("IntersectionObserver" in window) || document.documentElement.hasAttribute("data-editor")) return;
+  if (reduce || !("IntersectionObserver" in window) || editing) return;
 
   var SELECTOR = [
     ".v-section .v-eyebrow", ".v-section h2", ".v-section .v-intro", ".v-card", ".grid8 > li", ".who > li", ".v-quote",
@@ -149,4 +249,42 @@
     el.addEventListener("transitionend", done);
     observer.observe(el);
   });
+})();
+
+// Cronômetro da oferta (<p class="offer-timer" data-ends-at>, ver server/sales/render.js).
+// O servidor decide se a oferta vale; aqui só a contagem. data-now (horário do servidor) corrige o
+// relógio do aparelho. No fim do prazo a página recarrega uma vez e já vem com o preço normal.
+(function () {
+  "use strict";
+  var timers = [].slice.call(document.querySelectorAll(".offer-timer[data-ends-at]"));
+  if (!timers.length) return;
+  var editing = document.documentElement.hasAttribute("data-editor");
+  var first = timers[0];
+  var ends = Date.parse(first.getAttribute("data-ends-at"));
+  var serverNow = Date.parse(first.getAttribute("data-now"));
+  var skew = Number.isFinite(serverNow) ? serverNow - Date.now() : 0;
+  if (!Number.isFinite(ends)) return;
+  var counts = timers.map(function (t) {
+    var c = t.querySelector("[data-countdown]");
+    c.hidden = false;
+    c.setAttribute("aria-hidden", "true"); // a data por extenso, ao lado, já informa o leitor de tela
+    return c;
+  });
+  var pad = function (n) { return String(n).padStart(2, "0"); };
+  var interval;
+
+  function tick() {
+    var left = Math.max(0, Math.floor((ends - (Date.now() + skew)) / 1000));
+    var days = Math.floor(left / 86400), rest = left % 86400;
+    var text = (days ? days + (days === 1 ? " dia " : " dias ") : "") +
+      pad(Math.floor(rest / 3600)) + ":" + pad(Math.floor(rest % 3600 / 60)) + ":" + pad(rest % 60);
+    counts.forEach(function (c) { c.textContent = "Termina em " + text; });
+    if (left > 0) return;
+    clearInterval(interval);
+    counts.forEach(function (c) { c.textContent = "Oferta encerrada"; });
+    // Recarrega uma única vez (1,5 s de folga para o servidor também ver o prazo vencido).
+    if (!editing) setTimeout(function () { location.reload(); }, 1500);
+  }
+  tick();
+  interval = setInterval(tick, 1000);
 })();

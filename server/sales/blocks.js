@@ -10,8 +10,10 @@
 //   choice           -> uma das opções de "options" ({ valor: rótulo }); vazio = "default"
 //   list             -> lista de itens; cada item tem seus próprios campos (item: {...})
 
-// Ícones disponíveis nos blocos: nome, desenho (SVG 24×24) e espessura do traço. Fonte única:
-// a página pública monta o sprite a partir daqui (render.js) e o editor mostra os mesmos desenhos.
+// Ícones disponíveis nos blocos: nome, desenho (SVG 24×24, um único <path>) e espessura do traço.
+// Fonte única: a página pública monta o sprite a partir daqui (render.js) e o editor mostra os
+// mesmos desenhos. Vários desenhos foram adaptados do Lucide (lucide.dev, licença ISC,
+// Copyright (c) Lucide Contributors) para um só <path>.
 const ICONS = {
   check: { label: "Confirmação", d: "M5 12.5l4.5 4.5L19 7.5", width: 2.6 },
   x: { label: "Negação", d: "M6 6l12 12M18 6L6 18", width: 2.6 },
@@ -68,6 +70,102 @@ const ICONS = {
   eye: { label: "Visão", d: "M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" },
   info: { label: "Informação", d: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 11v5M12 8h.01" },
   alert: { label: "Atenção", d: "M12 3l10 18H2zM12 10v4M12 17h.01" },
+  // Contabilidade e fiscal (mais)
+  sheet: { label: "Planilha", d: "M4 3h16v18H4zM4 9h16M4 15h16M10 3v18" },
+  bank: { label: "Banco", d: "M3 21h18M5 21v-9M10 21v-9M14 21v-9M19 21v-9M2 10l10-7 10 7z" },
+  safe: { label: "Cofre", d: "M3 4h18v15H3zM7 19v2M17 19v2M12 15a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM12 11.5h.01M17 8v4" },
+  stamp: { label: "Carimbo", d: "M5 21h14M5 17h14v-3a2 2 0 0 0-2-2h-3V9a3 3 0 1 0-4 0v3H7a2 2 0 0 0-2 2z" },
+  coin: { label: "Moeda", d: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM15 8.5c-.6-1-1.7-1.5-3-1.5-1.7 0-3 .9-3 2.3 0 3.2 6 1.8 6 5 0 1.4-1.3 2.2-3 2.2-1.4 0-2.5-.6-3.1-1.6M12 5.5V7M12 17v1.5" },
+  coins: { label: "Moedas", d: "M9 14a6 6 0 1 0 0-12 6 6 0 0 0 0 12zM18.1 10.4a6 6 0 1 1-7.7 7.7M7 6h1v4M16.7 13.9l.7.7-2.8 2.8" },
+  wallet: { label: "Carteira", d: "M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4" },
+  piggy: { label: "Poupança", d: "M5 11a7 6 0 0 1 13-3h2v4h-1.5a7 6 0 0 1-2.5 3.5V19h-3v-2h-3v2H7v-3.5A6 6 0 0 1 5 11zM2 9c0 1.5 1 2 3 2M15 10h.01M10 6h4" },
+  barcode: { label: "Boleto (código de barras)", d: "M3 5v14M6 5v14M10 5v14M12 5v14M16 5v14M19 5v14M21 5v14" },
+  tax: { label: "Imposto", d: "M6 2h9l4 4v16H6zM15 2v4h4M9 18l6-7M9.5 12.5h.01M14.5 16.5h.01" },
+  files: { label: "Documentos", d: "M8 7h9l3 3v11H8zM17 7v3h3M4 17V3h9" },
+  contract: { label: "Contrato", d: "M14 3H6v18h12V7zM14 3v4h4M9 9h2M9 13h6M8 18c1-1.5 2-1.5 2.5 0s1.5 1.5 2.5 0 2 0 3 0" },
+  signature: { label: "Assinatura", d: "M3 17c3-6 5-9 6-9s0 6 1 6 2-3 3-3 1 2 2 2 2-1 3-1M3 21h18" },
+  ledger: { label: "Livro-caixa", d: "M5 3h14v18H5zM9 3v18M12 8h4M12 12h4M12 16h4" },
+  archive: { label: "Arquivo", d: "M3 4h18v4H3zM5 8v12h14V8M10 12h4" },
+  "linechart": { label: "Gráfico de linha", d: "M3 3v18h18M7 15l4-5 3 3 5-6" },
+  "trenddown": { label: "Queda", d: "M3 7l6 6 4-4 8 8M15 17h6v-6" },
+  exchange: { label: "Câmbio / troca", d: "M7 4L3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7" },
+  deadline: { label: "Prazo", d: "M4 5h16v16H4zM4 10h16M8 3v4M16 3v4M9 15l2 2 4-4" },
+  "checkcircle": { label: "Aprovado (círculo)", d: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM8 12l3 3 5-6" },
+  // Estudo e conteúdo (mais)
+  board: { label: "Aula (quadro)", d: "M3 4h18v12H3zM7 20l3-4M17 20l-3-4M7 8h7M7 11h4" },
+  presentation: { label: "Apresentação", d: "M2 3h20M4 3v11h16V3M12 14v4M8 21l4-3 4 3M8 10l3-3 2 2 3-3" },
+  certificate: { label: "Certificado", d: "M8 16H3V4h18v12h-3.5M7 8h10M7 11h4M15 17a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM13.5 16.5L13 21l2-1 2 1-.5-4.5" },
+  play: { label: "Play", d: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM10 8.5l5 3.5-5 3.5z" },
+  pause: { label: "Pausa", d: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM10 9v6M14 9v6" },
+  headphones: { label: "Fone de ouvido", d: "M3 18v-6a9 9 0 0 1 18 0v6M3 14h4v7H5a2 2 0 0 1-2-2zM21 14h-4v7h2a2 2 0 0 0 2-2z" },
+  mic: { label: "Microfone", d: "M9 5a3 3 0 0 1 6 0v6a3 3 0 0 1-6 0zM5 11a7 7 0 0 0 14 0M12 18v3M8 21h8" },
+  quiz: { label: "Pergunta", d: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17h.01" },
+  notebook: { label: "Caderno", d: "M6 3h13v18H6zM3 7h3M3 12h3M3 17h3M10 8h5" },
+  pen: { label: "Caneta", d: "M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" },
+  highlighter: { label: "Marca-texto", d: "M9 11l-6 6v3h9l3-3M22 12l-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4" },
+  "bookopen": { label: "Livro aberto", d: "M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2zM22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z" },
+  library: { label: "Biblioteca", d: "M4 4h3v16H4zM9 4h3v16H9zM14.5 5l3-.8 3.5 15-3 .8z" },
+  ruler: { label: "Régua", d: "M3 17L17 3l4 4L7 21zM7 13l2 2M10 10l2 2M13 7l2 2" },
+  backpack: { label: "Mochila", d: "M5 10a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v10a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1zM9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M8 21v-5h8v5M8 11h8" },
+  brain: { label: "Cérebro", d: "M12 5a3 3 0 0 0-5.8-1A3 3 0 0 0 4 8.5a3 3 0 0 0 0 5 3 3 0 0 0 2 5.3A3 3 0 0 0 12 19zM12 5a3 3 0 0 1 5.8-1A3 3 0 0 1 20 8.5a3 3 0 0 1 0 5 3 3 0 0 1-2 5.3A3 3 0 0 1 12 19zM12 5v14" },
+  hourglass: { label: "Ampulheta", d: "M6 2h12M6 22h12M7 2v4l5 6 5-6V2M7 22v-4l5-6 5 6v4" },
+  stopwatch: { label: "Cronômetro", d: "M12 22a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM12 10v4l2 2M10 2h4M19 6l1.5-1.5" },
+  captions: { label: "Legendas", d: "M3 5h18v14H3zM7 15h4M13 15h4M7 11h2M11 11h6" },
+  letters: { label: "Letras / idiomas", d: "M3 16l3.5-9 3.5 9M4.3 13h4.4M13 7h3.5a2 2 0 0 1 0 4H13zM13 11h4a2 2 0 0 1 0 4h-4z" },
+  // Negócios e marketing
+  rocket: { label: "Foguete", d: "M4.5 16.5c-1.5 1.3-2 5-2 5s3.7-.5 5-2c.7-.8.7-2.1-.1-2.9a2.2 2.2 0 0 0-2.9-.1zM12 15l-3-3a22 22 0 0 1 2-3.9A12.9 12.9 0 0 1 22 2c0 2.7-.8 7.5-6 11a22.4 22.4 0 0 1-4 2zM9 12H4s.6-3 2-4c1.6-1.1 5 0 5 0M12 15v5s3-.6 4-2c1.1-1.6 0-5 0-5" },
+  megaphone: { label: "Megafone", d: "M3 11l18-5v12L3 14v-3zM11.6 16.8a3 3 0 1 1-5.8-1.6" },
+  handshake: { label: "Aperto de mãos", d: "M11 17l2 2a1 1 0 0 0 3-3M14 14l2.5 2.5a1 1 0 0 0 3-3l-3.9-3.9a3 3 0 0 0-4.2 0l-.9.9a1 1 0 1 1-3-3l2.8-2.8a5.8 5.8 0 0 1 7.1-.9l.5.3a2 2 0 0 0 1.4.3L21 4M21 3l1 11h-2M3 3L2 14l6.5 6.5a1 1 0 0 0 3-3M3 4h8" },
+  cart: { label: "Carrinho", d: "M3 3h2l2.4 12.4a2 2 0 0 0 2 1.6h8.7a2 2 0 0 0 2-1.6L21.5 7H6M9 22a1 1 0 1 0 0-2 1 1 0 0 0 0 2zM18 22a1 1 0 1 0 0-2 1 1 0 0 0 0 2z" },
+  bag: { label: "Sacola", d: "M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0" },
+  tag: { label: "Etiqueta de preço", d: "M12.6 2.6A2 2 0 0 0 11.2 2H4a2 2 0 0 0-2 2v7.2a2 2 0 0 0 .6 1.4l8.7 8.7a2.4 2.4 0 0 0 3.4 0l6.6-6.6a2.4 2.4 0 0 0 0-3.4zM7.5 8a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1z" },
+  discount: { label: "Desconto", d: "M12 2L14.1 4L17 3.3L17.9 6.1L20.7 7L20 9.9L22 12L20 14.1L20.7 17L17.9 17.9L17 20.7L14.1 20L12 22L9.9 20L7 20.7L6.1 17.9L3.3 17L4 14.1L2 12L4 9.9L3.3 7L6.1 6.1L7 3.3L9.9 4zM9 15l6-6M9.5 9.5h.01M14.5 14.5h.01" },
+  funnel: { label: "Funil", d: "M3 4h18l-7 8.5V19l-4 2v-8.5z" },
+  network: { label: "Conexões", d: "M12 9a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM5 20a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM19 20a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM10.8 8.8l-4.6 6.4M13.2 8.8l4.6 6.4M7.5 17.5h9" },
+  org: { label: "Organograma", d: "M9 3h6v5H9zM3 16h6v5H3zM15 16h6v5h-6zM12 8v4M6 16v-4h12v4" },
+  trophy: { label: "Troféu", d: "M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4" },
+  podium: { label: "Pódio", d: "M3 21h18M9 21V9h6v12M3 21v-7h6M15 21v-4h6v4" },
+  diamond: { label: "Diamante", d: "M6 3h12l4 6-10 12L2 9zM2 9h20M10 3L8 9l4 12 4-12-2-6" },
+  crown: { label: "Coroa", d: "M3 7l4.5 4L12 4l4.5 7L21 7l-2 11H5zM5 21h14" },
+  flame: { label: "Fogo", d: "M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.4-.5-2-1-3-1.1-2.1-.2-4.1 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.2.4-2.3 1-3.2.3 1.5 1.2 2.7 2.5 2.7z" },
+  magnet: { label: "Ímã", d: "M6 15l-4-4 6.8-6.8a7.1 7.1 0 0 1 10 10L12 21l-4-4 6.8-6.8a1.4 1.4 0 0 0-2-2zM5 8l4 4M12 15l4 4" },
+  puzzle: { label: "Quebra-cabeça", d: "M4 4h6a2 2 0 1 1 4 0h6v6a2 2 0 1 0 0 4v6h-6a2 2 0 1 0-4 0H4v-6a2 2 0 1 1 0-4z" },
+  growth: { label: "Seta de crescimento", d: "M7 17L17 7M8 7h9v9" },
+  store: { label: "Loja", d: "M3 9l1.5-5h15L21 9M3 9v1a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0V9zM5 13v8h14v-8M10 21v-5h4v5" },
+  package: { label: "Pacote", d: "M12 22l-9-5V7l9-5 9 5v10zM3 7l9 5 9-5M12 12v10M7.5 4.5l9 5" },
+  share: { label: "Compartilhar", d: "M18 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM6 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM18 22a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM8.6 13.5l6.8 4M15.4 6.5l-6.8 4" },
+  infinity: { label: "Ilimitado", d: "M12 12c-2-2.7-4-4-6-4a4 4 0 0 0 0 8c2 0 4-1.3 6-4zm0 0c2 2.7 4 4 6 4a4 4 0 0 0 0-8c-2 0-4 1.3-6 4z" },
+  // Gerais e interface
+  "arrowleft": { label: "Seta para a esquerda", d: "M19 12H5M12 19l-7-7 7-7" },
+  "arrowright": { label: "Seta para a direita", d: "M5 12h14M12 5l7 7-7 7" },
+  "arrowup": { label: "Seta para cima", d: "M12 19V5M5 12l7-7 7 7" },
+  "arrowdown": { label: "Seta para baixo", d: "M12 5v14M19 12l-7 7-7-7" },
+  plus: { label: "Mais", d: "M12 5v14M5 12h14", width: 2.2 },
+  minus: { label: "Menos", d: "M5 12h14", width: 2.2 },
+  home: { label: "Casa", d: "M3 10l9-7 9 7v11h-6v-7H9v7H3z" },
+  gear: { label: "Engrenagem", d: "M10.2 4.8L10.4 2.1L13.6 2.1L13.8 4.8L15.8 5.7L17.9 3.9L20.1 6.1L18.3 8.2L19.2 10.2L21.9 10.4L21.9 13.6L19.2 13.8L18.3 15.8L20.1 17.9L17.9 20.1L15.8 18.3L13.8 19.2L13.6 21.9L10.4 21.9L10.2 19.2L8.2 18.3L6.1 20.1L3.9 17.9L5.7 15.8L4.8 13.8L2.1 13.6L2.1 10.4L4.8 10.2L5.7 8.2L3.9 6.1L6.1 3.9L8.2 5.7zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" },
+  cloud: { label: "Nuvem", d: "M17.5 19H9a7 7 0 1 1 6.7-9h1.8a4.5 4.5 0 1 1 0 9z" },
+  link: { label: "Link", d: "M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7.1l-1.7 1.7M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7.1l1.7-1.7" },
+  external: { label: "Link externo", d: "M15 3h6v6M10 14L21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" },
+  paperclip: { label: "Anexo", d: "M21.4 11.1l-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5" },
+  bell: { label: "Notificação", d: "M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 0 0 3.4 0" },
+  sun: { label: "Sol", d: "M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M6.3 17.7l-1.4 1.4M19.1 4.9l-1.4 1.4" },
+  moon: { label: "Lua", d: "M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z" },
+  sparkles: { label: "Brilho", d: "M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9zM19 15v4M17 17h4M5 3v3M3.5 4.5h3" },
+  grid: { label: "Grade", d: "M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z" },
+  list: { label: "Lista", d: "M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" },
+  edit: { label: "Editar", d: "M11 4H4v16h16v-7M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4z" },
+  trash: { label: "Lixeira", d: "M3 6h18M8 6V4h8v2M19 6l-1 15H6L5 6M10 11v6M14 11v6" },
+  "eyeoff": { label: "Oculto", d: "M9.9 4.2A9.1 9.1 0 0 1 12 4c6 0 10 8 10 8a18 18 0 0 1-2.2 3.2M6.6 6.6C3.9 8.4 2 12 2 12s4 8 10 8a9.7 9.7 0 0 0 5.4-1.6M14.1 14.2a3 3 0 1 1-4.2-4.2M2 2l20 20" },
+  key: { label: "Chave", d: "M7.5 21a5.5 5.5 0 1 0 0-11 5.5 5.5 0 0 0 0 11zM11.4 11.6L21 2M16 7l3 3M18.5 4.5l2 2" },
+  wifi: { label: "Wi-Fi", d: "M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0M2 9a15 15 0 0 1 20 0M12 20h.01" },
+  map: { label: "Mapa", d: "M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15M15 6v15" },
+  camera: { label: "Câmera", d: "M4 7h3l2-3h6l2 3h3a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1zM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" },
+  image: { label: "Imagem", d: "M3 5h18v14H3zM3 16l5-5 4 4 3-3 6 6M15.5 10a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z" },
+  smile: { label: "Sorriso", d: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01" },
+  printer: { label: "Impressora", d: "M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v7H6z" },
+  send: { label: "Enviar", d: "M22 2L11 13M22 2l-7 20-4-9-9-4z" },
+  coffee: { label: "Café", d: "M17 8h1a4 4 0 0 1 0 8h-1M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4zM6 2v3M10 2v3M14 2v3" },
 };
 
 // Ícones das redes sociais (botões de link do autor e bloco "Redes sociais"). Ficam fora de ICONS:
@@ -86,12 +184,23 @@ const NETWORKS = {
 
 // Grupos do seletor de ícones do editor (cada ícone em exatamente um grupo).
 const ICON_GROUPS = [
-  ["Básicos", ["check", "x", "doc", "bolt", "shield", "user", "calc"]],
-  ["Estudo e conteúdo", ["book", "cap", "video", "layers", "clipboard", "folder", "pencil", "bulb", "search", "download", "laptop", "mobile"]],
-  ["Tempo e progresso", ["clock", "calendar", "refresh", "target", "trend", "chart", "pie", "flag"]],
-  ["Contabilidade e dinheiro", ["money", "card", "percent", "receipt", "scale", "building", "briefcase"]],
-  ["Pessoas e contato", ["users", "chat", "mail", "phone", "headset", "globe", "pin"]],
-  ["Confiança e destaque", ["lock", "star", "award", "heart", "thumb", "gift", "eye", "info", "alert"]],
+  ["Básicos", ["check", "x", "doc", "bolt", "shield", "user", "calc", "checkcircle", "plus", "minus",
+    "arrowleft", "arrowright", "arrowup", "arrowdown", "growth"]],
+  ["Estudo e conteúdo", ["book", "bookopen", "cap", "certificate", "board", "presentation", "video", "play", "pause",
+    "headphones", "mic", "captions", "layers", "clipboard", "notebook", "folder", "pencil", "pen", "highlighter",
+    "bulb", "brain", "quiz", "letters", "search", "library", "ruler", "backpack", "download", "laptop", "mobile"]],
+  ["Tempo e progresso", ["clock", "stopwatch", "hourglass", "calendar", "deadline", "refresh", "target", "trend",
+    "trenddown", "chart", "linechart", "pie", "flag"]],
+  ["Contabilidade, tributos e dinheiro", ["money", "coin", "coins", "wallet", "piggy", "card", "percent", "tax",
+    "receipt", "barcode", "sheet", "ledger", "files", "contract", "signature", "stamp", "archive", "exchange",
+    "scale", "bank", "safe", "building", "briefcase"]],
+  ["Negócios e marketing", ["rocket", "megaphone", "handshake", "cart", "bag", "tag", "discount", "store", "package",
+    "funnel", "network", "org", "share", "trophy", "podium", "diamond", "crown", "flame", "magnet", "puzzle", "infinity"]],
+  ["Pessoas e contato", ["users", "chat", "mail", "phone", "headset", "globe", "pin", "send", "smile"]],
+  ["Confiança e destaque", ["lock", "key", "star", "award", "heart", "thumb", "gift", "sparkles", "eye", "eyeoff",
+    "info", "alert", "bell"]],
+  ["Gerais", ["home", "gear", "cloud", "link", "external", "paperclip", "sun", "moon", "grid", "list", "edit", "trash",
+    "wifi", "map", "camera", "image", "printer", "coffee"]],
 ];
 
 const text = (label, max, extra = {}) => ({ type: "text", label, max, ...extra });
@@ -111,6 +220,9 @@ const eyebrow = () => text("Rótulo acima do título", 40, { help: "Opcional. Te
 const intro = () => text("Descrição abaixo do título", 280, { help: "Opcional. Texto curto e centralizado que apresenta a seção." });
 // Fundo da seção. "Automático": o padrão do bloco (claro e cinza se alternam; o Autor é escuro).
 const background = () => choice("Fundo da seção", { auto: "Automático", light: "Claro", soft: "Cinza", dark: "Escuro" }, "auto");
+// Colunas da grade no computador (ex.: 8 itens em 4 colunas = 4×2). No celular é sempre uma coluna.
+const columns = () => choice("Colunas (no computador)", { auto: "Automático", two: "2 colunas", three: "3 colunas", four: "4 colunas" }, "auto",
+  { help: "Ex.: 8 tópicos em 4 colunas formam uma grade 4×2; 6 em 3 colunas, 3×2." });
 
 const BLOCKS = {
   hero: {
@@ -146,6 +258,7 @@ const BLOCKS = {
       title: text("Título da seção", 120),
       intro: intro(),
       items: list("Tópicos", 12, { icon: icon(), title: text("Título", 80), text: textarea("Texto", 300) }, "tópico"),
+      columns: columns(),
       background: background(),
     },
   },
@@ -210,6 +323,7 @@ const BLOCKS = {
       title: text("Título da seção", 120),
       intro: intro(),
       items: list("Perfis", 8, { icon: icon(), text: text("Texto", 60) }, "perfil"),
+      columns: columns(),
       background: background(),
     },
   },
@@ -308,6 +422,19 @@ const BLOCKS = {
   },
 };
 
+// Blocos salvos (aba "Blocos salvos" do painel): qualquer bloco pode ter o conteúdo cadastrado uma
+// vez e usado em várias páginas (ex.: as redes sociais ou a apresentação de um professor). Na página fica só a referência { type, shared: id, ...campos locais };
+// o resto vem do bloco salvo na hora de desenhar (ver resolveShared em pages.js).
+// Valor: campos que continuam sendo de cada página (o fundo combina com os blocos vizinhos).
+// Todo tipo entra; o fundo (quando o tipo tem) continua sendo escolhido em cada página.
+const SHAREABLE = Object.fromEntries(Object.entries(BLOCKS)
+  .map(([type, def]) => [type, Object.hasOwn(def.fields, "background") ? ["background"] : []]));
+
+const pick = (fields, keep) => Object.fromEntries(Object.entries(fields).filter(([name]) => keep(name)));
+// Campos que ficam na página / campos que vêm do bloco salvo.
+const localFields = (type) => pick(BLOCKS[type].fields, (name) => SHAREABLE[type].includes(name));
+const sharedFields = (type) => pick(BLOCKS[type].fields, (name) => !SHAREABLE[type].includes(name));
+
 // Endereço digitado -> endereço seguro para href. Sem esquema: e-mail vira mailto:, o resto https://.
 // Só http, https e mailto (bloqueia javascript:, data: etc.). Devolve null se for inválido.
 function normalizeUrl(value) {
@@ -320,6 +447,8 @@ function normalizeUrl(value) {
   if (parsed.protocol !== "mailto:" && !parsed.hostname) return null;
   return v;
 }
+
+const { plain, canonical } = require("./richtext");
 
 const MAX_BLOCKS = 30;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -343,10 +472,13 @@ function validateFields(input, fields, where) {
     switch (field.type) {
       case "text":
       case "textarea": {
+        // Pode ter formatação (negrito, cor, alinhamento: ver richtext.js). O limite conta só o
+        // texto visível; o limite bruto barra textos inflados de marcações.
         if (value !== undefined && value !== null && typeof value !== "string") throw new ValidationError(`${at}: deve ser texto.`);
         const v = (value || "").trim();
-        if (v.length > field.max) throw new ValidationError(`${at}: máximo de ${field.max} caracteres.`);
-        out[name] = v;
+        if (plain(v).length > field.max) throw new ValidationError(`${at}: máximo de ${field.max} caracteres.`);
+        if (v.length > field.max * 4 + 40) throw new ValidationError(`${at}: formatação demais para o tamanho do texto.`);
+        out[name] = canonical(v);
         break;
       }
       case "url": {
@@ -390,6 +522,27 @@ function validateFields(input, fields, where) {
   return out;
 }
 
+// Referência a um bloco salvo: só o ID e os campos locais (o conteúdo não pode vir junto).
+function validateSharedRef({ type, shared, ...fields }, where) {
+  if (!has(SHAREABLE, type)) throw new ValidationError(`${where}: este tipo de bloco não pode ser um bloco salvo.`);
+  if (typeof shared !== "string" || !UUID.test(shared)) throw new ValidationError(`${where}: bloco salvo inválido.`);
+  return { type, shared: shared.toLowerCase(), ...validateFields(fields, localFields(type), where) };
+}
+
+// Conteúdo de um bloco salvo (aba "Blocos salvos"). Devolve { data } normalizado ou { error }.
+function validateSharedData(type, data) {
+  try {
+    if (!has(SHAREABLE, type)) throw new ValidationError("Tipo de bloco inválido.");
+    return { data: validateFields(data ?? {}, sharedFields(type), BLOCKS[type].label) };
+  } catch (error) {
+    if (error instanceof ValidationError) return { error: error.message };
+    throw error;
+  }
+}
+
+// IDs dos blocos salvos usados numa lista de blocos.
+const sharedIds = (sections) => [...new Set(sections.filter((b) => b.shared).map((b) => b.shared))];
+
 // Valida a lista de blocos inteira. Devolve { sections } normalizado ou { error }.
 function validateSections(sections) {
   try {
@@ -398,7 +551,9 @@ function validateSections(sections) {
     const out = sections.map((block, i) => {
       if (!isObject(block) || !has(BLOCKS, block.type)) throw new ValidationError(`Bloco ${i + 1}: tipo inválido.`);
       const { type, ...fields } = block;
-      return { type, ...validateFields(fields, BLOCKS[type].fields, `Bloco ${i + 1} (${BLOCKS[type].label})`) };
+      const where = `Bloco ${i + 1} (${BLOCKS[type].label})`;
+      if (Object.hasOwn(block, "shared")) return validateSharedRef(block, where);
+      return { type, ...validateFields(fields, BLOCKS[type].fields, where) };
     });
     return { sections: out };
   } catch (error) {
@@ -468,4 +623,7 @@ function defaultSections() {
   ].map((block) => validateSections([block]).sections[0]); // preenche os campos que faltam
 }
 
-module.exports = { ICONS, ICON_GROUPS, NETWORKS, BLOCKS, MAX_BLOCKS, validateSections, validBlocks, mediaIds, defaultSections };
+module.exports = {
+  ICONS, ICON_GROUPS, NETWORKS, BLOCKS, MAX_BLOCKS, SHAREABLE,
+  validateSections, validBlocks, mediaIds, defaultSections, validateSharedData, sharedIds, sharedFields,
+};

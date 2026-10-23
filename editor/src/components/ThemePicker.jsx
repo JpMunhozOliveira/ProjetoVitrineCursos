@@ -30,7 +30,7 @@ export function ThemePicker({ theme }) {
   const isCustom = theme.preset === "custom";
 
   return (
-    <fieldset className="seo theme-picker">
+    <fieldset className="panel-fieldset theme-picker">
       <legend>Cores da página</legend>
       <p className="hint">Fundo das faixas escuras (abertura, oferta final, destaque) e cor do botão de compra. O texto e os tons intermediários são ajustados automaticamente para manter a leitura.</p>
       <div className="theme-options" role="radiogroup" aria-label="Paleta de cores">

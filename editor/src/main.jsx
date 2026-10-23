@@ -4,5 +4,6 @@ import { createRoot } from "react-dom/client";
 import App from "./App.jsx";
 import "./styles/editor.css";
 
-const productId = new URLSearchParams(location.search).get("id");
-createRoot(document.getElementById("editor-root")).render(<App productId={productId} />);
+// pagina.html?id=<produto>: página de vendas do produto. pagina.html?bloco=<id>: um bloco salvo.
+const params = new URLSearchParams(location.search);
+createRoot(document.getElementById("editor-root")).render(<App productId={params.get("id")} sharedId={params.get("bloco")} />);
