@@ -22,7 +22,9 @@ const PAGE_COLUMNS = `id, product_id, sections, theme, published_at, created_at,
 // Dados do produto que a página usa (preço, checkout, título, resumo e marca vêm sempre do cadastro).
 // A marca vem da empresa escolhida no produto (aba Empresas): PRODUCT_FROM junta as duas tabelas.
 // Produto sem empresa usa a empresa padrão (menu, rodapé e ícone da aba; o catálogo não muda).
+// A oferta (offer_*) é resolvida na hora de desenhar (ver lib/offer.js).
 const PRODUCT_COLUMNS = `p.id, p.title, p.slug, p.short_description, p.price_cents, p.checkout_url, p.image_id, p.status,
+  p.offer_price_cents, p.offer_checkout_url, p.offer_ends_at,
   b.name AS brand_name, b.logo_id AS brand_logo_id, b.icon_id AS brand_icon_id`;
 const PRODUCT_FROM = "products p LEFT JOIN brands b ON b.id = COALESCE(p.brand_id, (SELECT id FROM brands WHERE is_default))";
 

@@ -46,10 +46,12 @@
     TEXT_FIELDS.forEach(function (f) { form.elements[f].value = p[f] || ""; });
     // Categoria antiga fora da lista fixa: o seletor fica em "Sem categoria".
     if (form.elements.category.selectedIndex < 0) form.elements.category.value = "";
+    if (form.elements.area.selectedIndex < 0) form.elements.area.value = ""; // idem para a área
     form.elements.featured.checked = !!p.featured;
     form.elements.price.value = priceToInput(p.price_cents);
     cover.show(p.image || null);
     brand.select(p.brand_id || "");
+    offer.setSaved(p); // antes da Kiwify: a lista de links promocionais sai de lá
     kiwify.setSaved(p);
   }
 
@@ -61,6 +63,7 @@
     data.image_id = cover.image ? cover.image.id : null;
     data.brand_id = form.elements.brand_id.value || null;
     Object.assign(data, kiwify.collect());
+    Object.assign(data, offer.collect(data));
     return data;
   }
 
@@ -166,6 +169,7 @@
       var linked = !!prodSel.value;
       lock(linked);
       refresh.hidden = !isSavedChoice();
+      if (offer) offer.refresh(); // a lista de links promocionais acompanha o produto e o link escolhidos
       if (!linked) { info.textContent = ""; return; }
       if (!isSavedChoice()) { info.textContent = "Preço e link virão da Kiwify. Clique em Salvar para aplicar."; return; }
       info.textContent = "Preço e link vindos da Kiwify" + (saved.synced ? ", atualizados em " +
@@ -214,6 +218,7 @@
         prodSel.replaceChildren(option("", "Não vincular (preencher à mão)"));
         links = []; linkSel.replaceChildren(); linkSel.disabled = true;
         lock(false); refresh.hidden = true; info.textContent = "";
+        if (offer) offer.refresh();
         return;
       }
       var keep = saved && saved.brand === b.id ? saved : null;
@@ -251,6 +256,7 @@
         var p = await Admin.api("/products/" + encodeURIComponent(id) + "/kiwify-sync", { method: "POST" });
         form.elements.price.value = priceToInput(p.price_cents);
         form.elements.checkout_url.value = p.checkout_url || "";
+        offer.syncFrom(p);
         saved.synced = p.kiwify_synced_at; saved.error = p.kiwify_sync_error;
         updateInfo();
         Admin.showMessage(kmsg, "Preço e link atualizados: " + Admin.formatPrice(p.price_cents) + ".", "success");
@@ -271,6 +277,9 @@
         draw();
       },
       brandChanged: draw,
+      links: function () { return links; },          // links do produto escolhido (com preço)
+      linkId: function () { return linkSel.value; }, // link normal escolhido
+      visible: function () { return !box.hidden; },  // seletor da Kiwify na tela?
       // Seletor visível: o que está escolhido. Oculto (empresa sem conta conectada): mantém o vínculo
       // gravado se a empresa é a mesma (o site guarda o último preço/link); trocou de empresa: desfaz.
       collect: function () {
@@ -280,6 +289,112 @@
         }
         var keep = saved && saved.brand === form.elements.brand_id.value;
         return { kiwify_product_id: keep ? saved.product : null, kiwify_link_id: keep ? saved.link : null };
+      }
+    };
+  })();
+
+  /* ---------- Oferta: preço "de/por" e cronômetro na página de vendas ----------
+     Com Kiwify, escolhe-se outro link do mesmo produto (com preço menor): preço e link da oferta
+     ficam travados, como os normais. Sem Kiwify, são digitados. O fim é em horário de Brasília
+     (UTC−3 o ano todo: o Brasil não tem horário de verão desde 2019). */
+  var offer = (function () {
+    var sel = $("offer_link"), kbox = $("offer-kiwify"), info = $("offer-info");
+    var priceIn = form.elements.offer_price, urlIn = form.elements.offer_checkout_url, endsIn = form.elements.offer_ends_at;
+    var savedLink = null; // link promocional gravado
+
+    function option(value, text) {
+      var o = document.createElement("option");
+      o.value = value; o.textContent = text;
+      return o;
+    }
+    // "2026-10-25T23:59" (campo) <-> ISO com fuso de Brasília.
+    function toIso(local) { return local ? local + ":00-03:00" : null; }
+    function fromIso(iso) {
+      if (!iso) return "";
+      return new Date(Date.parse(iso) - 3 * 3600 * 1000).toISOString().slice(0, 16);
+    }
+    var kiwifyOn = function () { return !!kiwify.collect().kiwify_product_id; };
+
+    // Preço e link da oferta a partir do link promocional escolhido.
+    function applyLink() {
+      if (!kiwifyOn() || !kiwify.visible()) return preview();
+      var l = kiwify.links().find(function (x) { return x.id === sel.value; });
+      if (l) { priceIn.value = priceToInput(l.price_cents); urlIn.value = l.checkout_url; }
+      else if (!sel.value) { priceIn.value = ""; urlIn.value = ""; }
+      preview();
+    }
+
+    // Monta a lista de links promocionais (todos os links do produto, menos o normal).
+    function refresh() {
+      var on = kiwifyOn();
+      priceIn.readOnly = urlIn.readOnly = on;
+      kbox.hidden = !(on && kiwify.visible());
+      if (kbox.hidden) return preview();
+      var keep = sel.value; // escolha atual (ao abrir, a gravada: ver setSaved)
+      var list = kiwify.links().filter(function (l) { return l.id !== kiwify.linkId(); });
+      sel.replaceChildren.apply(sel, [option("", "Sem oferta")].concat(list.map(function (l) {
+        return option(l.id, l.name + " — " + Admin.formatPrice(l.price_cents) + (l.status === "active" ? "" : " (desativado)"));
+      })));
+      // Link gravado que sumiu da lista (desativado na Kiwify): continua escolhido, com aviso no nome.
+      var missing = keep && keep === savedLink && keep !== kiwify.linkId() && !list.some(function (l) { return l.id === keep; });
+      if (missing) sel.append(option(keep, "Link vinculado (" + keep + ")"));
+      sel.value = keep;
+      if (sel.selectedIndex < 0) sel.value = ""; // a escolha não existe mais: "Sem oferta"
+      applyLink();
+    }
+
+    // Resumo do que a página vai mostrar (e avisos de oferta que não aparece).
+    function preview() {
+      var price = parsePrice(form.elements.price.value), op = parsePrice(priceIn.value), ends = toIso(endsIn.value);
+      if (op === null && !urlIn.value) return Admin.showMessage(info, "Sem oferta: a página mostra o preço normal.");
+      if (Number.isNaN(op)) return Admin.showMessage(info, "Use o formato 97,00 no preço da oferta.", "error");
+      if (op === null || !urlIn.value) return Admin.showMessage(info, "Preencha o preço e o link da oferta.", "error");
+      if (typeof price === "number" && op >= price) {
+        return Admin.showMessage(info, "O preço da oferta precisa ser menor que o preço normal (" + Admin.formatPrice(price) + ").", "error");
+      }
+      if (ends && Date.parse(ends) <= Date.now()) return Admin.showMessage(info, "O prazo já passou: a página mostra o preço normal.", "error");
+      var when = ends ? new Date(ends).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "short", timeStyle: "short" }) : "";
+      Admin.showMessage(info, "Na página: " + (typeof price === "number" ? "de " + Admin.formatPrice(price) + " " : "") +
+        "por " + Admin.formatPrice(op) + (ends ? ", com cronômetro até " + when + "." : ", sem prazo."), "success");
+    }
+
+    sel.addEventListener("change", applyLink);
+    [priceIn, urlIn, endsIn, form.elements.price].forEach(function (input) { input.addEventListener("input", preview); });
+    $("offer-clear").addEventListener("click", function () {
+      sel.value = "";
+      priceIn.value = ""; urlIn.value = ""; endsIn.value = "";
+      dirty = true;
+      preview();
+      Admin.showMessage(info, "Oferta removida. Clique em Salvar para aplicar.");
+    });
+
+    return {
+      setSaved: function (p) {
+        savedLink = p.offer_kiwify_link_id || null;
+        sel.replaceChildren(option("", "Sem oferta"));
+        if (savedLink) { sel.append(option(savedLink, "Carregando…")); sel.value = savedLink; }
+        priceIn.value = priceToInput(p.offer_price_cents);
+        urlIn.value = p.offer_checkout_url || "";
+        endsIn.value = fromIso(p.offer_ends_at);
+        preview();
+      },
+      refresh: refresh,
+      // Depois do "Atualizar agora": preço e link da oferta como a Kiwify devolveu.
+      syncFrom: function (p) {
+        priceIn.value = priceToInput(p.offer_price_cents);
+        urlIn.value = p.offer_checkout_url || "";
+        preview();
+      },
+      // Com Kiwify vai só o link promocional (o servidor busca preço e link); sem, os campos digitados.
+      collect: function (data) {
+        var ends = toIso(endsIn.value);
+        if (data.kiwify_product_id) {
+          return { offer_kiwify_link_id: kiwify.visible() ? sel.value || null : savedLink, offer_ends_at: ends };
+        }
+        return {
+          offer_kiwify_link_id: null, offer_price_cents: parsePrice(priceIn.value),
+          offer_checkout_url: urlIn.value, offer_ends_at: ends
+        };
       }
     };
   })();
@@ -359,6 +474,7 @@
     slugTouched = form.elements.slug.value !== ""; // apagou tudo? volta a acompanhar o título
   });
   form.elements.price.addEventListener("input", function () { form.elements.price.setCustomValidity(""); });
+  form.elements.offer_price.addEventListener("input", function () { form.elements.offer_price.setCustomValidity(""); });
   // Explica a situação escolhida e avisa quando ela ainda não foi gravada.
   function updateStatusHint() {
     var chosen = form.elements.status.value;
@@ -381,6 +497,9 @@
     var data = collect();
     if (Number.isNaN(data.price_cents)) {
       form.elements.price.setCustomValidity("Use o formato 197,00 (ou deixe vazio para ocultar o preço).");
+    }
+    if (Number.isNaN(data.offer_price_cents)) {
+      form.elements.offer_price.setCustomValidity("Use o formato 97,00 (ou deixe vazio para não ter oferta).");
     }
     if (!form.reportValidity()) return; // validação do navegador: obrigatórios, tamanhos e formatos
 
@@ -412,16 +531,12 @@
     }
   });
 
-  // Sugestões do campo Área: as áreas já usadas em outros produtos (evita "Gestão" e "gestao").
+  // Opções do campo Área: a lista fixa do servidor (server/lib/areas.js).
   async function loadAreas() {
-    var seen = {};
-    (await Admin.api("/products")).forEach(function (p) {
-      var a = (p.area || "").trim();
-      if (a && !seen[a.toLowerCase()]) seen[a.toLowerCase()] = a;
+    var select = form.elements.area;
+    (await Admin.api("/products/areas")).forEach(function (a) {
+      var o = document.createElement("option"); o.value = a; o.textContent = a; select.append(o);
     });
-    var list = $("area-options");
-    Object.keys(seen).map(function (k) { return seen[k]; }).sort(function (a, b) { return a.localeCompare(b, "pt-BR"); })
-      .forEach(function (a) { var o = document.createElement("option"); o.value = a; list.append(o); });
   }
 
   // Carregamento inicial: a mensagem fica fora do formulário, que só aparece se tudo der certo.

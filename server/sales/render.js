@@ -6,6 +6,7 @@ const { normalizeTheme, themeHref, DEFAULT_THEME } = require("./theme");
 const { toHtml, paragraphsHtml, alignOf } = require("./richtext");
 const { assetUrl } = require("../lib/assets"); // ?v= nos CSS/JS: cache longo no navegador
 const { headerAttrs } = require("../lib/site-brand");
+const { effectiveOffer, formatEnd } = require("../lib/offer");
 
 // Largura em que cada tipo de imagem aparece na tela (atributo sizes; ver venda.css). Com isso e
 // o srcset, o navegador baixa a menor versão que fica nítida naquela tela.
@@ -203,9 +204,23 @@ function createContext(data, { live = false } = {}) {
       const text = ctx.live ? html`<span${ctx.field(path, label, { fallback: true })}>${label || fallback}</span>` : inline(label) || fallback;
       return html`<a class="btn-cta" href="${data.checkout_url}" target="_blank" rel="noopener noreferrer">${icon && svg(icon, "cta-ico")}${text}<span class="sr-only"> (abre em nova aba)</span></a>`;
     },
+    // Preço que vale agora. Com oferta ativa: "de R$ X por R$ Y" e, com prazo, o cronômetro.
     price(label, path) {
       if (data.price_cents === null || data.price_cents === undefined) return null;
-      return html`<p class="price-big">${ctx.show(label) && html`<span class="muted-on-dark"${ctx.field(path, label)}>${label}</span>`} ${brl(data.price_cents)}</p>`;
+      return html`<p class="price-big">${ctx.show(label) && html`<span class="muted-on-dark"${ctx.field(path, label)}>${label}</span>`} ${ctx.amount()}</p>${ctx.timer()}`;
+    },
+    amount() {
+      const was = data.offer.compare_cents;
+      if (was === null || was === undefined) return brl(data.price_cents);
+      return html`<s class="price-was"><span class="sr-only">De </span>${brl(was)}</s> <span class="sr-only">por </span>${brl(data.price_cents)}`;
+    },
+    // Cronômetro da oferta: o texto com a data já vem pronto (funciona sem JavaScript); venda.js
+    // acrescenta a contagem e recarrega a página quando o prazo acaba. data-now: horário do servidor
+    // (corrige relógio errado no aparelho do visitante).
+    timer() {
+      const ends = data.offer.ends_at;
+      if (!ends) return null;
+      return html`<p class="offer-timer" data-ends-at="${ends}" data-now="${new Date(data.now).toISOString()}">${svg("stopwatch", "offer-timer-ico")}<span>Oferta válida até ${formatEnd(ends)}</span><span class="offer-timer-count" data-countdown hidden></span></p>`;
     },
     // Rótulo curto em caixa alta acima do título (opcional).
     eyebrow: (b) => ctx.show(b.eyebrow) && html`<p class="v-eyebrow"${ctx.field("eyebrow", b.eyebrow)}>${b.eyebrow}</p>`,
@@ -342,10 +357,10 @@ const RENDERERS = {
   // Faixa compacta de compra no meio da página: texto à esquerda, preço e botão à direita.
   cta(b, ctx) {
     const price = ctx.product.price_cents === null || ctx.product.price_cents === undefined ? null
-      : html`<span class="v-strip-price">${brl(ctx.product.price_cents)}</span>`;
+      : html`<span class="v-strip-price">${ctx.amount()}</span>`;
     return html`<section class="v-strip" aria-label="Chamada para compra"${ctx.mark()}><div class="container v-strip-row">
   <div>${ctx.eyebrow(b)}${ctx.show(b.title) && html`<p class="v-strip-text"${ctx.field("title", b.title)}>${b.title}</p>`}</div>
-  <div class="v-strip-action">${price}${ctx.cta(b.cta_label, "Quero garantir", "cta_label")}</div>
+  <div class="v-strip-action">${price}${ctx.cta(b.cta_label, "Quero garantir", "cta_label")}${price && ctx.timer()}</div>
 </div></section>`;
   },
 
@@ -443,8 +458,14 @@ function themeLink(stored) {
 
 // data: resultado de loadForRender. options:
 //   preview: false (público) | true (pré-visualização salva, com faixa) | "live" (dentro do editor, sem faixa)
-function renderSalesPage(data, { baseUrl, preview = false }) {
+//   now: horário usado para decidir se a oferta vale (padrão: agora; os testes passam outro).
+function renderSalesPage(product, { baseUrl, preview = false, now = Date.now() }) {
   const live = preview === "live";
+  // Preço e link que valem agora: os da oferta (se ativa) ou os normais. Nada da oferta encerrada
+  // (nem o link promocional) chega à página.
+  const offer = effectiveOffer(product, now);
+  const { offer_price_cents: _p, offer_checkout_url: _u, offer_ends_at: _e, ...rest } = product;
+  const data = { ...rest, price_cents: offer.price_cents, checkout_url: offer.checkout_url, offer, now };
   const ctx = createContext(data, { live });
   // Blocos inválidos são ignorados um a um; index (posição original) liga a seção ao bloco do editor.
   const body = validBlocks(data.sections).map(({ block, index }) => {

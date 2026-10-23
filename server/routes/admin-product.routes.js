@@ -7,6 +7,7 @@ const {
   updateProduct,
   deleteProduct,
   syncKiwifyProduct,
+  listAreas,
 } = require("../controllers/product.controller");
 
 const { getAdminSalesPage, saveAdminSalesPage, publishAdminSalesPage, previewAdminSalesPage } = require("../controllers/sales-page.controller");
@@ -15,6 +16,7 @@ const router = express.Router();
 
 router.use(adminAuth);
 router.get("/", listAdminProducts);
+router.get("/areas", listAreas); // antes de "/:id"
 router.get("/:id", getAdminProduct);
 router.post("/", createProduct);
 router.patch("/:id", updateProduct);

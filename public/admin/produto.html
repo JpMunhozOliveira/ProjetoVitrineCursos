@@ -79,10 +79,10 @@
           </div>
           <div class="field">
             <label for="area">Área de conhecimento</label>
-            <input id="area" name="area" maxlength="60" list="area-options" autocomplete="off" aria-describedby="area-help"
-              placeholder="Ex.: Contabilidade, Tributário, Gestão">
-            <datalist id="area-options"></datalist>
-            <p id="area-help" class="hint">A página inicial mostra as áreas com produtos publicados, e o catálogo filtra por elas. Escreva igual nos produtos da mesma área (as já usadas aparecem como sugestão).</p>
+            <select id="area" name="area" aria-describedby="area-help">
+              <option value="">Sem área</option>
+            </select>
+            <p id="area-help" class="hint">A página inicial mostra as áreas com produtos publicados, e o catálogo filtra por elas.</p>
           </div>
           <div class="field check">
             <input id="featured" name="featured" type="checkbox">
@@ -172,6 +172,37 @@
                 title="O link deve começar com https://" placeholder="https://pay.kiwify.com.br/..." spellcheck="false">
             </div>
           </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Oferta</legend>
+          <p class="hint">Preço promocional com “de/por” na página de vendas e no catálogo. Com data de fim, aparece um cronômetro; quando o prazo acaba, o site volta sozinho ao preço e ao link normais.</p>
+          <div id="offer-kiwify" class="field" hidden>
+            <label for="offer_link">Link promocional na Kiwify</label>
+            <select id="offer_link" aria-describedby="offer-link-help">
+              <option value="">Sem oferta</option>
+            </select>
+            <p id="offer-link-help" class="hint">Crie na Kiwify um link de checkout com o preço promocional e escolha-o aqui.</p>
+          </div>
+          <div class="grid-2">
+            <div class="field">
+              <label for="offer_price">Preço da oferta (R$)</label>
+              <input id="offer_price" name="offer_price" inputmode="decimal" maxlength="15" placeholder="97,00">
+            </div>
+            <div class="field">
+              <label for="offer_checkout_url">Link de checkout da oferta</label>
+              <input id="offer_checkout_url" name="offer_checkout_url" type="url" maxlength="2048" pattern="https://.+"
+                title="O link deve começar com https://" placeholder="https://pay.kiwify.com.br/..." spellcheck="false">
+            </div>
+          </div>
+          <div class="field">
+            <label for="offer_ends_at">Fim da oferta</label>
+            <input id="offer_ends_at" name="offer_ends_at" type="datetime-local" aria-describedby="offer-ends-help">
+            <p id="offer-ends-help" class="hint">Horário de Brasília. Deixe vazio para uma oferta sem prazo (sem cronômetro).</p>
+          </div>
+          <p id="offer-info" class="msg" role="status" aria-live="polite"></p>
+          <p><button id="offer-clear" class="btn btn-sm btn-outline" type="button">Encerrar oferta</button></p>
+          <p class="hint">Atenção: o fim do prazo só muda o site. O link promocional continua funcionando na Kiwify para quem já o tiver guardado; desative-o lá se quiser bloquear a compra com desconto.</p>
         </fieldset>
 
         <div class="form-actions">

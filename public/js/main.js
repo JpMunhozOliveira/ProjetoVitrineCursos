@@ -16,6 +16,16 @@
     return typeof p === "number" ? p.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : null;
   };
 
+  // Preço do cartão e da página de detalhes: com oferta, "de R$ X" riscado antes do preço atual.
+  function priceEl(c) {
+    if (!brl(c.preco)) return "";
+    if (!brl(c.precoDe)) return el("p", { "class": "price", text: brl(c.preco) });
+    return el("p", { "class": "price" }, [
+      el("s", { "class": "price-was" }, [el("span", { "class": "sr-only", text: "De " }), brl(c.precoDe)]),
+      el("span", { "class": "sr-only", text: " por " }), " " + brl(c.preco)
+    ]);
+  }
+
   // Produtos vêm da API (cadastrados no painel). Esta função converte o formato da API para o
   // formato que o restante deste arquivo já usava — assim os cartões, filtros e detalhes não mudam.
   function fromApi(p) {
@@ -37,6 +47,8 @@
       marca: p.brand_logo ? { url: p.brand_logo.url, alt: p.brand_name ? "" : p.brand_logo.alt_text || "",
         width: p.brand_logo.width || 1, height: p.brand_logo.height || 1 } : null,
       preco: p.price_cents === null || p.price_cents === undefined ? null : p.price_cents / 100,
+      // Com oferta ativa (cadastro do produto), o preço normal vem em compare_price_cents ("de").
+      precoDe: typeof p.compare_price_cents === "number" ? p.compare_price_cents / 100 : null,
       checkoutUrl: p.checkout_url || "",
       // Com página de vendas publicada, o cartão leva direto para ela.
       pagina: p.has_sales_page ? "/p/" + encodeURIComponent(p.slug) : null,
@@ -127,7 +139,7 @@
         el("h3", { text: c.titulo }),
         el("p", { "class": "muted", text: c.resumo }),
         el("div", { "class": "card-foot" }, [
-          brl(c.preco) ? el("p", { "class": "price", text: brl(c.preco) }) : "",
+          priceEl(c),
           el("a", { "class": "card-link", href: href, "aria-label": "Ver detalhes: " + c.titulo, text: "Ver detalhes" })
         ])
       ]);
@@ -289,7 +301,7 @@
     ]);
     var aside = el("aside", { "class": "buy-box", "aria-label": "Compra" }, [
       cover(c, "detail"),
-      brl(c.preco) ? el("p", { "class": "price", text: brl(c.preco) }) : "",
+      priceEl(c),
       buyButton(c),
       el("p", { "class": "muted", text: "O pagamento e o acesso são feitos pela Kiwify." })
     ]);

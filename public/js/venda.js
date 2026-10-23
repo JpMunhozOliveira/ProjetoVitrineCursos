@@ -250,3 +250,41 @@
     observer.observe(el);
   });
 })();
+
+// Cronômetro da oferta (<p class="offer-timer" data-ends-at>, ver server/sales/render.js).
+// O servidor decide se a oferta vale; aqui só a contagem. data-now (horário do servidor) corrige o
+// relógio do aparelho. No fim do prazo a página recarrega uma vez e já vem com o preço normal.
+(function () {
+  "use strict";
+  var timers = [].slice.call(document.querySelectorAll(".offer-timer[data-ends-at]"));
+  if (!timers.length) return;
+  var editing = document.documentElement.hasAttribute("data-editor");
+  var first = timers[0];
+  var ends = Date.parse(first.getAttribute("data-ends-at"));
+  var serverNow = Date.parse(first.getAttribute("data-now"));
+  var skew = Number.isFinite(serverNow) ? serverNow - Date.now() : 0;
+  if (!Number.isFinite(ends)) return;
+  var counts = timers.map(function (t) {
+    var c = t.querySelector("[data-countdown]");
+    c.hidden = false;
+    c.setAttribute("aria-hidden", "true"); // a data por extenso, ao lado, já informa o leitor de tela
+    return c;
+  });
+  var pad = function (n) { return String(n).padStart(2, "0"); };
+  var interval;
+
+  function tick() {
+    var left = Math.max(0, Math.floor((ends - (Date.now() + skew)) / 1000));
+    var days = Math.floor(left / 86400), rest = left % 86400;
+    var text = (days ? days + (days === 1 ? " dia " : " dias ") : "") +
+      pad(Math.floor(rest / 3600)) + ":" + pad(Math.floor(rest % 3600 / 60)) + ":" + pad(rest % 60);
+    counts.forEach(function (c) { c.textContent = "Termina em " + text; });
+    if (left > 0) return;
+    clearInterval(interval);
+    counts.forEach(function (c) { c.textContent = "Oferta encerrada"; });
+    // Recarrega uma única vez (1,5 s de folga para o servidor também ver o prazo vencido).
+    if (!editing) setTimeout(function () { location.reload(); }, 1500);
+  }
+  tick();
+  interval = setInterval(tick, 1000);
+})();

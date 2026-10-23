@@ -996,6 +996,13 @@ html[data-editor] .to-top {
   font-size: 1.2rem;
   letter-spacing: -0.02em;
 }
+/* Oferta: preço normal riscado antes do preço atual (cartão e detalhes do catálogo). */
+.price > .price-was {
+  margin-right: 0.15em;
+  font-size: 0.75em;
+  font-weight: 500;
+  color: var(--color-muted);
+}
 /* "Ver detalhes": botão cheio na cor de destaque (mesmo estilo do botão de compra, menor). */
 .card-link {
   display: inline-flex;
