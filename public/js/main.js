@@ -37,6 +37,7 @@
       area: (p.area || "").trim(),
       criado: p.created_at ? new Date(p.created_at).getTime() : 0,
       destaque: !!p.featured,
+      selo: p.card_badge || "available", // available | last_chance | new | none
       imagem: p.image ? p.image.url : null,
       imagemAlt: p.image ? p.image.alt_text || "" : "",
       imagemSrcset: p.image ? p.image.srcset || null : null,
@@ -76,6 +77,13 @@
     document.title = S.nome + " — " + S.slogan;
     var md = document.querySelector('meta[name="description"]');
     if (md && S.descricao) md.setAttribute("content", S.descricao);
+    // Parte do slogan em laranja no título (site.js: sloganDestaque). Montado sem HTML.
+    var h1 = document.getElementById("t-inicio"), hl = S.sloganDestaque || "";
+    var at = h1 && hl ? (S.slogan || "").indexOf(hl) : -1;
+    if (at >= 0) {
+      h1.textContent = "";
+      h1.append(S.slogan.slice(0, at), el("span", { "class": "hl", text: hl }), S.slogan.slice(at + hl.length));
+    }
   }
 
   // Foto do professor
@@ -93,7 +101,8 @@
   // com o srcset, o navegador baixa a menor versão que fica nítida.
   var COVER_SIZES = {
     card: "(min-width: 1100px) 270px, (min-width: 540px) 50vw, calc(100vw - 2rem)",
-    detail: "(min-width: 900px) 400px, calc(100vw - 2rem)"
+    detail: "(min-width: 900px) 400px, calc(100vw - 2rem)",
+    hero: "(min-width: 860px) 360px, 70vw"
   };
   function cover(c, where) {
     var box = el("div", { "class": "cover" });
@@ -119,6 +128,18 @@
     for (var i = 0; i < n; i++) target.append(el("div", { "class": "skeleton-card", "aria-hidden": "true" }));
   }
 
+  // Selo ao lado do preço, escolhido no painel (Editar produto > Selo no cartão).
+  function badgeEl(kind) {
+    if (kind === "none") return "";
+    if (kind === "new") {
+      return el("span", { "class": "card-badge is-new" }, [el("span", { "aria-hidden": "true", text: "✦" }), " Novidade"]);
+    }
+    if (kind === "last_chance") {
+      return el("span", { "class": "card-badge is-urgent" }, [el("span", { "aria-hidden": "true", text: "⏳" }), " Última chance"]);
+    }
+    return el("span", { "class": "card-badge" }, [el("span", { "aria-hidden": "true", text: "✓" }), " Acesso imediato"]);
+  }
+
   function renderCards(target, list) {
     target.removeAttribute("aria-busy");
     target.textContent = "";
@@ -130,23 +151,32 @@
       // Página de vendas publicada = destino principal; sem ela, a página de detalhes.
       var href = c.pagina || ("/produto.html?id=" + encodeURIComponent(c.id));
       var body = el("div", { "class": "card-body" }, [
-        c.empresa ? el("p", { "class": "card-by" }, ["Por ", el("strong", { text: c.empresa })]) : "",
+        // A etiqueta "Destaque" fica na capa, que é escondida dos leitores de tela; aqui vai o aviso para eles.
+        c.destaque ? el("span", { "class": "sr-only", text: "Em destaque." }) : "",
+        // A empresa aparece só pelo logo, ao lado da categoria (o logo leva o nome dela no alt).
         c.categoria || c.marca ? el("div", { "class": "card-meta" }, [
-          c.marca ? el("img", { "class": "card-brand", src: c.marca.url, alt: c.marca.alt,
+          c.marca ? el("img", { "class": "card-brand", src: c.marca.url, alt: c.empresa || c.marca.alt,
             width: c.marca.width, height: c.marca.height, loading: "lazy" }) : "",
           c.categoria ? el("p", { "class": "eyebrow", text: c.categoria }) : ""
         ]) : "",
         el("h3", { text: c.titulo }),
         el("p", { "class": "muted", text: c.resumo }),
+        // Rodapé: preço e selo na mesma linha; embaixo, "Ver detalhes" na largura do cartão.
         el("div", { "class": "card-foot" }, [
-          priceEl(c),
+          el("div", { "class": "card-price-row" }, [
+            priceEl(c),
+            badgeEl(c.selo)
+          ]),
           el("a", { "class": "card-link", href: href, "aria-label": "Ver detalhes: " + c.titulo, text: "Ver detalhes" })
         ])
       ]);
       // A imagem também leva ao produto. Fica fora da ordem do Tab e dos leitores de tela:
       // o link "Ver detalhes" já é o caminho acessível (evita dois links iguais em sequência).
-      var coverLink = el("a", { "class": "card-cover", href: href, tabindex: "-1", "aria-hidden": "true" }, [cover(c)]);
-      target.append(el("article", { "class": "card" }, [coverLink, body]));
+      var coverLink = el("a", { "class": "card-cover", href: href, tabindex: "-1", "aria-hidden": "true" }, [
+        cover(c),
+        c.destaque ? el("span", { "class": "card-flag" }, [el("span", { "aria-hidden": "true", text: "★" }), " Destaque"]) : ""
+      ]);
+      target.append(el("article", { "class": c.destaque ? "card card-featured" : "card" }, [coverLink, body]));
     });
   }
   
@@ -172,6 +202,7 @@
       if (all && C.length <= shown.length) all.hidden = true;
       renderAreas(C);
       renderNews(C, shown);
+      renderHeroCovers(C);
       return;
     }
 
@@ -255,6 +286,27 @@
       ])]));
     });
     section.hidden = false;
+  }
+
+  // Página inicial: composição de capas em 3D à direita do título (até 4, destaques primeiro).
+  // Com menos de 2 capas não aparece e o texto ocupa a largura toda.
+  function renderHeroCovers(C) {
+    var box = document.getElementById("hero-covers");
+    if (!box) return;
+    var withCover = C.filter(function (c) { return c.imagem; });
+    var list = withCover.filter(function (c) { return c.destaque; })
+      .concat(withCover.filter(function (c) { return !c.destaque; })).slice(0, 4);
+    if (list.length < 2) { box.parentNode.classList.add("no-covers"); return; }
+    list.forEach(function (c) {
+      var href = c.pagina || ("/produto.html?id=" + encodeURIComponent(c.id));
+      var img = cover(c, "hero").querySelector("img");
+      img.alt = "";
+      img.removeAttribute("loading"); // está no topo da página: carrega logo
+      img.decoding = "async";
+      box.append(el("a", { "class": "hero-cover", href: href, tabindex: "-1" }, [img]));
+    });
+    box.dataset.count = list.length;
+    box.hidden = false;
   }
 
   // Página inicial: novidades = publicados nos últimos 60 dias que não aparecem nos destaques.

@@ -84,6 +84,15 @@
             <input id="featured" name="featured" type="checkbox">
             <label for="featured">Destaque na página inicial</label>
           </div>
+          <div class="field">
+            <div class="label-row"><label for="card_badge">Selo no cartão</label><span class="info-pop info-sm"><button class="info-btn" type="button" aria-label="Sobre o selo no cartão" aria-describedby="card-badge-help" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></button><span id="card-badge-help" class="info-text" role="tooltip">Aparece ao lado do preço no catálogo e na página inicial. Use “Novidade” (em dourado) nos lançamentos e “Última chance” (em vermelho) quando as vendas estiverem perto de acabar.</span></span></div>
+            <select id="card_badge" name="card_badge" aria-describedby="card-badge-help">
+              <option value="available">Acesso imediato (verde)</option>
+              <option value="last_chance">Última chance (vermelho)</option>
+              <option value="new">Novidade (dourado)</option>
+              <option value="none">Sem selo</option>
+            </select>
+          </div>
         </fieldset>
 
         <fieldset>
