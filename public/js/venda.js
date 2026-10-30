@@ -7,24 +7,6 @@
   // Dentro do editor do painel (<html data-editor>) a página é só uma prévia editável.
   var editing = document.documentElement.hasAttribute("data-editor");
 
-  // Botão "voltar": quem veio de outra página do site volta para ela (mantém filtros e rolagem
-  // do catálogo); quem abriu o link direto (anúncio, WhatsApp...) segue o href, o catálogo.
-  var back = document.querySelector("[data-back]");
-  if (back) {
-    back.addEventListener("click", function (event) {
-      var fromSite = false;
-      try { fromSite = !!document.referrer && new URL(document.referrer).origin === location.origin; } catch (e) {}
-      if (fromSite && history.length > 1) {
-        event.preventDefault();
-        history.back();
-      }
-    });
-    // Depois de rolar, vira só a seta (cobre menos o conteúdo).
-    var compact = function () { back.classList.toggle("is-compact", window.scrollY > 120); };
-    window.addEventListener("scroll", compact, { passive: true });
-    compact();
-  }
-
   function setup(root) {
     var track = root.querySelector(".track"),
       dots = root.querySelector(".dots");

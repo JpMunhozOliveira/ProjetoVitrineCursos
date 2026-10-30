@@ -412,10 +412,8 @@ test("ícone da aba: o da empresa, senão o logo dela, senão o do site", () => 
   assert.match(page({}), /<link rel="icon" type="image\/png" href="\/assets\/favicon\/favicon.png">/);
 });
 
-test("botão voltar: na página pública aponta para o catálogo; fora do editor ao vivo", () => {
-  assert.match(render(defaultSections(), false), /<a class="v-back" href="\/catalogo.html" data-back>/);
-  assert.match(render(defaultSections(), true), /class="v-back"/);
-  assert.doesNotMatch(render(defaultSections(), "live"), /class="v-back"/);
+test("página de vendas sem botão voltar (navegação enxuta)", () => {
+  for (const mode of [false, true, "live"]) assert.doesNotMatch(render(defaultSections(), mode), /v-back|data-back/);
 });
 
 test("grades: colunas escolhidas viram classe; automático não leva classe", () => {

@@ -54,6 +54,13 @@
   } : null;
 
   mount("site-header", HEADER);
+
+  // Página de vendas: menu enxuto (sem "Início") para manter a pessoa na oferta;
+  // ficam Catálogo, Sobre e Contato.
+  if (document.body.dataset.page === "venda") {
+    var home = document.querySelector('#nav a[href="/index.html"]');
+    if (home) home.parentNode.remove();
+  }
   mount("site-footer", FOOTER);
 
   if (brand) {

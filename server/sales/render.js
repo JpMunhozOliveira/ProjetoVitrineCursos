@@ -537,7 +537,6 @@ function renderSalesPage(product, { baseUrl, preview = false, now = Date.now() }
   ${preview === true && html`<div class="preview-banner" role="status"><strong>Pré-visualização do rascunho salvo.</strong> ${data.published_at && data.status === "published" ? "O público vê a última versão publicada; publique no editor para levar estas alterações ao ar." : "Esta página ainda não está visível para o público."}</div>`}
   ${SPRITE}
   <div id="site-header"${brandAttrs(data)}></div>
-  ${!live && html`<a class="v-back" href="/catalogo.html" data-back>${svg("arrowleft", "v-back-ico")}<span class="v-back-text">Voltar</span></a>`}
   <main id="conteudo" class="venda">
 ${body}
   </main>
