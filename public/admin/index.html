@@ -78,8 +78,7 @@
         </section>
 
         <section class="dash-card" aria-labelledby="t-produtos">
-          <h2 id="t-produtos">Produtos</h2>
-          <p class="hint">Quantas pessoas viram cada produto, quantas clicaram em comprar e quantas compraram.</p>
+          <div class="title-row"><h2 id="t-produtos">Produtos</h2><span class="info-pop info-sm"><button class="info-btn" type="button" aria-label="Sobre a tabela de produtos" aria-describedby="i-produtos" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></button><span id="i-produtos" class="info-text" role="tooltip">Quantas pessoas viram cada produto, quantas clicaram em comprar e quantas compraram.</span></span></div>
           <div class="table-wrap"><table class="list dash-list" id="products">
             <thead><tr><th>Produto</th><th>Visitas</th><th>Cliques</th><th>Taxa de clique</th><th>Vendas</th><th>Faturamento</th></tr></thead>
             <tbody></tbody>
@@ -87,8 +86,7 @@
         </section>
 
         <section class="dash-card" aria-labelledby="t-origens">
-          <h2 id="t-origens">De onde vêm as pessoas</h2>
-          <p class="hint">Pelo <code>utm_source</code> do link divulgado; sem ele, pelo site de onde a pessoa veio; sem nenhum dos dois, “direto” (link digitado, salvo ou aberto por aplicativo).</p>
+          <div class="title-row"><h2 id="t-origens">De onde vêm as pessoas</h2><span class="info-pop info-sm"><button class="info-btn" type="button" aria-label="Sobre as origens" aria-describedby="i-origens" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></button><span id="i-origens" class="info-text" role="tooltip">Pelo canal do link divulgado (gere os links na página de cada produto, em “Links de divulgação”); sem ele, pelo site de onde a pessoa veio; sem nenhum dos dois, “direto” (link digitado, salvo ou aberto por aplicativo).</span></span></div>
           <div class="table-wrap"><table class="list dash-list" id="sources">
             <thead><tr><th>Origem</th><th>Visitas</th><th>Cliques</th><th>Vendas</th><th>Faturamento</th></tr></thead>
             <tbody></tbody>
@@ -107,8 +105,7 @@
         </div>
 
         <section class="dash-card" id="kiwify-box" aria-labelledby="t-kiwify" hidden>
-          <h2 id="t-kiwify">Pagamentos na Kiwify</h2>
-          <p class="hint">Pedidos feitos no período, por empresa. “Aguardando” são Pix ou boletos gerados e ainda não pagos; “recusados”, pagamentos negados (geralmente cartão).</p>
+          <div class="title-row"><h2 id="t-kiwify">Pagamentos na Kiwify</h2><span class="info-pop info-sm"><button class="info-btn" type="button" aria-label="Sobre os pagamentos" aria-describedby="i-kiwify" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></button><span id="i-kiwify" class="info-text" role="tooltip">Pedidos feitos no período, por empresa. “Aguardando” são Pix ou boletos gerados e ainda não pagos; “recusados”, pagamentos negados (geralmente cartão).</span></span></div>
           <div class="table-wrap"><table class="list dash-list" id="kiwify">
             <thead><tr><th>Empresa</th><th>Pagas</th><th>Pix · cartão · boleto</th><th>Aguardando</th><th>Recusados</th><th>Reembolsos</th><th>Vendas atualizadas</th></tr></thead>
             <tbody></tbody>

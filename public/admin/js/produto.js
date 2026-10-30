@@ -7,6 +7,7 @@
   var dirty = false;      // há alterações não salvas?
   var slugTouched = !!id; // na criação, o slug acompanha o título até ser editado à mão
   var savedStatus = null; // situação como está gravada no banco (null = produto ainda não criado)
+  var savedSlug = null;   // endereço como está gravado (para o aviso de links quebrados)
 
   var STATUS_HINTS = {
     draft: "Não aparece no site.",
@@ -404,8 +405,9 @@
     var title = product ? "Editar produto" : "Novo produto";
     $("heading").textContent = title;
     document.title = title + " — Painel administrativo";
-    $("slug-hint").hidden = !product;
+    savedSlug = product ? product.slug : null;
     savedStatus = product ? product.status : null;
+    updateSlugHint();
     updateStatusHint();
 
     // Mesma regra da API: publicado precisa ser arquivado antes de poder ser excluído.
@@ -583,8 +585,13 @@
   form.elements.title.addEventListener("input", function () {
     if (!slugTouched) form.elements.slug.value = slugify(form.elements.title.value);
   });
+  // O aviso de links quebrados só aparece quando o endereço de um produto publicado é de fato alterado.
+  function updateSlugHint() {
+    $("slug-hint").hidden = !(savedSlug && savedStatus === "published" && form.elements.slug.value !== savedSlug);
+  }
   form.elements.slug.addEventListener("input", function () {
     slugTouched = form.elements.slug.value !== ""; // apagou tudo? volta a acompanhar o título
+    updateSlugHint();
   });
   form.elements.price.addEventListener("input", function () { form.elements.price.setCustomValidity(""); });
   form.elements.offer_price.addEventListener("input", function () { form.elements.offer_price.setCustomValidity(""); });

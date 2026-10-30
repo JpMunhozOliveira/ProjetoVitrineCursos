@@ -51,39 +51,34 @@
         <fieldset>
           <legend>Identificação</legend>
           <div class="field">
-            <label for="title">Título <span class="req">(obrigatório)</span></label>
+            <div class="label-row"><label for="title">Título <span class="req">(obrigatório)</span></label><span class="info-pop info-sm"><button class="info-btn" type="button" aria-label="Sobre o título" aria-describedby="title-help" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></button><span id="title-help" class="info-text" role="tooltip">Aparece no catálogo, na aba do navegador, no Google e na prévia do link no WhatsApp.</span></span></div>
             <input id="title" name="title" required maxlength="180" aria-describedby="title-help">
-            <p id="title-help" class="hint">Aparece no catálogo, na aba do navegador, no Google e na prévia do link no WhatsApp.</p>
           </div>
           <div class="field">
-            <label for="short_description">Resumo</label>
+            <div class="label-row"><label for="short_description">Resumo</label><span class="info-pop info-sm"><button class="info-btn" type="button" aria-label="Sobre o resumo" aria-describedby="short-help" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></button><span id="short-help" class="info-text" role="tooltip">Texto curto exibido nos cards do catálogo. É também a descrição que aparece no Google e na prévia do link no WhatsApp (lá aparecem só as primeiras ~160 letras).</span></span></div>
             <textarea id="short_description" name="short_description" rows="2" maxlength="500" aria-describedby="short-help"></textarea>
-            <p id="short-help" class="hint">Texto curto exibido nos cards do catálogo. É também a descrição que aparece no Google e na prévia do link no WhatsApp (lá aparecem só as primeiras ~160 letras).</p>
           </div>
           <div class="field">
-            <label for="slug">Endereço (slug) <span class="req">(obrigatório)</span></label>
+            <div class="label-row"><label for="slug">Endereço (slug) <span class="req">(obrigatório)</span></label><span class="info-pop info-sm"><button class="info-btn" type="button" aria-label="Sobre o endereço" aria-describedby="slug-help" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></button><span id="slug-help" class="info-text" role="tooltip">Parte final do link da página. Gerado a partir do título; pode ser ajustado.</span></span></div>
             <input id="slug" name="slug" required maxlength="180" pattern="[a-z0-9]+(-[a-z0-9]+)*"
               title="Letras minúsculas sem acento, números e hifens. Ex.: manual-reforma-tributaria"
               aria-describedby="slug-help slug-hint" autocapitalize="none" spellcheck="false">
-            <p id="slug-help" class="hint">Parte final do link da página. Gerado a partir do título; pode ser ajustado.</p>
             <p id="slug-hint" class="hint warn" hidden>Mudar o endereço de um produto publicado quebra os links já divulgados.</p>
           </div>
           <div class="field">
-            <label for="category">Categoria</label>
+            <div class="label-row"><label for="category">Categoria</label><span class="info-pop info-sm"><button class="info-btn" type="button" aria-label="Sobre a categoria" aria-describedby="category-help" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></button><span id="category-help" class="info-text" role="tooltip">Aparece no cartão do produto e no filtro do catálogo.</span></span></div>
             <select id="category" name="category" aria-describedby="category-help">
               <option value="">Sem categoria</option>
               <option>Curso</option>
               <option>Guia</option>
               <option>Manual</option>
             </select>
-            <p id="category-help" class="hint">Aparece no cartão do produto e no filtro do catálogo.</p>
           </div>
           <div class="field">
-            <label for="area">Área de conhecimento</label>
+            <div class="label-row"><label for="area">Área de conhecimento</label><span class="info-pop info-sm"><button class="info-btn" type="button" aria-label="Sobre a área de conhecimento" aria-describedby="area-help" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></button><span id="area-help" class="info-text" role="tooltip">A página inicial mostra as áreas com produtos publicados, e o catálogo filtra por elas.</span></span></div>
             <select id="area" name="area" aria-describedby="area-help">
               <option value="">Sem área</option>
             </select>
-            <p id="area-help" class="hint">A página inicial mostra as áreas com produtos publicados, e o catálogo filtra por elas.</p>
           </div>
           <div class="field check">
             <input id="featured" name="featured" type="checkbox">
@@ -92,7 +87,7 @@
         </fieldset>
 
         <fieldset>
-          <legend>Imagem de capa</legend>
+          <legend class="legend-info">Imagem de capa <span class="info-pop info-sm"><button class="info-btn" type="button" aria-label="Sobre a imagem de capa" aria-describedby="cover-info" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></button><span id="cover-info" class="info-text" role="tooltip"><strong>Tamanho recomendado: 1200 × 675 px</strong> (formato 16:9, como uma tela de TV). Outros formatos são cortados nas bordas no catálogo. PNG, JPEG ou WebP, até 5 MB; a imagem é otimizada automaticamente.</span></span></legend>
           <div class="cover-field">
             <div class="cover-preview">
               <button id="cover-zoom" class="media-zoom" type="button" aria-label="Ampliar imagem de capa" hidden>
@@ -109,12 +104,9 @@
                 <button id="cover-pick" class="btn btn-sm btn-outline" type="button">Escolher da biblioteca</button>
                 <button id="cover-remove" class="btn btn-sm btn-danger" type="button" hidden>Remover capa</button>
               </div>
-              <p class="hint"><strong>Tamanho recomendado: 1200 × 675 px</strong> (formato 16:9, como uma tela de TV). Outros formatos são cortados nas bordas no catálogo.
-                PNG, JPEG ou WebP, até 5 MB; a imagem é otimizada automaticamente.</p>
               <div id="cover-alt-field" class="field" hidden>
-                <label for="cover-alt">Texto alternativo</label>
+                <div class="label-row"><label for="cover-alt">Texto alternativo</label><span class="info-pop info-sm"><button class="info-btn" type="button" aria-label="Sobre o texto alternativo" aria-describedby="cover-alt-help" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></button><span id="cover-alt-help" class="info-text" role="tooltip">Descreva a imagem para quem usa leitor de tela. Ex.: “Capa do Manual Prático da Reforma Tributária”.</span></span></div>
                 <input id="cover-alt" maxlength="300" aria-describedby="cover-alt-help">
-                <p id="cover-alt-help" class="hint">Descreva a imagem para quem usa leitor de tela. Ex.: “Capa do Manual Prático da Reforma Tributária”.</p>
               </div>
               <p id="cover-msg" class="msg" role="status" aria-live="polite"></p>
             </div>
@@ -122,9 +114,7 @@
         </fieldset>
 
         <fieldset>
-          <legend>Venda</legend>
-          <p class="hint">Empresa de quem vende este produto: nome e logo aparecem no menu e no rodapé da página de vendas, e o logo também nos cards do catálogo.
-            A conta Kiwify dela fornece o preço e o link. As empresas são cadastradas uma vez na aba <a href="empresas.html">Empresas</a>, e trocar o nome ou o logo lá muda todos os produtos dela.</p>
+          <legend class="legend-info">Venda <span class="info-pop info-sm"><button class="info-btn" type="button" aria-label="Sobre a venda" aria-describedby="sale-info" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></button><span id="sale-info" class="info-text" role="tooltip">Empresa de quem vende este produto: nome e logo aparecem no menu e no rodapé da página de vendas, e o logo também nos cards do catálogo. A conta Kiwify dela fornece o preço e o link. As empresas são cadastradas uma vez na aba Empresas, e trocar o nome ou o logo lá muda todos os produtos dela.</span></span></legend>
           <div class="cover-field">
             <div class="cover-preview brand-preview brand-pick-preview" aria-hidden="true">
               <img id="brand-img" alt="" hidden>
@@ -144,11 +134,10 @@
           <div id="kiwify-link" class="kiwify-link" hidden>
             <div class="grid-2">
               <div class="field">
-                <label for="kiwify_product">Produto na Kiwify</label>
+                <div class="label-row"><label for="kiwify_product">Produto na Kiwify</label><span class="info-pop info-sm"><button class="info-btn" type="button" aria-label="Sobre o produto na Kiwify" aria-describedby="kiwify-help" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></button><span id="kiwify-help" class="info-text" role="tooltip">Da conta Kiwify da empresa escolhida acima.</span></span></div>
                 <select id="kiwify_product" aria-describedby="kiwify-help">
                   <option value="">Não vincular (preencher à mão)</option>
                 </select>
-                <p id="kiwify-help" class="hint">Da conta Kiwify da empresa escolhida acima.</p>
               </div>
               <div class="field">
                 <label for="kiwify_link">Link de checkout na Kiwify</label>
@@ -163,9 +152,8 @@
           </div>
           <div class="grid-2">
             <div class="field">
-              <label for="price">Preço (R$)</label>
+              <div class="label-row"><label for="price">Preço (R$)</label><span class="info-pop info-sm"><button class="info-btn" type="button" aria-label="Sobre o preço" aria-describedby="price-help" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></button><span id="price-help" class="info-text" role="tooltip">Deixe vazio para não exibir preço.</span></span></div>
               <input id="price" name="price" inputmode="decimal" maxlength="15" placeholder="197,00" aria-describedby="price-help">
-              <p id="price-help" class="hint">Deixe vazio para não exibir preço.</p>
             </div>
             <div class="field">
               <label for="checkout_url">Link de checkout</label>
@@ -176,14 +164,12 @@
         </fieldset>
 
         <fieldset>
-          <legend>Oferta</legend>
-          <p class="hint">Preço promocional com “de/por” na página de vendas e no catálogo. Com data de fim, aparece um cronômetro; quando o prazo acaba, o site volta sozinho ao preço e ao link normais.</p>
+          <legend class="legend-info">Oferta <span class="info-pop info-sm"><button class="info-btn" type="button" aria-label="Sobre a oferta" aria-describedby="offer-about" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></button><span id="offer-about" class="info-text" role="tooltip">Preço promocional com “de/por” na página de vendas e no catálogo. Com data de fim, aparece um cronômetro; quando o prazo acaba, o site volta sozinho ao preço e ao link normais.</span></span></legend>
           <div id="offer-kiwify" class="field" hidden>
-            <label for="offer_link">Link promocional na Kiwify</label>
+            <div class="label-row"><label for="offer_link">Link promocional na Kiwify</label><span class="info-pop info-sm"><button class="info-btn" type="button" aria-label="Sobre o link promocional" aria-describedby="offer-link-help" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></button><span id="offer-link-help" class="info-text" role="tooltip">Crie na Kiwify um link de checkout com o preço promocional e escolha-o aqui.</span></span></div>
             <select id="offer_link" aria-describedby="offer-link-help">
               <option value="">Sem oferta</option>
             </select>
-            <p id="offer-link-help" class="hint">Crie na Kiwify um link de checkout com o preço promocional e escolha-o aqui.</p>
           </div>
           <div class="grid-2">
             <div class="field">
@@ -197,13 +183,11 @@
             </div>
           </div>
           <div class="field">
-            <label for="offer_ends_at">Fim da oferta</label>
+            <div class="label-row"><label for="offer_ends_at">Fim da oferta</label><span class="info-pop info-sm"><button class="info-btn" type="button" aria-label="Sobre o fim da oferta" aria-describedby="offer-ends-help" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></button><span id="offer-ends-help" class="info-text" role="tooltip">Horário de Brasília. Deixe vazio para uma oferta sem prazo (sem cronômetro). O fim do prazo só muda o site: o link promocional continua funcionando na Kiwify para quem já o tiver guardado; desative-o lá se quiser bloquear a compra com desconto.</span></span></div>
             <input id="offer_ends_at" name="offer_ends_at" type="datetime-local" aria-describedby="offer-ends-help">
-            <p id="offer-ends-help" class="hint">Horário de Brasília. Deixe vazio para uma oferta sem prazo (sem cronômetro).</p>
           </div>
           <p id="offer-info" class="msg" role="status" aria-live="polite"></p>
           <p><button id="offer-clear" class="btn btn-sm btn-outline" type="button">Encerrar oferta</button></p>
-          <p class="hint">Atenção: o fim do prazo só muda o site. O link promocional continua funcionando na Kiwify para quem já o tiver guardado; desative-o lá se quiser bloquear a compra com desconto.</p>
         </fieldset>
 
         <div class="form-actions">
@@ -240,10 +224,9 @@
         </div>
         <p id="promo-warn" class="hint warn" hidden></p>
         <div class="field promo-campaign">
-          <label for="promo-campaign">Campanha <span class="muted">(opcional)</span></label>
+          <div class="label-row"><label for="promo-campaign">Campanha <span class="muted">(opcional)</span></label><span class="info-pop info-sm"><button class="info-btn" type="button" aria-label="Sobre a campanha" aria-describedby="promo-campaign-hint" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></button><span id="promo-campaign-hint" class="info-text" role="tooltip">Escolha uma já usada para os números ficarem juntos no Resumo.</span></span></div>
           <input id="promo-campaign" list="promo-campaigns" maxlength="60" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="ex.: lancamento" aria-describedby="promo-campaign-hint">
           <datalist id="promo-campaigns"></datalist>
-          <p id="promo-campaign-hint" class="hint">Escolha uma já usada para os números ficarem juntos no Resumo.</p>
         </div>
         <ul id="promo-links" class="promo-links"></ul>
         <p id="promo-msg" class="sr-only" role="status" aria-live="polite"></p>
