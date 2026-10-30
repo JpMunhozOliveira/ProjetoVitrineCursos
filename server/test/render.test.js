@@ -252,7 +252,7 @@ test("imagens: todo campo de imagem tem tamanho recomendado", () => {
 
 test("descrição abaixo do título: centralizada após o h2, só preenchida na página pública", () => {
   const types = Object.entries(BLOCKS).filter(([, b]) => b.fields.intro).map(([t]) => t);
-  assert.deepEqual(types.sort(), ["audience", "checklist", "comparison", "faq", "gallery", "guarantee", "social", "testimonials", "topics"]);
+  assert.deepEqual(types.sort(), ["audience", "checklist", "comparison", "curriculum", "demo", "faq", "gallery", "guarantee", "social", "testimonials", "topics"]);
   const sections = [{ type: "faq", title: "Dúvidas", intro: "Tudo o que você precisa saber.", items: [{ question: "Q", answer: "A" }] }];
   assert.match(render(sections, false), /Dúvidas<\/h2><p class="v-intro">Tudo o que você precisa saber\.<\/p>/);
   assert.match(render(sections, "live"), /<p class="v-intro" data-field="intro">Tudo o que você precisa saber\.<\/p>/);
@@ -264,7 +264,9 @@ test("descrição abaixo do título: centralizada após o h2, só preenchida na 
 // Um bloco de cada tipo com listas, cada lista com um item preenchido.
 const listBlocks = () => Object.entries(BLOCKS).filter(([type, b]) => type !== "gallery" && Object.values(b.fields).some((f) => f.type === "list"))
   .map(([type, b]) => {
-    const block = { type, [b.fields.title ? "title" : "name"]: "T" }; // o autor só aparece com nome
+    const block = { type };
+    if (b.fields.title || b.fields.name) block[b.fields.title ? "title" : "name"] = "T"; // o autor só aparece com nome
+    if (type === "hero") block.visual = "stack"; // as imagens da composição só aparecem nesse estilo
     for (const [name, field] of Object.entries(b.fields)) {
       if (field.type !== "list") continue;
       const item = {};
@@ -476,4 +478,137 @@ test("imagens com versões menores levam srcset e sizes; sem versões, só src",
   const page = renderSalesPage(data, { baseUrl: "http://localhost" });
   assert.match(page, /<img class="v-media" src="\/uploads\/a\.webp" srcset="\/uploads\/a-480\.webp 480w, \/uploads\/a-960\.webp 960w, \/uploads\/a\.webp 1024w" sizes="[^"]+480px[^"]*"/);
   assert.match(page, /<img class="buy-media" src="\/uploads\/b\.webp" alt=""/);
+});
+
+/* ---------- Landing pages mais chamativas: visual da abertura, números, linha do tempo, módulos ---------- */
+const IMG = (n) => `${String(n).repeat(8)}-${String(n).repeat(4)}-4${String(n).repeat(3)}-8${String(n).repeat(3)}-${String(n).repeat(12)}`;
+const withMedia = (sections, ids) => {
+  const data = product(sections);
+  data.media = new Map(ids.map((id) => [id, { id, url: `/uploads/${id}.webp`, width: 900, height: 1200, alt_text: "", srcset: null }]));
+  return renderSalesPage(data, { baseUrl: "http://localhost" });
+};
+
+test("abertura: imagem única, tela com moldura e composição 3D com etiquetas", () => {
+  const [a, b, c] = [IMG(3), IMG(4), IMG(5)];
+  const single = withMedia([{ type: "hero", title: "T", image: a, image_label: "Manual em PDF" }], [a]);
+  assert.match(single, /<figure class="v-visual"><img class="v-media"[^>]*><span class="v-chip">Manual em PDF<\/span><\/figure>/);
+  const screen = withMedia([{ type: "hero", title: "T", visual: "screen", image: a }], [a]);
+  assert.match(screen, /<figure class="v-visual v-screen"><span class="v-screen-bar" aria-hidden="true">/);
+  const stack = withMedia([{ type: "hero", title: "T", visual: "stack", image: a,
+    extra_images: [{ image: b, label: "Fluxogramas" }, { image: c }, { image: null, label: "sem imagem" }] }], [a, b, c]);
+  assert.match(stack, /<div class="hero-covers v-stack" data-count="3">/);
+  assert.equal((stack.match(/<figure class="hero-cover">/g) || []).length, 3); // a sem imagem não entra
+  assert.match(stack, /<span class="v-chip">Fluxogramas<\/span>/);
+  assert.ok(!stack.includes("sem imagem"));
+  // Sem imagem nenhuma: o texto ocupa a largura toda.
+  assert.match(render([{ type: "hero", title: "T", visual: "stack" }], false), /v-hero-grid no-media/);
+});
+
+test("abertura: números em destaque grandes, em linha, abaixo do título", () => {
+  const page = render([{ type: "hero", title: "T", lead: "L", stats: [{ value: "6", label: "módulos" }, { value: "18h", label: "de aula" }] }], false);
+  assert.match(page, /<p class="lead">L<\/p>\s*<ul class="v-stats" aria-label="Números do produto"><li><strong>6<\/strong> <span>módulos<\/span><\/li><li><strong>18h<\/strong> <span>de aula<\/span><\/li><\/ul>/);
+  assert.ok(!render([{ type: "hero", title: "T" }], false).includes("v-stats"));
+});
+
+test("grade de tópicos no formato linha do tempo: passos numerados 01, 02…", () => {
+  const items = [{ title: "Assista", text: "a" }, { title: "Estude", text: "b" }];
+  const page = render([{ type: "topics", title: "Como", layout: "timeline", items }], false);
+  assert.match(page, /<ol class="v-steps" data-count="2"><li><span class="v-step-num" aria-hidden="true">01<\/span><strong>Assista<\/strong><span>a<\/span><\/li><li><span class="v-step-num" aria-hidden="true">02<\/span>/);
+  assert.ok(!page.includes("grid8"));
+  assert.match(render([{ type: "topics", title: "Como", items }], false), /<ul class="grid8">/); // padrão: grade
+});
+
+test("galeria com títulos e tópicos: painel do módulo ao lado do carrossel", () => {
+  const [a, b] = [IMG(6), IMG(7)];
+  const page = withMedia([{ type: "gallery", title: "G", images: [
+    { image: a, title: "Fundamentos", topics: "IBS e CBS\n\nTransição" }, { image: b, title: "Prática" }] }], [a, b]);
+  assert.match(page, /<div class="gallery-split">/);
+  assert.match(page, /<div class="module-panel" data-slide="0"><p class="module-num"><strong>01<\/strong> \/ 02<\/p><h3>Fundamentos<\/h3><ul class="v-lines"><li>IBS e CBS<\/li><li>Transição<\/li><\/ul><\/div>/);
+  const plain = withMedia([{ type: "gallery", title: "G", images: [{ image: a }, { image: b }] }], [a, b]);
+  assert.ok(!plain.includes("gallery-split") && !plain.includes("module-panel"));
+});
+
+test("tópicos no editor: uma linha por <div>, editável como texto de várias linhas", () => {
+  const live = render([{ type: "curriculum", title: "C", items: [{ title: "M1", topics: "Um\nDois" }] }], "live");
+  assert.match(live, /<div class="v-lines module-topics" data-field="items\.0\.topics" data-multiline><div>Um<\/div><div>Dois<\/div><\/div>/);
+});
+
+test("currículo: módulos que abrem e fecham, com número, detalhe e tópicos", () => {
+  const page = render([{ type: "curriculum", title: "Currículo", items: [{ title: "Introdução", meta: "3 aulas", topics: "A\nB" }] }], false);
+  assert.match(page, /<details class="faq module"><summary><span class="module-head"><span class="module-tag">Módulo 01<\/span>Introdução<small class="module-meta">3 aulas<\/small><\/span><\/summary><ul class="v-lines module-topics"><li>A<\/li><li>B<\/li><\/ul><\/details>/);
+  assert.ok(!render([{ type: "curriculum", title: "C", items: [] }], false).includes("v-section"));
+});
+
+test("demonstração: abas só com imagem; sem nenhuma, some da página e fica oculta no editor", () => {
+  const a = IMG(8);
+  const page = withMedia([{ type: "demo", title: "Veja", items: [
+    { label: "Manual", image: a, caption: "Uma página" }, { label: "Aula", image: null }] }], [a]);
+  assert.match(page, /<div class="demo-tabs" role="tablist" aria-labelledby="t-1" hidden><button type="button" role="tab" id="t-1-tab-0" aria-controls="t-1-panel-0" aria-selected="true">Manual<\/button><\/div>/);
+  assert.match(page, /<figure class="demo-panel" role="tabpanel" id="t-1-panel-0" aria-labelledby="t-1-tab-0"><img class="demo-img"[^>]*><figcaption>Uma página<\/figcaption><\/figure>/);
+  assert.ok(!page.includes("Aula"));
+  const empty = [{ type: "demo", title: "Veja", items: [{ label: "Manual" }] }];
+  assert.ok(!render(empty, false).includes("v-section"));
+  assert.match(render(empty, "live"), /data-block="0" data-hidden/);
+});
+
+test("texto e imagem: linhas alternadas; sem imagem, o texto ocupa a linha", () => {
+  const a = IMG(9);
+  const page = withMedia([{ type: "feature", items: [
+    { title: "Um", text: "T", bullets: "x\ny", image: a }, { title: "Dois", text: "T" }] }], [a]);
+  assert.match(page, /<article class="feature-row"><div class="feature-text"><h2>Um<\/h2><p>T<\/p><ul class="v-lines feature-list"><li>x<\/li><li>y<\/li><\/ul><\/div><img class="feature-img"/);
+  assert.match(page, /<article class="feature-row no-media"><div class="feature-text"><h2>Dois<\/h2><p>T<\/p><\/div><\/article>/);
+});
+
+test("oferta: selos de compra segura em linha no fim do cartão de compra", () => {
+  const page = render([{ type: "offer", title: "O", seals: [{ icon: "lock", text: "Pagamento seguro" }, { icon: "shield", text: "7 dias de garantia" }] }], false);
+  assert.match(page, /<p class="buy-note">[^<]*<\/p>\s*<ul class="buy-seals" aria-label="Compra segura"><li><svg class="seal-ico" aria-hidden="true"><use href="#i-lock"\/><\/svg>Pagamento seguro<\/li>/);
+  assert.ok(!render([{ type: "offer", title: "O" }], false).includes("buy-seals"));
+});
+
+test("blocos antigos, sem os campos novos, continuam válidos e com o visual de antes", () => {
+  const old = [{ type: "hero", title: "T", lead: "L", badges: [], price_label: "", cta_label: "", logo: null, eyebrow: "", image: null },
+    { type: "topics", title: "T", items: [{ icon: "doc", title: "a", text: "b" }], columns: "auto", eyebrow: "", intro: "", background: "auto" },
+    { type: "gallery", title: "G", images: [{ image: IMG(1) }], eyebrow: "", intro: "", background: "auto" }];
+  const { sections, error } = validateSections(old);
+  assert.equal(error, undefined);
+  assert.equal(sections[0].visual, "image");
+  assert.deepEqual(sections[0].stats, []);
+  assert.equal(sections[1].layout, "grid");
+  assert.equal(sections[2].images[0].topics, "");
+});
+
+test("abertura: livro 3D, notebook e celular, mosaico", () => {
+  const [a, b, c] = [IMG(3), IMG(4), IMG(5)];
+  const book = withMedia([{ type: "hero", title: "T", visual: "book", image: a, image_label: "Manual" }], [a]);
+  assert.match(book, /<figure class="v-visual v-book"><div class="v-book-3d"><img class="book-img"[^>]*><\/div><span class="v-chip">Manual<\/span><\/figure>/);
+  const laptop = withMedia([{ type: "hero", title: "T", visual: "devices", image: a }], [a]);
+  assert.match(laptop, /<div class="v-laptop"><div class="v-laptop-screen"><img class="laptop-img"/);
+  assert.ok(!laptop.includes("v-phone") && !laptop.includes("has-phone"));
+  const both = withMedia([{ type: "hero", title: "T", visual: "devices", image: a, extra_images: [{ image: b, label: "App" }] }], [a, b]);
+  assert.match(both, /v-devices has-phone/);
+  assert.match(both, /<div class="v-phone"><img class="phone-img"[^>]*><span class="v-chip">App<\/span><\/div>/);
+  const mosaic = withMedia([{ type: "hero", title: "T", visual: "mosaic", image: a,
+    extra_images: [{ image: b }, { image: null }, { image: c, label: "Fluxograma" }] }], [a, b, c]);
+  assert.match(mosaic, /<div class="v-mosaic" data-count="3">/);
+  assert.equal((mosaic.match(/<figure class="v-tile">/g) || []).length, 3);
+  // No editor, as extras ganham "+ Adicionar imagem".
+  for (const visual of ["stack", "mosaic", "devices"]) {
+    assert.ok(render([{ type: "hero", title: "T", visual, image: null }], "live").includes('data-item-add="extra_images"'), visual);
+  }
+});
+
+test("abertura em vídeo: YouTube e Vimeo tocam na página; outros sites abrem em nova aba", () => {
+  const a = IMG(6);
+  const hero = (video_url) => withMedia([{ type: "hero", title: "T", visual: "video", image: a, video_url }], [a]);
+  const embedOf = (page) => (/data-embed="([^"]+)"/.exec(page) || [])[1];
+  for (const url of ["https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=10", "youtu.be/dQw4w9WgXcQ", "https://youtube.com/shorts/dQw4w9WgXcQ"]) {
+    assert.equal(embedOf(hero(url)), "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=1&amp;rel=0", url);
+  }
+  assert.equal(embedOf(hero("https://vimeo.com/76979871")), "https://player.vimeo.com/video/76979871?autoplay=1");
+  const other = hero("https://exemplo.com.br/video");
+  assert.match(other, /<a class="v-play" href="https:\/\/exemplo\.com\.br\/video" target="_blank" rel="noopener noreferrer" aria-label/);
+  assert.equal(embedOf(other), undefined);
+  // Sem link: só a capa na página pública; no editor, o play aparece desativado.
+  assert.ok(!hero("").includes("v-play"));
+  assert.match(render([{ type: "hero", title: "T", visual: "video" }], "live"), /<span class="v-play is-empty"/);
 });

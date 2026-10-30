@@ -14,7 +14,18 @@
     var slides = [].slice.call(track.children);
     var prev = root.querySelector(".prev"),
       next = root.querySelector(".next");
+    // Painel do módulo ao lado (galeria com títulos/tópicos): mostra só o do slide atual.
+    var split = root.parentElement && root.parentElement.classList.contains("gallery-split") ? root.parentElement : null;
+    var panels = split ? [].slice.call(split.querySelectorAll(".module-panel")) : [];
+    function showPanel(i) {
+      if (!panels[i]) return; // slide "Adicionar imagem" do editor: mantém o painel anterior
+      panels.forEach(function (p, n) { p.hidden = n !== i; });
+    }
     if (slides.length < 2) return; // um slide só: sem setas nem pontos
+    if (panels.length) {
+      split.querySelector(".module-panels").classList.add("is-ready");
+      showPanel(0);
+    }
     prev.hidden = next.hidden = dots.hidden = false;
 
     function go(i) {
@@ -115,6 +126,7 @@
       var c = Math.round(x);
       if (c === shown) return;
       shown = c;
+      showPanel(c);
       buttons.forEach(function (b, i) {
         var d = i - c;
         b.setAttribute("aria-current", String(d === 0));
@@ -157,6 +169,61 @@
 
   [].forEach.call(document.querySelectorAll(".carousel"), setup);
 
+  // Demonstração: abas (Manual, Aula, Fluxograma…). Sem JavaScript e no editor os painéis ficam um
+  // embaixo do outro. Teclado: setas, Home e End trocam de aba (padrão de abas da WAI-ARIA).
+  function tabs(root) {
+    var list = root.querySelector(".demo-tabs");
+    var buttons = list ? [].slice.call(list.querySelectorAll('[role="tab"]')) : [];
+    var panels = [].slice.call(root.querySelectorAll(".demo-panel"));
+    if (buttons.length < 2) return;
+    function select(i, focus) {
+      buttons.forEach(function (b, n) {
+        b.setAttribute("aria-selected", String(n === i));
+        b.tabIndex = n === i ? 0 : -1;
+        panels[n].hidden = n !== i;
+      });
+      if (focus) buttons[i].focus();
+    }
+    buttons.forEach(function (b, i) {
+      b.addEventListener("click", function () { select(i, false); });
+      b.addEventListener("keydown", function (e) {
+        var n = buttons.length, to = null;
+        if (e.key === "ArrowRight") to = (i + 1) % n;
+        else if (e.key === "ArrowLeft") to = (i - 1 + n) % n;
+        else if (e.key === "Home") to = 0;
+        else if (e.key === "End") to = n - 1;
+        if (to === null) return;
+        e.preventDefault();
+        select(to, true);
+      });
+    });
+    list.hidden = false;
+    root.classList.add("is-ready");
+    select(0, false);
+  }
+  if (!editing) [].forEach.call(document.querySelectorAll("[data-demo]"), tabs);
+
+  // Vídeo da abertura: o player (YouTube/Vimeo) só carrega no clique, no lugar da capa. Sem
+  // JavaScript, ou com link de outro site (sem data-embed), o botão abre o vídeo numa nova aba.
+  if (!editing) {
+    [].forEach.call(document.querySelectorAll(".v-play[data-embed]"), function (play) {
+      play.addEventListener("click", function (event) {
+        var figure = play.closest(".v-video");
+        if (!figure) return;
+        event.preventDefault();
+        var frame = document.createElement("iframe");
+        frame.src = play.getAttribute("data-embed");
+        frame.title = "Vídeo de apresentação";
+        frame.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
+        frame.allowFullscreen = true;
+        frame.referrerPolicy = "strict-origin-when-cross-origin";
+        figure.replaceChildren(frame);
+        figure.classList.add("is-playing");
+        frame.focus();
+      });
+    });
+  }
+
   // Perguntas frequentes: abrir e fechar deslizando, em vez de saltar. Sem JavaScript, com
   // "menos movimento" ou dentro do editor (onde ficam sempre abertas), o <details> funciona sozinho.
   function accordion(details) {
@@ -197,7 +264,7 @@
   var SELECTOR = [
     ".v-section .v-eyebrow", ".v-section h2", ".v-section .v-intro", ".v-card", ".grid8 > li", ".who > li", ".v-quote",
     ".faq", ".seals > li", ".banner", ".author-photo", ".carousel", ".v-strip-row", ".link-list > li",
-    ".offer-main > *", ".buy-card",
+    ".offer-main > *", ".buy-card", ".v-steps > li", ".module-panels", ".demo", ".feature-row",
   ].join(",");
   // O cartão de compra (preço e botão) entra sem esperar a cascata dos outros itens.
   var NO_DELAY = ".buy-card";

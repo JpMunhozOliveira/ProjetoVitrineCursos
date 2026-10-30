@@ -42,7 +42,9 @@ app.use(express.json({ limit: "300kb" })); // páginas de vendas com muitos bloc
 // Permissions-Policy desliga recursos do navegador que o site não usa.
 const HSTS = process.env.COOKIE_SECURE === "true" ? { "Strict-Transport-Security": "max-age=31536000" } : {};
 const CSP = "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; "
-  + "font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
+  + "font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; "
+  // Único iframe permitido: o vídeo de apresentação da abertura (YouTube sem cookies e Vimeo).
+  + "frame-src https://www.youtube-nocookie.com https://player.vimeo.com";
 app.use((_req, res, next) => {
   res.set({
     "X-Content-Type-Options": "nosniff",

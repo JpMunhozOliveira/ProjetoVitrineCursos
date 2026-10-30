@@ -234,9 +234,20 @@ main p {
   position: relative;
   overflow: hidden;
 }
-/* Pontinhos decorativos no lado direito, sumindo em direção ao texto. */
+/* Pontinhos decorativos no lado direito, sumindo em direção ao texto. Valem também para as outras
+   faixas azuis (seções escuras, chamada intermediária e cartão de destaque), para não ficarem chapadas. */
+.banner {
+  position: relative;
+  overflow: hidden;
+}
+.banner > * {
+  position: relative;
+}
 .v-hero::before,
-.v-final::before {
+.v-final::before,
+.v-section.is-dark::before,
+.v-strip::before,
+.banner::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -707,7 +718,9 @@ main > section:last-child::before {
   background: linear-gradient(to top, var(--v-navy), color-mix(in srgb, var(--v-navy) 35%, transparent) 45%, transparent);
 }
 main > section.v-final:last-child::before,
-main > section.v-hero:last-child::before {
+main > section.v-hero:last-child::before,
+main > section.v-strip:last-child::before,
+main > section.is-dark:last-child::before {
   /* nas faixas escuras o ::before já desenha os pontinhos; a cor já é a do rodapé */
   inset: 0;
   height: auto;
