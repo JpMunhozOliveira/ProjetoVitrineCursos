@@ -461,7 +461,7 @@
       await Admin.api("/products/" + encodeURIComponent(id), { method: "DELETE" });
       dirty = false; // não pergunta sobre "alterações não salvas" de um produto que não existe mais
       Admin.setFlash("“" + name + "” foi excluído.");
-      location.replace("./");
+      location.replace("produtos.html");
     } catch (err) {
       Admin.showMessage($("danger-msg"), err.message, "error");
     }

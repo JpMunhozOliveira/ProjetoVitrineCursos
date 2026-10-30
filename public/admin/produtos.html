@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Produtos — Painel administrativo</title>
+  <link rel="icon" type="image/png" href="/assets/favicon/favicon.png">
+  <link rel="stylesheet" href="../css/theme.css">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="css/admin.css">
+  <script src="../js/theme.js"></script>
+  <script src="js/common.js" defer></script>
+  <script src="js/produtos.js" defer></script>
+</head>
+<body>
+  <div class="container">
+    <div class="admin-top">
+      <header class="admin-bar">
+        <div class="admin-id">
+          <strong>Painel administrativo</strong>
+          <span id="who" class="muted small"></span>
+        </div>
+        <div class="admin-actions">
+          <button id="tema-btn" class="theme-btn" type="button" aria-label="Modo noturno" title="Modo noturno" aria-pressed="false"></button>
+          <button id="logout" class="btn btn-outline btn-sm" type="button">Sair</button>
+        </div>
+      </header>
+      <nav class="admin-nav" aria-label="Seções do painel">
+        <a href="./">Resumo</a>
+        <a href="produtos.html" aria-current="page">Produtos</a>
+        <a href="imagens.html">Imagens</a>
+        <a href="blocos.html">Blocos salvos</a>
+        <a href="empresas.html">Empresas</a>
+      </nav>
+    </div>
+    <main class="section">
+      <div class="page-head">
+        <h1>Produtos</h1>
+        <a class="btn" href="produto.html">Novo produto</a>
+      </div>
+      <div id="search" class="search" role="search" hidden>
+        <label for="q">Buscar produtos</label>
+        <input id="q" type="search" placeholder="Nome, categoria ou endereço" autocomplete="off" aria-describedby="count">
+        <span id="count" class="hint" aria-live="polite"></span>
+      </div>
+      <p id="msg" class="msg" role="status" aria-live="polite">Carregando…</p>
+      <p id="empty" class="empty muted" hidden></p>
+      <div class="table-wrap">
+        <table class="list" id="products" hidden>
+          <thead><tr><th>Produto</th><th>Situação</th><th>Preço</th><th>Atualizado em</th><th>Ações</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

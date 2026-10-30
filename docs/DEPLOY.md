@@ -167,6 +167,10 @@ Cada professor vende pela própria conta Kiwify. Para o preço e o link de check
 
 Sem conta conectada, o preço e o link continuam sendo preenchidos à mão, como antes.
 
+**Vendas no Resumo do painel.** Com a conta conectada, o site também busca as vendas a cada hora (botão **Atualizar vendas** no Resumo para buscar na hora) e mostra vendas e faturamento por produto e por origem. A API Key precisa ter acesso a **produtos e vendas** (escopos `products` e `sales`). Se o Resumo mostrar "A Kiwify recusou o acesso", crie uma nova API Key com esses acessos e conecte de novo. Nenhum dado pessoal do comprador (nome, e-mail, CPF) é guardado no site: ele continua só na Kiwify.
+
+**Saber de onde vêm as visitas e as vendas.** Nos links que você divulgar, acrescente a origem no final: `https://seusite.com.br/p/endereco-do-produto?utm_source=instagram` (ou `whatsapp`, `youtube`, `email`...). Para separar campanhas, use também `&utm_campaign=nome-da-campanha`. O Resumo agrupa visitas, cliques e vendas por essa origem, e o botão de compra repassa a origem para o checkout da Kiwify.
+
 ## 9. Testar tudo
 
 - [ ] `http://seusite.com.br` redireciona para `https://`.

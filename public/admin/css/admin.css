@@ -74,7 +74,10 @@ body:has(> main.auth){min-height:100vh;padding:0 1rem;
 /* Celular: duas linhas na pílula (identificação e ações em cima, abas embaixo). */
 @media (max-width:719px){
   .admin-top{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"id actions" "nav nav";padding:.6rem .6rem .5rem 1.1rem;border-radius:24px}
-  .admin-nav{justify-self:start}
+  /* Cinco abas não cabem num celular estreito: o menu rola para o lado em vez de alargar a página. */
+  .admin-nav{justify-self:stretch;min-width:0;overflow-x:auto;scrollbar-width:none}
+  .admin-nav::-webkit-scrollbar{display:none}
+  .admin-nav a{flex:none;padding-inline:.8rem}
 }
 .page-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1rem}
 .page-head h1{margin:0}
@@ -365,3 +368,60 @@ table.list th:last-child{border-top-right-radius:var(--radius)}
   table.list tr{background:var(--color-bg);box-shadow:var(--admin-shadow)}
 }
 .product-form input[readonly]{opacity:.7;cursor:not-allowed}
+
+/* ---------- Resumo (página inicial do painel) ----------
+   Uma cor só nos gráficos (a primária): cada gráfico mostra uma medida, então não há legenda.
+   Textos usam as cores de texto, nunca a cor do gráfico. */
+.dash-filters{display:flex;flex-wrap:wrap;align-items:center;gap:.75rem}
+fieldset.segmented{margin:0;padding:0;min-inline-size:0}
+.dash #content.is-loading{opacity:.55;transition:opacity .2s}
+.dash section{margin-bottom:1.5rem}
+.dash h2{font-size:1.2rem;margin:0 0 .25rem}
+.dash code{font-size:.9em;padding:.05rem .3rem;background:var(--color-surface);border-radius:4px;overflow-wrap:anywhere}
+.dash-card{padding:1.1rem 1.25rem;background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius);box-shadow:var(--admin-shadow)}
+.dash-card > .hint{margin:0 0 .75rem}
+.dash-note{margin-bottom:1.5rem;padding:1rem 1.25rem;color:var(--color-notice-text);background:var(--color-notice-bg);border-radius:var(--radius)}
+.dash-note p{margin:.25rem 0}
+.dash-warnings{margin:0 0 1.5rem;padding:.75rem 1.25rem .75rem 2.25rem;color:var(--color-warning);border:1px solid currentColor;border-radius:var(--radius)}
+.dash-warnings a{font-weight:700}
+
+/* Indicadores */
+.dash-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(11rem,1fr));gap:1rem}
+.tile{display:flex;flex-direction:column;gap:.15rem;padding:1rem 1.1rem;background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius);box-shadow:var(--admin-shadow)}
+.tile-label{font-weight:700;font-size:.9rem;color:var(--color-muted)}
+.tile-value{font-size:clamp(1.6rem,3vw,2rem);font-weight:700;letter-spacing:-.02em;line-height:1.2;color:var(--color-text)}
+.tile-sub{font-size:.85rem;color:var(--color-muted)}
+.tile-delta{font-size:.85rem;font-weight:600;color:var(--color-muted)}
+.tile-delta.is-up{color:var(--color-focus)}
+.tile-delta.is-down{color:var(--color-danger)}
+.dash-tiles + .hint{margin-top:.6rem}
+
+/* Gráficos dia a dia: três pequenos, lado a lado no computador */
+.dash-charts{display:grid;gap:1.25rem}
+@media (min-width:960px){.dash-charts{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.dash-chart{margin:0;min-width:0}
+.dash-chart figcaption{display:flex;justify-content:space-between;gap:.5rem;margin-bottom:.25rem;font-weight:700;font-size:.95rem}
+.dash-chart figcaption strong{font-variant-numeric:tabular-nums}
+.dash-chart svg{display:block;width:100%;height:auto;overflow:visible;border-radius:6px}
+.dash-chart svg:focus-visible{outline:3px solid var(--color-focus);outline-offset:4px}
+.dash-chart .bar{fill:var(--color-primary)}
+.dash-chart .bar.is-active{fill:var(--color-accent)}
+.dash-chart .grid{stroke:var(--color-border);stroke-width:1;shape-rendering:crispEdges}
+.dash-chart .axis{fill:var(--color-muted);font-size:11px;font-variant-numeric:tabular-nums}
+.dash-tip{position:fixed;z-index:50;display:flex;flex-direction:column;padding:.4rem .65rem;font-size:.85rem;line-height:1.3;pointer-events:none;
+  color:var(--color-text);background:var(--color-bg);border:1px solid var(--color-border);border-radius:8px;box-shadow:0 8px 20px -8px rgb(0 0 0 / .35)}
+.dash-tip span{color:var(--color-muted)}
+.dash-table-view{margin-top:1rem}
+.dash-table-view summary{cursor:pointer;font-weight:700;color:var(--color-primary)}
+.dash-table-view .table-wrap{max-height:22rem;overflow-y:auto;margin-top:.5rem}
+table.dash-list td,table.dash-list th{font-variant-numeric:tabular-nums}
+
+/* Listas com barra (aparelhos, páginas) */
+.dash-grid{display:grid;gap:0 1.5rem}
+@media (min-width:860px){.dash-grid{grid-template-columns:1fr 1fr}}
+.dash-bars{list-style:none;margin:.5rem 0 0;padding:0}
+.dash-bars li{display:grid;grid-template-columns:minmax(0,9rem) minmax(0,1fr) auto;align-items:center;gap:.75rem;padding:.4rem 0}
+.dash-bar-label{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.dash-bar-track{height:10px;border-radius:999px;background:var(--color-surface)}
+.dash-bar{display:block;height:100%;border-radius:999px;background:var(--color-primary)}
+.dash-bar-value{font-variant-numeric:tabular-nums;color:var(--color-muted);font-size:.9rem;text-align:right}

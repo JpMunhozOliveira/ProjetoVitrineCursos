@@ -528,7 +528,8 @@ function renderSalesPage(product, { baseUrl, preview = false, now = Date.now() }
   <link rel="stylesheet" href="${assetUrl("/css/venda-editor.css")}">`}
   <script src="${assetUrl("/js/theme.js")}"></script>
   <script src="${assetUrl("/data/site.js")}" defer></script>
-  <script src="${assetUrl("/js/components.js")}" defer></script>
+  <script src="${assetUrl("/js/components.js")}" defer></script>${!preview && html`
+  <script src="${assetUrl("/js/track.js")}" defer></script>`}
   <script src="${assetUrl("/js/main.js")}" defer></script>
   <script src="${assetUrl("/js/venda.js")}" defer></script>
 </head>

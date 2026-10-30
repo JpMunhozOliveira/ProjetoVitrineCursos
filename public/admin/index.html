@@ -4,14 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
-  <title>Produtos — Painel administrativo</title>
+  <title>Resumo — Painel administrativo</title>
   <link rel="icon" type="image/png" href="/assets/favicon/favicon.png">
   <link rel="stylesheet" href="../css/theme.css">
   <link rel="stylesheet" href="../css/style.css">
   <link rel="stylesheet" href="css/admin.css">
   <script src="../js/theme.js"></script>
   <script src="js/common.js" defer></script>
-  <script src="js/produtos.js" defer></script>
+  <script src="js/resumo.js" defer></script>
 </head>
 <body>
   <div class="container">
@@ -27,31 +27,95 @@
         </div>
       </header>
       <nav class="admin-nav" aria-label="Seções do painel">
-        <a href="./" aria-current="page">Produtos</a>
+        <a href="./" aria-current="page">Resumo</a>
+        <a href="produtos.html">Produtos</a>
         <a href="imagens.html">Imagens</a>
         <a href="blocos.html">Blocos salvos</a>
         <a href="empresas.html">Empresas</a>
       </nav>
     </div>
-    <main class="section">
+    <main class="section dash">
       <div class="page-head">
-        <h1>Produtos</h1>
-        <a class="btn" href="produto.html">Novo produto</a>
-      </div>
-      <div id="search" class="search" role="search" hidden>
-        <label for="q">Buscar produtos</label>
-        <input id="q" type="search" placeholder="Nome, categoria ou endereço" autocomplete="off" aria-describedby="count">
-        <span id="count" class="hint" aria-live="polite"></span>
+        <h1>Resumo</h1>
+        <div class="dash-filters">
+          <fieldset class="segmented" aria-label="Período">
+            <label><input type="radio" name="days" value="7"><span>7 dias</span></label>
+            <label><input type="radio" name="days" value="30" checked><span>30 dias</span></label>
+            <label><input type="radio" name="days" value="90"><span>90 dias</span></label>
+          </fieldset>
+          <button id="refresh" class="btn btn-outline btn-sm" type="button" hidden>Atualizar vendas</button>
+        </div>
       </div>
       <p id="msg" class="msg" role="status" aria-live="polite">Carregando…</p>
-      <p id="empty" class="empty muted" hidden></p>
-      <div class="table-wrap">
-        <table class="list" id="products" hidden>
-          <thead><tr><th>Produto</th><th>Situação</th><th>Preço</th><th>Atualizado em</th><th>Ações</th></tr></thead>
-          <tbody></tbody>
-        </table>
+
+      <div id="content" hidden>
+        <ul id="warnings" class="dash-warnings" hidden></ul>
+
+        <div id="empty" class="dash-note" hidden>
+          <p><strong>Ainda não há visitas registradas.</strong> A contagem começa a partir de agora, sempre que alguém abrir o site (suas visitas logado no painel não contam).</p>
+          <p>Para saber qual divulgação traz mais gente, use links com a origem no final, por exemplo:
+            <code>/p/endereco-do-produto?utm_source=instagram</code>,
+            <code>?utm_source=whatsapp</code> ou <code>?utm_source=youtube&amp;utm_campaign=lancamento</code>.</p>
+        </div>
+
+        <section aria-labelledby="t-totais">
+          <h2 id="t-totais" class="sr-only">Números do período</h2>
+          <div id="tiles" class="dash-tiles"></div>
+          <p id="period" class="hint"></p>
+        </section>
+
+        <section class="dash-card" aria-labelledby="t-dias">
+          <h2 id="t-dias">Dia a dia</h2>
+          <div id="charts" class="dash-charts"></div>
+          <details class="dash-table-view">
+            <summary>Ver em tabela</summary>
+            <div class="table-wrap"><table class="list dash-list" id="daily-table">
+              <thead><tr><th>Dia</th><th>Visitas</th><th>Cliques em comprar</th><th>Vendas</th></tr></thead>
+              <tbody></tbody>
+            </table></div>
+          </details>
+        </section>
+
+        <section class="dash-card" aria-labelledby="t-produtos">
+          <h2 id="t-produtos">Produtos</h2>
+          <p class="hint">Quantas pessoas viram cada produto, quantas clicaram em comprar e quantas compraram.</p>
+          <div class="table-wrap"><table class="list dash-list" id="products">
+            <thead><tr><th>Produto</th><th>Visitas</th><th>Cliques</th><th>Taxa de clique</th><th>Vendas</th><th>Faturamento</th></tr></thead>
+            <tbody></tbody>
+          </table></div>
+        </section>
+
+        <section class="dash-card" aria-labelledby="t-origens">
+          <h2 id="t-origens">De onde vêm as pessoas</h2>
+          <p class="hint">Pelo <code>utm_source</code> do link divulgado; sem ele, pelo site de onde a pessoa veio; sem nenhum dos dois, “direto” (link digitado, salvo ou aberto por aplicativo).</p>
+          <div class="table-wrap"><table class="list dash-list" id="sources">
+            <thead><tr><th>Origem</th><th>Visitas</th><th>Cliques</th><th>Vendas</th><th>Faturamento</th></tr></thead>
+            <tbody></tbody>
+          </table></div>
+        </section>
+
+        <div class="dash-grid">
+          <section class="dash-card" aria-labelledby="t-aparelhos">
+            <h2 id="t-aparelhos">Aparelhos</h2>
+            <ul id="devices" class="dash-bars"></ul>
+          </section>
+          <section class="dash-card" aria-labelledby="t-paginas">
+            <h2 id="t-paginas">Páginas mais vistas</h2>
+            <ul id="pages" class="dash-bars"></ul>
+          </section>
+        </div>
+
+        <section class="dash-card" id="kiwify-box" aria-labelledby="t-kiwify" hidden>
+          <h2 id="t-kiwify">Pagamentos na Kiwify</h2>
+          <p class="hint">Pedidos feitos no período, por empresa. “Aguardando” são Pix ou boletos gerados e ainda não pagos; “recusados”, pagamentos negados (geralmente cartão).</p>
+          <div class="table-wrap"><table class="list dash-list" id="kiwify">
+            <thead><tr><th>Empresa</th><th>Pagas</th><th>Pix · cartão · boleto</th><th>Aguardando</th><th>Recusados</th><th>Reembolsos</th><th>Vendas atualizadas</th></tr></thead>
+            <tbody></tbody>
+          </table></div>
+        </section>
       </div>
     </main>
   </div>
+  <div id="tip" class="dash-tip" role="tooltip" hidden></div>
 </body>
 </html>

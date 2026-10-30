@@ -1,4 +1,4 @@
-/* Lista de produtos (página inicial do painel). */
+/* Lista de produtos (aba Produtos do painel). */
 (function () {
   "use strict";
   var $ = function (id) { return document.getElementById(id); };
