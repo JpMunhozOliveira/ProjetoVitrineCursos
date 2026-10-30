@@ -282,6 +282,8 @@
       if (e.status !== 404) { loadError(box); return; }
     }
     box.textContent = ""; // remove o esqueleto de carregamento
+    // Conta a visita (track.js) só aqui: com página de vendas, quem conta é ela, após o redirecionamento.
+    if (window.SiteTrack && !(c && c.pagina)) window.SiteTrack.view(c ? c.id : null);
     if (!c) {
       document.title = "Produto não encontrado — " + S.nome;
       box.append(el("h1", { text: "Produto não encontrado" }),

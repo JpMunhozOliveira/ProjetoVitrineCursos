@@ -137,9 +137,61 @@ function toCheckout(product, linkId) {
   return { price_cents: link.price_cents, checkout_url: link.checkout_url };
 }
 
+/* ---------- Vendas (aba Resumo do painel) ---------- */
+const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
+const tag = (value) => (typeof value === "string" && value.trim() ? value.trim().toLowerCase().slice(0, 100) : null);
+const date = (value) => {
+  const d = typeof value === "string" && value ? new Date(value) : null;
+  return d && !Number.isNaN(d.getTime()) ? d.toISOString() : null;
+};
+
+// Só os campos usados nos números do painel. Nome, e-mail, CPF, endereço e cartão do comprador
+// (que a Kiwify também manda) ficam de fora de propósito.
+function toSale(sale) {
+  if (!sale || !isId(sale.id) || !date(sale.created_at)) return null;
+  const tracking = sale.tracking && typeof sale.tracking === "object" ? sale.tracking : {};
+  const product = sale.product && typeof sale.product === "object" ? sale.product : {};
+  return {
+    order_id: sale.id,
+    kiwify_product_id: isId(product.id) ? product.id : null,
+    product_name: typeof product.name === "string" ? product.name.slice(0, 200) : null,
+    status: typeof sale.status === "string" ? sale.status.slice(0, 30) : "unknown",
+    payment_method: typeof sale.payment_method === "string" ? sale.payment_method.slice(0, 30) : null,
+    charge_cents: toCents(sale.payment?.charge_amount),
+    net_cents: toCents(sale.payment?.net_amount ?? sale.net_amount),
+    created_at: date(sale.created_at),
+    approved_at: date(sale.approved_date),
+    utm_source: tag(tracking.utm_source),
+    utm_medium: tag(tracking.utm_medium),
+    utm_campaign: tag(tracking.utm_campaign),
+  };
+}
+
+function checkRange(start, end) {
+  if (!DAY_RE.test(start) || !DAY_RE.test(end)) throw new KiwifyError("Período inválido.", 400);
+}
+
+// Vendas criadas entre start e end (AAAA-MM-DD, no máximo 90 dias; regra da Kiwify).
+async function listSales(account, { start, end }) {
+  checkRange(start, end);
+  const all = [];
+  for (let page = 1; page <= 50; page += 1) {
+    const query = new URLSearchParams({
+      start_date: start, end_date: end, view_full_sale_details: "true", page_size: "100", page_number: String(page),
+    });
+    const body = await get(account, `/sales?${query}`);
+    const items = Array.isArray(body.data) ? body.data : [];
+    for (const item of items) { const sale = toSale(item); if (sale) all.push(sale); }
+    const total = Number(body.pagination?.count);
+    if (!items.length || items.length < 100 || (Number.isFinite(total) && page * 100 >= total)) break;
+  }
+  return all;
+}
+
 const forget = (key) => tokens.delete(key);
 
 module.exports = {
   KiwifyError, isId, getToken, listProducts, getProduct, summarize, toCheckout, toCents, forget,
+  toSale, listSales,
   _setFetch: (fn) => { fetchImpl = fn; tokens.clear(); limiter = createLimiter({ max: 60, windowMs: 60_000, maxKeys: 100 }); }, // só para os testes
 };

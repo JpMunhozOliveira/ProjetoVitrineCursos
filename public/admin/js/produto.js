@@ -7,6 +7,7 @@
   var dirty = false;      // há alterações não salvas?
   var slugTouched = !!id; // na criação, o slug acompanha o título até ser editado à mão
   var savedStatus = null; // situação como está gravada no banco (null = produto ainda não criado)
+  var savedSlug = null;   // endereço como está gravado (para o aviso de links quebrados)
 
   var STATUS_HINTS = {
     draft: "Não aparece no site.",
@@ -404,8 +405,9 @@
     var title = product ? "Editar produto" : "Novo produto";
     $("heading").textContent = title;
     document.title = title + " — Painel administrativo";
-    $("slug-hint").hidden = !product;
+    savedSlug = product ? product.slug : null;
     savedStatus = product ? product.status : null;
+    updateSlugHint();
     updateStatusHint();
 
     // Mesma regra da API: publicado precisa ser arquivado antes de poder ser excluído.
@@ -419,14 +421,126 @@
     refreshSalesZone(product);
   }
 
+  /* ---------- Links de divulgação ----------
+     Um link por canal (utm_source) e uma campanha opcional (utm_campaign), já padronizados
+     ("Black Friday!" vira black-friday) para os números não se espalharem no Resumo.
+     O endereço é o da página pública: a de vendas, se estiver publicada; senão a de detalhes. */
+  var promo = (function () {
+    var box = $("promo"), list = $("promo-links"), campaign = $("promo-campaign"), warn = $("promo-warn");
+    var saved = null, salesPage = false, rows = [], suggested = false;
+
+    function link(source) {
+      if (!saved || !source) return "";
+      var path = salesPage ? "/p/" + encodeURIComponent(saved.slug) : "/produto.html?id=" + encodeURIComponent(saved.slug);
+      var url = new URL(path, document.baseURI); // o próprio site (em produção, o domínio)
+      url.searchParams.set("utm_source", source);
+      var c = slugify(campaign.value);
+      if (c) url.searchParams.set("utm_campaign", c);
+      return url.href;
+    }
+
+    async function copy(input, btn, label) {
+      try {
+        await navigator.clipboard.writeText(input.value);
+      } catch (e) {
+        input.select();
+        document.execCommand("copy");
+      }
+      btn.textContent = "Copiado ✓";
+      $("promo-msg").textContent = "Link para " + label + " copiado.";
+      setTimeout(function () { btn.textContent = "Copiar"; }, 2000);
+    }
+
+    function row(label, sourceOf, extra) {
+      var li = document.createElement("li");
+      var name = document.createElement("span");
+      name.className = "promo-name";
+      name.textContent = label;
+      var input = document.createElement("input");
+      input.readOnly = true;
+      input.className = "promo-url";
+      input.setAttribute("aria-label", "Link para " + label);
+      input.addEventListener("focus", function () { input.select(); });
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "btn btn-sm btn-outline";
+      btn.textContent = "Copiar";
+      btn.setAttribute("aria-label", "Copiar link para " + label);
+      btn.addEventListener("click", function () { copy(input, btn, label); });
+      var line = document.createElement("span");
+      line.className = "promo-line";
+      if (extra) line.append(extra);
+      line.append(input, btn);
+      li.append(name, line);
+      list.append(li);
+      rows.push(function () {
+        input.value = link(sourceOf());
+        if (extra) input.placeholder = "Digite o nome do canal";
+        btn.disabled = !input.value;
+      });
+    }
+
+    var other = document.createElement("input");
+    other.className = "promo-other";
+    other.maxLength = 40;
+    other.placeholder = "ex.: youtube";
+    other.autocapitalize = "none";
+    other.spellcheck = false;
+    other.setAttribute("aria-label", "Nome de outro canal");
+
+    Admin.UTM_SOURCES.forEach(function (s) { row(s.label, function () { return s.value; }); });
+    row("Outro", function () { return slugify(other.value); }, other);
+
+    function draw() { rows.forEach(function (fn) { fn(); }); }
+    campaign.addEventListener("input", draw);
+    other.addEventListener("input", draw);
+    // Ao sair do campo, mostra o nome já padronizado (o mesmo que vai no link).
+    campaign.addEventListener("change", function () { campaign.value = slugify(campaign.value); draw(); });
+    other.addEventListener("change", function () { other.value = slugify(other.value); draw(); });
+
+    function warning() {
+      var msgs = [];
+      if (saved && saved.status !== "published") msgs.push("Os links só funcionam depois que o produto for publicado.");
+      if (saved && form.elements.slug.value !== saved.slug) msgs.push("O endereço (slug) foi alterado: salve para atualizar os links.");
+      warn.textContent = msgs.join(" ");
+      warn.hidden = !msgs.length;
+    }
+    form.elements.slug.addEventListener("input", warning);
+
+    async function loadSuggestions() {
+      if (suggested) return;
+      suggested = true;
+      try {
+        var names = await Admin.api("/dashboard/campaigns");
+        $("promo-campaigns").replaceChildren.apply($("promo-campaigns"), names.map(function (n) {
+          var o = document.createElement("option");
+          o.value = n;
+          return o;
+        }));
+      } catch (e) { /* sem sugestões; o campo continua funcionando */ }
+    }
+
+    return {
+      set: function (product, hasSalesPage) {
+        saved = product; salesPage = !!hasSalesPage;
+        box.hidden = !product;
+        if (!product) return;
+        draw();
+        warning();
+        loadSuggestions();
+      }
+    };
+  })();
+
   // Área "Página de vendas": situação da página e links para pré-visualizar / ver publicada.
   // A página só é pública com o produto publicado E a página publicada.
   async function refreshSalesZone(product) {
     var zone = $("sales"), status = $("sales-status"), preview = $("sales-preview"), pub = $("sales-public");
     zone.hidden = !product;
-    if (!product) return;
+    if (!product) { promo.set(null); return; }
     try {
       var page = await Admin.api("/products/" + encodeURIComponent(product.id) + "/sales-page");
+      promo.set(product, !!(page && page.published_at));
       preview.hidden = !page;
       preview.href = "/admin/preview/" + encodeURIComponent(product.id);
       var live = !!(page && page.published_at && product.status === "published");
@@ -445,6 +559,7 @@
         : "Página em rascunho, ainda não publicada. Publique pelo editor quando estiver pronta.") + pending;
     } catch (err) {
       status.textContent = err.message;
+      promo.set(product, false);
     }
   }
 
@@ -461,7 +576,7 @@
       await Admin.api("/products/" + encodeURIComponent(id), { method: "DELETE" });
       dirty = false; // não pergunta sobre "alterações não salvas" de um produto que não existe mais
       Admin.setFlash("“" + name + "” foi excluído.");
-      location.replace("./");
+      location.replace("produtos.html");
     } catch (err) {
       Admin.showMessage($("danger-msg"), err.message, "error");
     }
@@ -470,8 +585,13 @@
   form.elements.title.addEventListener("input", function () {
     if (!slugTouched) form.elements.slug.value = slugify(form.elements.title.value);
   });
+  // O aviso de links quebrados só aparece quando o endereço de um produto publicado é de fato alterado.
+  function updateSlugHint() {
+    $("slug-hint").hidden = !(savedSlug && savedStatus === "published" && form.elements.slug.value !== savedSlug);
+  }
   form.elements.slug.addEventListener("input", function () {
     slugTouched = form.elements.slug.value !== ""; // apagou tudo? volta a acompanhar o título
+    updateSlugHint();
   });
   form.elements.price.addEventListener("input", function () { form.elements.price.setCustomValidity(""); });
   form.elements.offer_price.addEventListener("input", function () { form.elements.offer_price.setCustomValidity(""); });

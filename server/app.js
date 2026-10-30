@@ -7,6 +7,8 @@ const adminAuthRoutes = require("./routes/admin-auth.routes");
 const adminMediaRoutes = require("./routes/admin-media.routes");
 const adminSharedBlockRoutes = require("./routes/admin-shared-block.routes");
 const adminBrandRoutes = require("./routes/admin-brand.routes");
+const adminDashboardRoutes = require("./routes/admin-dashboard.routes");
+const trackRoutes = require("./routes/track.routes");
 const storage = require("./lib/storage");
 const assets = require("./lib/assets");
 const defaultBrand = require("./lib/default-brand");
@@ -72,6 +74,8 @@ app.use("/api/admin/products", adminProductRoutes);
 app.use("/api/admin/media", adminMediaRoutes);
 app.use("/api/admin/shared-blocks", adminSharedBlockRoutes);
 app.use("/api/admin/brands", adminBrandRoutes);
+app.use("/api/admin/dashboard", adminDashboardRoutes);
+app.use("/api/track", trackRoutes); // visitas e cliques do site (aba Resumo), sem cookies
 app.get("/api/admin/sales-blocks", requireAdmin, getBlockSchema);
 
 // Cores da página de vendas (ver sales/theme.js). As cores vêm na URL e são validadas; como a

@@ -45,15 +45,26 @@ function normalizeAlt(value) {
   return { alt };
 }
 
+const cleanName = (value) => value.replace(/[\u0000-\u001f\u007f]/g, "").trim();
+
 // Nome original vem no cabeçalho X-File-Name (codificado com encodeURIComponent).
 // Serve só para exibição: o arquivo é gravado com um nome aleatório.
 function originalName(req) {
   try {
-    const name = decodeURIComponent(req.get("x-file-name") || "").replace(/[\u0000-\u001f\u007f]/g, "").trim();
-    return name.slice(0, 255) || null;
+    return cleanName(decodeURIComponent(req.get("x-file-name") || "")).slice(0, 255) || null;
   } catch {
     return null;
   }
+}
+
+// Renomear (aba Imagens): muda só o nome mostrado no painel; o arquivo e os links não mudam.
+const EDITABLE = new Set(["alt_text", "original_name"]);
+function normalizeName(value) {
+  if (typeof value !== "string") return { error: "O nome da imagem deve ser texto." };
+  const name = cleanName(value);
+  if (!name) return { error: "Dê um nome à imagem." };
+  if (name.length > 255) return { error: "O nome da imagem deve ter no máximo 255 caracteres." };
+  return { name };
 }
 
 const NOT_FOUND = { error: "Imagem não encontrada." };
@@ -102,13 +113,25 @@ async function updateMedia(req, res) {
   if (!isValidId(req.params.id)) return res.status(404).json(NOT_FOUND);
   const body = req.body;
   const keys = body && typeof body === "object" && !Array.isArray(body) ? Object.keys(body) : null;
-  if (!keys || keys.length !== 1 || keys[0] !== "alt_text") {
-    return res.status(400).json({ error: "Envie apenas o campo alt_text." });
+  if (!keys || !keys.length || keys.some((k) => !EDITABLE.has(k))) {
+    return res.status(400).json({ error: "Envie apenas alt_text e/ou original_name." });
   }
-  const { alt, error } = normalizeAlt(body.alt_text);
-  if (error) return res.status(400).json({ error });
+  // Só os campos enviados entram no UPDATE (nomes fixos acima; valores sempre como parâmetros).
+  const sets = [], values = [req.params.id];
+  if ("alt_text" in body) {
+    const { alt, error } = normalizeAlt(body.alt_text);
+    if (error) return res.status(400).json({ error });
+    values.push(alt);
+    sets.push(`alt_text = $${values.length}`);
+  }
+  if ("original_name" in body) {
+    const { name, error } = normalizeName(body.original_name);
+    if (error) return res.status(400).json({ error });
+    values.push(name);
+    sets.push(`original_name = $${values.length}`);
+  }
 
-  const updated = await pool.query("UPDATE media SET alt_text = $2 WHERE id = $1", [req.params.id, alt]);
+  const updated = await pool.query(`UPDATE media SET ${sets.join(", ")} WHERE id = $1`, values);
   if (!updated.rowCount) return res.status(404).json(NOT_FOUND);
   defaultBrand.invalidate(); // pode ser o logo da empresa padrão (menu do site)
 
