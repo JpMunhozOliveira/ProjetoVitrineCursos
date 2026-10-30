@@ -133,3 +133,43 @@ test("kiwify: lista todas as páginas de produtos, em ordem alfabética, sem os 
   assert.equal(list[0].links, undefined);
   assert.equal(list[0].price_cents, 100);
 });
+
+/* ---------- Vendas (aba Resumo) ---------- */
+const SALE = {
+  id: "ab12cd34-0000-4000-8000-000000000001", status: "paid", payment_method: "pix",
+  created_at: "2026-10-20T13:00:00.000Z", approved_date: "2026-10-20T13:05:00.000Z", net_amount: 0,
+  product: { id: PRODUCT.id, name: "Manual" },
+  payment: { charge_amount: 10388, net_amount: 8853 },
+  tracking: { utm_source: "Instagram", utm_medium: null, utm_campaign: "lancamento" },
+  customer: { name: "Fulana", email: "fulana@email.com", cpf: "12345678900", mobile: "+5511999999999" },
+};
+
+test("kiwify: toSale guarda só os números e a origem, nada do comprador", () => {
+  const sale = kiwify.toSale(SALE);
+  assert.deepEqual(sale, {
+    order_id: SALE.id, kiwify_product_id: PRODUCT.id, product_name: "Manual", status: "paid", payment_method: "pix",
+    charge_cents: 10388, net_cents: 8853, created_at: "2026-10-20T13:00:00.000Z", approved_at: "2026-10-20T13:05:00.000Z",
+    utm_source: "instagram", utm_medium: null, utm_campaign: "lancamento",
+  });
+  assert.ok(!JSON.stringify(sale).includes("fulana"));
+  assert.ok(!JSON.stringify(sale).includes("12345678900"));
+  assert.equal(kiwify.toSale({ ...SALE, id: "../x" }), null);
+  assert.equal(kiwify.toSale({ ...SALE, created_at: "ontem" }), null);
+});
+
+test("kiwify: listSales pede detalhes completos e percorre as páginas", async () => {
+  const page = (n, count) => Array.from({ length: count }, (_, i) => ({ ...SALE, id: `venda-${n}-${i}` }));
+  const calls = fakeKiwify((url) => {
+    if (url.endsWith("/oauth/token")) return tokenReply();
+    const p = Number(new URL(url).searchParams.get("page_number"));
+    return { body: { pagination: { count: 130 }, data: p === 1 ? page(1, 100) : page(2, 30) } };
+  });
+  const sales = await kiwify.listSales(account, { start: "2026-10-01", end: "2026-10-30" });
+  assert.equal(sales.length, 130);
+  const first = new URL(calls[1].url);
+  assert.equal(first.pathname, "/v1/sales");
+  assert.equal(first.searchParams.get("start_date"), "2026-10-01");
+  assert.equal(first.searchParams.get("view_full_sale_details"), "true");
+  assert.equal(calls.length, 3); // token + 2 páginas
+  await assert.rejects(kiwify.listSales(account, { start: "01/10/2026", end: "2026-10-30" }), { status: 400 });
+});

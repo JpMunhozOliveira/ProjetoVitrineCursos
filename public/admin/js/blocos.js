@@ -83,39 +83,41 @@
     return "Sem texto ainda.";
   }
 
+  // Cartão: ícone do tipo de bloco, nome, resumo e, na última linha, onde é usado + Editar e "×".
   function card(block) {
     var li = el("li", "media-card shared-card");
     li.dataset.id = block.id;
     var body = el("div", "media-body");
-    body.append(el("strong", "media-name", block.name));
-    body.append(el("span", "muted small", label(block.type) + " · atualizado em " +
+
+    var head = el("div", "shared-head");
+    var icon = el("span", "shared-icon");
+    icon.append(Admin.blockIcon(block.type));
+    var title = el("div", "shared-title");
+    title.append(el("strong", "shared-name", block.name), el("span", "muted small", label(block.type) + " · atualizado em " +
       new Date(block.updated_at).toLocaleDateString("pt-BR")));
+    head.append(icon, title);
+    body.append(head);
+
     var text = summary(block);
-    body.append(el("p", "small", text.length > 140 ? text.slice(0, 140) + "…" : text));
+    body.append(el("p", "small shared-summary", text.length > 140 ? text.slice(0, 140) + "…" : text));
 
-    var usage = el("p", "media-usage small");
-    if (block.usage.length) {
-      usage.append("Usado nas páginas de: ");
-      block.usage.forEach(function (u, i) {
-        if (i) usage.append(", ");
-        var a = el("a", "", u.title);
-        a.href = "pagina.html?id=" + encodeURIComponent(u.id);
-        usage.append(a);
-      });
-    } else {
-      usage.append(el("span", "badge", "Sem uso"));
-    }
-    body.append(usage);
-
-    var actions = el("div", "row-actions");
-    var edit = el("a", "btn btn-sm", "Editar");
+    // Linha final: uso à esquerda; Editar e (sem uso) o "×" de excluir à direita.
+    var foot = el("div", "media-tags shared-foot"), badges = el("div", "media-badges");
+    badges.append(block.usage.length
+      ? Admin.usagePopover(block.usage.map(function (u) {
+        return { label: "", title: u.title, href: "pagina.html?id=" + encodeURIComponent(u.id) };
+      }), { prefix: "Usado em", one: "página", many: "páginas" })
+      : el("span", "badge", "Sem uso"));
+    var actions = el("div", "shared-actions");
+    var edit = el("a", "btn btn-sm btn-outline", "Editar");
     edit.href = editUrl(block.id);
     edit.setAttribute("aria-label", "Editar " + block.name);
     actions.append(edit);
-    // Bloco em uso não pode ser excluído (regra da API); o botão nem aparece.
+    // Bloco em uso não pode ser excluído (regra da API); o "×" nem aparece.
     if (!block.usage.length) {
-      var del = el("button", "btn btn-sm btn-danger", "Excluir");
+      var del = el("button", "media-delete", "×");
       del.type = "button";
+      del.title = "Excluir";
       del.setAttribute("aria-label", "Excluir " + block.name);
       del.addEventListener("click", async function () {
         var ok = await Admin.confirm({
@@ -133,16 +135,32 @@
       });
       actions.append(del);
     }
-    body.append(actions);
+    foot.append(badges, actions);
+    body.append(foot);
     li.append(body);
     return li;
   }
 
-  async function load() {
-    var all = await Admin.api("/shared-blocks");
-    list.replaceChildren.apply(list, all.map(card));
+  // Lista com a busca aplicada (nome, tipo, resumo do texto e páginas onde o bloco é usado).
+  var all = [];
+  function render() {
+    var query = $("q").value.trim();
+    var shown = Admin.searchFilter(all, query, function (b) {
+      return [b.name, label(b.type), summary(b)].concat(b.usage.map(function (u) { return u.title; })).join(" ");
+    });
+    list.replaceChildren.apply(list, shown.map(card));
+    $("search").hidden = !all.length;
+    $("count").textContent = query ? shown.length + " de " + all.length + " bloco(s)" : "";
     $("empty").hidden = all.length > 0;
+    $("no-results").textContent = "Nenhum bloco encontrado para “" + query + "”.";
+    $("no-results").hidden = !(all.length && !shown.length);
   }
+
+  async function load() {
+    all = await Admin.api("/shared-blocks");
+    render();
+  }
+  $("q").addEventListener("input", render);
 
   (async function () {
     try {

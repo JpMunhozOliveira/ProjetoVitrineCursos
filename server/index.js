@@ -4,6 +4,8 @@ const { isUsableApiKey } = require("./middleware/admin-auth");
 const { configuredBaseUrl } = require("./lib/base-url");
 const { backfillVariants } = require("./lib/image-variants");
 const { startAutoSync } = require("./lib/kiwify-sync");
+const { startSalesSync } = require("./lib/kiwify-sales-sync");
+const { purgeOld } = require("./lib/analytics");
 const box = require("./lib/crypto-box");
 
 const port = Number(process.env.PORT || 3000);
@@ -27,8 +29,13 @@ const server = app.listen(port, "0.0.0.0", () => {
   // Imagens enviadas antes das versões menores existirem: gera em segundo plano.
   backfillVariants().catch((error) => console.error("Versões menores das imagens:", error.message));
   // Preço e link dos produtos vinculados à Kiwify: 1 min após subir e a cada 6 h.
-  if (box.isConfigured()) startAutoSync();
+  // Vendas para o Resumo do painel: 2 min após subir e a cada 1 h.
+  if (box.isConfigured()) { startAutoSync(); startSalesSync(); }
   else console.warn("KIWIFY_ENCRYPTION_KEY ausente: integração com a Kiwify desligada (node scripts/gerar-env.js cria a chave).");
+  // Visitas com mais de 13 meses: apagadas ao subir e uma vez por dia.
+  const purge = () => purgeOld().catch((error) => console.error("Resumo: limpeza de eventos falhou:", error.message));
+  setTimeout(purge, 30_000).unref();
+  setInterval(purge, 24 * 60 * 60 * 1000).unref();
 });
 
 // O Caddy reaproveita conexões ociosas com o app por até 2 min; o Node fecha as dele após 5 s

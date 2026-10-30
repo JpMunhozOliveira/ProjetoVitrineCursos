@@ -27,7 +27,8 @@
         </div>
       </header>
       <nav class="admin-nav" aria-label="Seções do painel">
-        <a href="./">Produtos</a>
+        <a href="./">Resumo</a>
+        <a href="produtos.html">Produtos</a>
         <a href="imagens.html">Imagens</a>
         <a href="blocos.html" aria-current="page">Blocos salvos</a>
         <a href="empresas.html">Empresas</a>
@@ -35,12 +36,15 @@
     </div>
     <main class="section">
       <div class="page-head">
-        <h1>Blocos salvos</h1>
+        <div class="title-row">
+          <h1>Blocos salvos</h1>
+          <span class="info-pop">
+            <button class="info-btn" type="button" aria-label="Sobre esta página" aria-describedby="page-info" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></button>
+            <span id="page-info" class="info-text" role="tooltip">Qualquer bloco da página de vendas (autor, redes sociais, perguntas frequentes, garantia…) pode ser cadastrado uma vez e usado em várias páginas. O conteúdo é editado no editor visual, como numa página. Ao salvar um bloco, <strong>todas as páginas que o usam mudam na hora</strong>, inclusive as já publicadas. Para usar um bloco numa página, abra o editor da página de vendas e escolha-o em “+” › Blocos salvos.</span>
+          </span>
+        </div>
         <button id="new" class="btn" type="button" aria-expanded="false" aria-controls="new-form">Novo bloco salvo</button>
       </div>
-      <p class="hint">Qualquer bloco da página de vendas (autor, redes sociais, perguntas frequentes, garantia…) pode ser cadastrado uma vez e usado em várias páginas.
-        O conteúdo é editado no editor visual, como numa página. Ao salvar um bloco, <strong>todas as páginas que o usam mudam na hora</strong>, inclusive as já publicadas.
-        Para usar um bloco numa página, abra o editor da página de vendas e escolha-o em “+” › Blocos salvos.</p>
 
       <form id="new-form" class="product-form new-shared" hidden novalidate>
         <fieldset>
@@ -65,8 +69,14 @@
         </fieldset>
       </form>
 
+      <div id="search" class="search" role="search" hidden>
+        <label for="q">Buscar blocos</label>
+        <input id="q" type="search" placeholder="Nome, tipo, texto ou página" autocomplete="off" aria-describedby="count">
+        <span id="count" class="hint" aria-live="polite"></span>
+      </div>
       <p id="msg" class="msg" role="status" aria-live="polite">Carregando…</p>
       <p id="empty" class="empty muted" hidden>Nenhum bloco salvo ainda. Use “Novo bloco salvo”, acima, ou, no editor de uma página, “Usar este bloco em outras páginas” no painel de um bloco.</p>
+      <p id="no-results" class="empty muted" hidden></p>
       <ul id="list" class="media-library shared-list"></ul>
     </main>
   </div>

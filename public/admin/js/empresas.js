@@ -209,52 +209,46 @@
     li.id = b.id;
     li.dataset.id = b.id;
     var body = el("div", "media-body");
-    var name = el("strong", "media-name", title(b));
+    // Cabeçalho: ícone da aba do navegador (próprio, o logo ou o do site) à esquerda do nome.
+    var head = el("div", "shared-head");
+    var tabIcon = el("span", "shared-icon brand-tab-icon");
+    var tabImg = b.icon || b.logo;
+    var img = el("img");
+    img.src = tabImg ? tabImg.url : "/assets/favicon/favicon.png"; img.alt = ""; img.width = 24; img.height = 24; img.loading = "lazy";
+    tabIcon.append(img);
+    tabIcon.title = b.icon ? "Ícone da aba do navegador: próprio" : b.logo ? "Ícone da aba do navegador: usa o logo" : "Ícone da aba do navegador: o do site";
+    var heading = el("div", "shared-title");
+    var name = el("strong", "shared-name", title(b));
+    heading.append(name, el("span", "muted small", "Atualizada em " + new Date(b.updated_at).toLocaleDateString("pt-BR")));
+    head.append(tabIcon, heading);
+    body.append(head);
+
+    // Linha final: uso, Padrão e Kiwify à esquerda; Editar e (sem uso) o "×" de excluir à direita.
+    var foot = el("div", "media-tags shared-foot"), badges = el("div", "media-badges");
+    badges.append(b.usage.length
+      ? Admin.usagePopover(b.usage.map(function (u) {
+        return { label: "", title: u.title, href: "produto.html?id=" + encodeURIComponent(u.id) };
+      }), { prefix: "Possui", one: "produto", many: "produtos" })
+      : el("span", "badge", "Sem uso"));
     if (b.is_default) {
       var def = el("span", "badge badge-default", "Padrão");
       def.title = "Empresa padrão do site: logo no menu e ícone na aba do navegador";
-      name.append(" ", def);
+      badges.append(def);
     }
-    body.append(name);
-    body.append(el("span", "muted small", "Atualizada em " + new Date(b.updated_at).toLocaleDateString("pt-BR")));
-    // Ícone da aba: próprio, o logo ou o do site (mesma regra da página de vendas).
-    var tab = el("p", "brand-tab small");
-    var tabImg = b.icon || b.logo;
-    if (tabImg) {
-      var ti = el("img");
-      ti.src = tabImg.url; ti.alt = ""; ti.width = 16; ti.height = 16; ti.loading = "lazy";
-      tab.append(ti);
-    }
-    tab.append(b.icon ? "Ícone da aba próprio" : b.logo ? "Ícone da aba: usa o logo" : "Ícone da aba: o do site");
-    body.append(tab);
-    var kw = el("p", "brand-kiwify small", b.kiwify ? "Kiwify conectada" : "Kiwify não conectada");
-    kw.classList.toggle("ok", !!b.kiwify);
-    body.append(kw);
+    var kw = el("span", "badge " + (b.kiwify ? "badge-kiwify-on" : "badge-alt"), b.kiwify ? "Kiwify" : "Sem Kiwify");
+    kw.title = b.kiwify ? "Conta Kiwify conectada: preço e link dos produtos vêm da Kiwify" : "Conta Kiwify não conectada (Editar > Conta Kiwify)";
+    badges.append(kw);
 
-    var usage = el("p", "media-usage small");
-    if (b.usage.length) {
-      usage.append("Usada em: ");
-      b.usage.forEach(function (u, i) {
-        if (i) usage.append(", ");
-        var a = el("a", "", u.title);
-        a.href = "produto.html?id=" + encodeURIComponent(u.id);
-        usage.append(a);
-      });
-    } else {
-      usage.append(el("span", "badge", "Sem uso"));
-    }
-    body.append(usage);
-
-    var actions = el("div", "row-actions");
-    var edit = button("Editar", "btn btn-sm", async function () {
+    var actions = el("div", "shared-actions");
+    var edit = button("Editar", "btn btn-sm btn-outline", async function () {
       if (!form.hidden && !(await closeForm())) return;
       openForm(b);
     });
     edit.setAttribute("aria-label", "Editar " + title(b));
     actions.append(edit);
-    // Empresa em uso não pode ser excluída (regra da API); o botão nem aparece.
+    // Empresa em uso não pode ser excluída (regra da API); o "×" nem aparece.
     if (!b.usage.length) {
-      var del = button("Excluir", "btn btn-sm btn-danger", async function () {
+      var del = button("×", "media-delete", async function () {
         var ok = await Admin.confirm({
           title: "Excluir “" + title(b) + "”?",
           text: "A empresa será apagada definitivamente (o logo continua na biblioteca de imagens)."
@@ -271,10 +265,12 @@
           Admin.showMessage(msg, err.message, "error");
         }
       });
+      del.title = "Excluir";
       del.setAttribute("aria-label", "Excluir " + title(b));
       actions.append(del);
     }
-    body.append(actions);
+    foot.append(badges, actions);
+    body.append(foot);
     li.append(preview(b), body);
     return li;
   }
@@ -284,11 +280,26 @@
     if (c) c.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
 
-  async function load() {
-    var all = await Admin.api("/brands");
-    list.replaceChildren.apply(list, all.map(card));
+  // Lista com a busca aplicada (nome da empresa e produtos dela).
+  var all = [];
+  function render() {
+    var query = $("q").value.trim();
+    var shown = Admin.searchFilter(all, query, function (b) {
+      return [title(b)].concat(b.usage.map(function (u) { return u.title; })).join(" ");
+    });
+    list.replaceChildren.apply(list, shown.map(card));
+    $("search").hidden = !all.length;
+    $("count").textContent = query ? shown.length + " de " + all.length + " empresa(s)" : "";
     $("empty").hidden = all.length > 0;
+    $("no-results").textContent = "Nenhuma empresa encontrada para “" + query + "”.";
+    $("no-results").hidden = !(all.length && !shown.length);
   }
+
+  async function load() {
+    all = await Admin.api("/brands");
+    render();
+  }
+  $("q").addEventListener("input", render);
 
   (async function () {
     try {

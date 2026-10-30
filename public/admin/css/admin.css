@@ -74,10 +74,36 @@ body:has(> main.auth){min-height:100vh;padding:0 1rem;
 /* Celular: duas linhas na pílula (identificação e ações em cima, abas embaixo). */
 @media (max-width:719px){
   .admin-top{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"id actions" "nav nav";padding:.6rem .6rem .5rem 1.1rem;border-radius:24px}
-  .admin-nav{justify-self:start}
+  /* Cinco abas não cabem num celular estreito: o menu rola para o lado em vez de alargar a página. */
+  .admin-nav{justify-self:stretch;min-width:0;overflow-x:auto;scrollbar-width:none}
+  .admin-nav::-webkit-scrollbar{display:none}
+  .admin-nav a{flex:none;padding-inline:.8rem}
 }
 .page-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1rem}
 .page-head h1{margin:0}
+/* Título com o "i" de informação ao lado: a explicação da página aparece num balão ao passar o
+   mouse, focar com o teclado ou tocar (celular). O balão se alinha à esquerda do título. */
+.title-row{position:relative;display:flex;align-items:center;gap:.5rem;min-width:0}
+.info-btn{display:grid;place-items:center;width:2rem;height:2rem;padding:0;color:var(--color-muted);background:none;border:0;border-radius:999px;cursor:help;transition:color .15s,background .15s}
+.info-btn svg{width:1.35rem;height:1.35rem;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.info-btn:hover,.info-pop.is-open .info-btn,.info-btn:focus-visible{color:var(--color-primary);background:var(--color-surface)}
+.info-btn:focus-visible{outline:3px solid var(--color-focus);outline-offset:1px}
+.info-text{position:absolute;z-index:25;top:calc(100% + 8px);left:0;width:min(34rem,calc(100vw - 2rem));padding:.75rem 1rem;font-size:.92rem;line-height:1.5;font-weight:400;
+  color:var(--color-text);background:var(--color-bg);border:1px solid var(--color-border);border-radius:12px;box-shadow:0 14px 32px -14px rgb(0 0 0 / .45);
+  visibility:hidden;opacity:0;transform:translateY(-4px);transition:opacity .15s,transform .15s,visibility 0s .15s}
+/* Faixa invisível entre o "i" e o balão: o mouse atravessa sem o balão fechar. */
+.info-text::before{content:"";position:absolute;left:0;right:0;top:-1.75rem;height:1.75rem}
+.info-pop:hover .info-text,.info-pop:focus-within .info-text,.info-pop.is-open .info-text{visibility:visible;opacity:1;transform:none;transition:opacity .15s,transform .15s}
+
+/* "i" menor ao lado do rótulo de um campo, do título de um quadro (legend) ou de um cartão. */
+.info-sm .info-btn{width:1.6rem;height:1.6rem}
+.info-sm .info-btn svg{width:1.1rem;height:1.1rem}
+.label-row{position:relative;display:flex;align-items:center;gap:.2rem;margin-bottom:.25rem}
+.field .label-row label{margin:0}
+.legend-info{position:relative;display:flex;align-items:center;gap:.2rem}
+.legend-info .info-text,.label-row .info-text{top:calc(100% + 4px)}
+.dash-card > .title-row{margin-bottom:.6rem}
+.dash-card > .title-row h2{margin:0}
 
 /* Busca na lista */
 .search{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem 1rem;margin-bottom:1rem}
@@ -219,15 +245,17 @@ dialog.confirm .buttons .btn{flex:1 1 0;padding-inline:1rem;white-space:nowrap}
 .cover-preview.brand-pick-preview img{width:auto;max-width:60%;height:34px;padding:0;object-fit:contain}
 .brand-pick-preview span{overflow:hidden;font-weight:700;color:#fff;text-overflow:ellipsis;white-space:nowrap}
 .brand-pick-preview span.muted{font-weight:400;color:#c7d2e3}
-.brand-card .brand-pick-preview{aspect-ratio:auto;min-height:5.5rem;border:0;border-radius:0}
+.brand-card .brand-pick-preview{aspect-ratio:auto;min-height:5.5rem;border:0;border-radius:calc(var(--radius) - 1px) calc(var(--radius) - 1px) 0 0}
+/* Ícone da aba do navegador, à esquerda do nome da empresa */
+.brand-tab-icon img{width:1.5rem;height:1.5rem;object-fit:contain}
+.media-tags .badge-kiwify-on{color:var(--color-focus)}
+.media-tags .badge-default{color:var(--color-primary)}
 .brand-form{margin-top:1rem}
 .icon-preview{aspect-ratio:1;max-width:8rem}
 .icon-preview img{object-fit:contain;padding:.75rem}
-.brand-tab{display:flex;align-items:center;gap:.4rem;margin:0}
-.brand-tab img{width:16px;height:16px;object-fit:contain}
 /* Conta Kiwify (aba Empresas) e vínculo no produto */
-.brand-kiwify,.kiwify-status{margin:0;color:var(--color-muted)}
-.brand-kiwify.ok,.kiwify-status.ok{color:var(--color-focus);font-weight:600}
+.kiwify-status{margin:0;color:var(--color-muted)}
+.kiwify-status.ok{color:var(--color-focus);font-weight:600}
 .kiwify-status{margin-bottom:.75rem}
 .kiwify-link{margin-bottom:1rem}
 .kiwify-sync{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem 1rem;margin:.25rem 0 0}
@@ -252,14 +280,55 @@ dialog.picker .msg:empty{display:none}
 .media-toolbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.5rem 1rem;margin:1rem 0}
 .media-toolbar .field{margin:0}
 .media-library{display:grid;gap:1rem;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));margin:0;padding:0;list-style:none}
-.media-card{display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--color-border);border-radius:var(--radius);background:var(--color-bg)}
-.media-card .media-zoom img{width:100%;aspect-ratio:16/10;object-fit:cover;background:var(--color-surface)}
-.media-body{display:flex;flex-direction:column;gap:.35rem;padding:1rem}
-.media-name{overflow-wrap:anywhere}
-.media-usage{margin:.25rem 0 .5rem}
-.media-body .field{margin-bottom:.5rem}
+/* Sem overflow:hidden no cartão: o balão "Usada em…" precisa poder passar da borda. */
+.media-card{display:flex;flex-direction:column;border:1px solid var(--color-border);border-radius:var(--radius);background:var(--color-bg)}
+.media-card .media-zoom img{width:100%;aspect-ratio:16/10;object-fit:cover;background:var(--color-surface);border-radius:calc(var(--radius) - 1px) calc(var(--radius) - 1px) 0 0}
+.media-card .media-zoom:focus-visible{border-radius:var(--radius) var(--radius) 0 0}
+.media-body{display:flex;flex-direction:column;gap:.35rem;padding:.85rem 1rem 1rem}
+/* Nome: parece texto; ao passar o mouse ou focar, aparece o lápis (clicar renomeia). */
+.media-name{display:flex;align-items:baseline;gap:.4rem;width:100%;min-width:0;padding:.1rem .3rem;margin:0 -.3rem;font:inherit;font-weight:700;text-align:left;color:var(--color-text);background:none;border:1px solid transparent;border-radius:6px;cursor:text}
+.media-name-text{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.media-name-pen{flex:none;color:var(--color-muted);opacity:0;transition:opacity .15s}
+.media-name:hover,.media-name:focus-visible{border-color:var(--color-border)}
+.media-name:hover .media-name-pen,.media-name:focus-visible .media-name-pen{opacity:1}
+.media-name:focus-visible{outline:3px solid var(--color-focus);outline-offset:1px}
+.media-name-input{width:calc(100% + .6rem);margin:0 -.3rem;padding:.1rem .3rem;font:inherit;font-weight:700;color:var(--color-text);background:var(--color-bg);border:2px solid var(--color-focus);border-radius:6px}
+.media-name-input:focus{outline:none} /* a borda verde já mostra o foco */
+.media-tags{display:flex;align-items:flex-start;gap:.4rem;margin-top:.15rem}
+.media-badges{display:flex;flex-wrap:wrap;align-items:center;gap:.4rem;min-width:0}
+.media-tags .badge{font-size:.8rem;white-space:nowrap}
+.media-tags .badge-alt{color:var(--color-muted);font-weight:600}
+/* Excluir (só imagens sem uso): um "×" no fim da linha dos selos */
+.media-delete{flex:none;display:inline-grid;place-items:center;width:1.9rem;height:1.9rem;margin:-.2rem -.35rem 0 auto;padding:0;font:inherit;font-size:1.35rem;line-height:1;
+  color:var(--color-muted);background:none;border:1px solid transparent;border-radius:999px;cursor:pointer;transition:color .15s,background .15s,border-color .15s}
+.media-delete:hover{color:var(--color-danger);border-color:currentColor;background:color-mix(in srgb,var(--color-danger) 8%,transparent)}
+.media-delete:focus-visible{outline:3px solid var(--color-focus);outline-offset:1px}
+/* Balão com os lugares onde a imagem é usada: abre no hover, no foco (teclado) ou no toque (.is-open). */
+.usage-pop{position:relative}
+.usage-btn{white-space:nowrap;padding:.1rem .6rem;font:inherit;font-size:.8rem;font-weight:700;color:var(--color-focus);background:none;border:1px solid currentColor;border-radius:999px;cursor:help}
+.usage-list{position:absolute;z-index:15;top:calc(100% + 6px);left:0;width:max-content;max-width:min(20rem,80vw);margin:0;padding:.5rem .75rem;list-style:none;font-size:.88rem;
+  color:var(--color-text);background:var(--color-bg);border:1px solid var(--color-border);border-radius:10px;box-shadow:0 12px 28px -12px rgb(0 0 0 / .4);
+  visibility:hidden;opacity:0;transform:translateY(-4px);transition:opacity .15s,transform .15s,visibility 0s .15s}
+/* Faixa invisível entre o botão e o balão: o mouse atravessa sem o balão fechar. */
+.usage-list::before{content:"";position:absolute;left:0;right:0;top:-8px;height:8px}
+.usage-list li{padding:.2rem 0;color:var(--color-muted)}
+.usage-list a{font-weight:700}
+.usage-pop:hover .usage-list,.usage-pop:focus-within .usage-list,.usage-pop.is-open .usage-list{visibility:visible;opacity:1;transform:none;transition:opacity .15s,transform .15s}
 /* Blocos salvos (blocos.html): cartões da lista e formulário com lista de itens (ex.: redes). */
-.shared-list{margin-bottom:2rem}
+.shared-list{margin-top:1.25rem;margin-bottom:2rem}
+/* Cartão do bloco salvo: ícone do tipo à esquerda do nome; uso e ações na última linha (sempre embaixo). */
+.shared-card .media-body{flex:1;gap:.6rem}
+.shared-head{display:flex;align-items:center;gap:.75rem;min-width:0}
+.shared-icon{flex:none;display:grid;place-items:center;width:2.6rem;height:2.6rem;color:var(--color-primary);background:var(--color-surface);border-radius:10px}
+.shared-icon svg{width:1.45rem;height:1.45rem}
+.shared-title{display:flex;flex-direction:column;min-width:0;line-height:1.35}
+.shared-name{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.shared-summary{margin:0;color:var(--color-muted)}
+.shared-foot{margin-top:auto;align-items:center}
+/* Os selos quebram linha entre si, ao lado dos botões; cada selo fica inteiro numa linha só. */
+.shared-foot .media-badges{min-width:auto}
+.shared-actions{flex:none;display:flex;align-items:center;gap:.25rem;margin-left:auto}
+.shared-actions .media-delete{margin:0 -.35rem 0 0}
 .new-shared{margin-bottom:1.5rem}
 .new-shared .msg:empty{display:none}
 .list-field{margin:0 0 1rem;padding:.75rem 1rem 1rem;border:1px dashed var(--color-border);border-radius:var(--radius)}
@@ -279,13 +348,29 @@ dialog.picker .msg:empty{display:none}
 .media-zoom:hover img{opacity:.85}
 
 /* Visualizador de imagem inteira */
-dialog.viewer{width:auto;max-width:calc(100% - 2rem);max-height:calc(100% - 2rem);padding:1rem;color:var(--color-text);background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius)}
+/* Coluna flexível: a imagem encolhe para tudo (título, texto alternativo) caber na tela sem rolar.
+   Só rola se a tela for pequena demais até para a imagem reduzida. A página atrás não rola. */
+dialog.viewer{width:auto;max-width:calc(100% - 2rem);max-height:calc(100dvh - 2rem);overflow:auto;overscroll-behavior:contain;padding:1rem;color:var(--color-text);background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius)}
 dialog.viewer::backdrop{background:rgb(0 0 0 / .75)}
+dialog.viewer[open]{display:flex;flex-direction:column}
+dialog.viewer > *{flex:none}
+html:has(dialog.viewer[open]){overflow:hidden}
 .viewer-head{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:.75rem}
 .viewer-head h2{margin:0;font-size:1.1rem;overflow-wrap:anywhere}
 /* "contain": a imagem cabe inteira na tela, sem cortes nem distorção. */
-dialog.viewer img{display:block;width:auto;height:auto;max-width:100%;max-height:calc(100vh - 10rem);margin:0 auto;object-fit:contain;border-radius:6px}
+dialog.viewer img{display:block;flex:0 1 auto;width:auto;height:auto;min-height:6rem;max-width:100%;max-height:calc(100dvh - 10rem);margin:0 auto;object-fit:contain;border-radius:6px}
 .viewer-info{margin:.75rem 0 0;text-align:center}
+/* Texto alternativo editável (só na aba Imagens) */
+dialog.viewer:has(.viewer-edit:not([hidden])){width:min(46rem,calc(100% - 2rem))}
+dialog.viewer:has(.viewer-edit:not([hidden])) img{max-height:calc(100dvh - 20rem)}
+.viewer-edit{width:min(40rem,100%);margin:.75rem auto 0}
+.viewer-edit label{display:block;font-weight:700;margin-bottom:.25rem}
+.viewer-edit textarea{width:100%;padding:.5rem .75rem;font:inherit;color:var(--color-text);background:var(--color-bg);border:2px solid var(--color-border);border-radius:8px;resize:vertical}
+.viewer-edit-foot{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-top:.4rem}
+.viewer-edit-foot .hint{margin:0}
+.viewer-edit-foot .btn{flex:none}
+.viewer-edit .msg{margin:.5rem 0 0}
+.viewer-edit .msg:empty{display:none}
 
 /* Texto só para leitores de tela (ex.: "(abre em nova aba)") */
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
@@ -293,6 +378,25 @@ dialog.viewer img{display:block;width:auto;height:auto;max-width:100%;max-height
 /* Área "Página de vendas" na edição do produto */
 .sales-zone{max-width:900px;margin-top:2.5rem;padding:1rem 1.25rem;border:1px solid var(--color-border);border-radius:var(--radius);background:var(--color-surface)}
 .sales-zone h2{font-size:1.15rem}
+/* Links de divulgação (página do produto): canal à esquerda, link e Copiar à direita. */
+.promo-zone .title-row h2{margin:0}
+.promo-zone .warn{margin:.5rem 0 0}
+.promo-campaign{max-width:24rem;margin:1rem 0}
+.promo-campaign .hint{margin:.25rem 0 0}
+.promo-links{display:grid;gap:.6rem;margin:0;padding:0;list-style:none}
+.promo-links li{display:grid;grid-template-columns:6.5rem minmax(0,1fr);align-items:center;gap:.75rem}
+.promo-name{font-weight:700}
+.promo-line{display:flex;align-items:center;gap:.5rem;min-width:0}
+.promo-url,.promo-other{min-height:40px;padding:.4rem .65rem;font:inherit;font-size:.88rem;color:var(--color-text);background:var(--color-bg);border:2px solid var(--color-border);border-radius:10px}
+.promo-url{flex:1;min-width:0;text-overflow:ellipsis}
+.promo-other{flex:none;width:9rem}
+.promo-line .btn{flex:none;min-width:6.5rem}
+@media (max-width:719px){
+  .promo-links{gap:1rem}
+  .promo-links li{grid-template-columns:minmax(0,1fr);gap:.3rem}
+  .promo-line{flex-wrap:wrap}
+  .promo-other{flex:1 1 100%;width:auto}
+}
 
 /* ==========================================================
    Editor da página de vendas (pagina.html)
@@ -365,3 +469,73 @@ table.list th:last-child{border-top-right-radius:var(--radius)}
   table.list tr{background:var(--color-bg);box-shadow:var(--admin-shadow)}
 }
 .product-form input[readonly]{opacity:.7;cursor:not-allowed}
+
+/* ---------- Resumo (página inicial do painel) ----------
+   Uma cor só nos gráficos (a primária): cada gráfico mostra uma medida, então não há legenda.
+   Textos usam as cores de texto, nunca a cor do gráfico. */
+.dash-filters{display:flex;flex-wrap:wrap;align-items:center;gap:.75rem}
+fieldset.segmented{margin:0;padding:0;min-inline-size:0}
+/* Troca de empresa: "Todas" e uma pílula com o ícone de cada empresa. Rola de lado no celular. */
+.brand-switch{display:flex;gap:.5rem;margin:0 0 1rem;overflow-x:auto;scrollbar-width:none}
+.brand-switch[hidden]{display:none}
+.brand-switch label{position:relative;flex:none;cursor:pointer}
+.brand-switch input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}
+.brand-switch span{display:flex;align-items:center;gap:.5rem;padding:.35rem .9rem .35rem .4rem;font-weight:600;white-space:nowrap;background:var(--color-bg);border:2px solid var(--color-border);border-radius:999px;transition:border-color .15s,background-color .15s}
+.brand-switch .brand-all span{padding-left:.9rem}
+.brand-count{min-width:1.5rem;padding:.05rem .4rem;font-size:.8rem;font-weight:700;text-align:center;color:var(--color-muted);background:var(--color-surface);border-radius:999px}
+.brand-switch input:checked + span .brand-count{color:var(--color-on-primary);background:var(--color-primary)}
+.brand-switch img{width:1.75rem;height:1.75rem;padding:.2rem;object-fit:contain;background:var(--color-surface);border-radius:50%}
+.brand-switch label:hover span{border-color:var(--color-primary)}
+.brand-switch input:checked + span{color:var(--color-primary);background:var(--color-surface);border-color:var(--color-primary)}
+.brand-switch input:focus-visible + span{outline:3px solid var(--color-focus);outline-offset:2px}
+.dash #content.is-loading{opacity:.55;transition:opacity .2s}
+.dash section{margin-bottom:1.5rem}
+.dash h2{font-size:1.2rem;margin:0 0 .25rem}
+.dash code{font-size:.9em;padding:.05rem .3rem;background:var(--color-surface);border-radius:4px;overflow-wrap:anywhere}
+.dash-card{padding:1.1rem 1.25rem;background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius);box-shadow:var(--admin-shadow)}
+.dash-card > .hint{margin:0 0 .75rem}
+.dash-note{margin-bottom:1.5rem;padding:1rem 1.25rem;color:var(--color-notice-text);background:var(--color-notice-bg);border-radius:var(--radius)}
+.dash-note p{margin:.25rem 0}
+.dash-warnings{margin:0 0 1.5rem;padding:.75rem 1.25rem .75rem 2.25rem;color:var(--color-warning);border:1px solid currentColor;border-radius:var(--radius)}
+.dash-warnings a{font-weight:700}
+
+/* Indicadores */
+.dash-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(11rem,1fr));gap:1rem}
+.tile{display:flex;flex-direction:column;gap:.15rem;padding:1rem 1.1rem;background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius);box-shadow:var(--admin-shadow)}
+.tile-label{font-weight:700;font-size:.9rem;color:var(--color-muted)}
+.tile-value{font-size:clamp(1.6rem,3vw,2rem);font-weight:700;letter-spacing:-.02em;line-height:1.2;color:var(--color-text)}
+.tile-sub{font-size:.85rem;color:var(--color-muted)}
+.tile-delta{font-size:.85rem;font-weight:600;color:var(--color-muted)}
+.tile-delta.is-up{color:var(--color-focus)}
+.tile-delta.is-down{color:var(--color-danger)}
+.dash-tiles + .hint{margin-top:.6rem}
+
+/* Gráficos dia a dia: três pequenos, lado a lado no computador */
+.dash-charts{display:grid;gap:1.25rem}
+@media (min-width:960px){.dash-charts{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.dash-chart{margin:0;min-width:0}
+.dash-chart figcaption{display:flex;justify-content:space-between;gap:.5rem;margin-bottom:.25rem;font-weight:700;font-size:.95rem}
+.dash-chart figcaption strong{font-variant-numeric:tabular-nums}
+.dash-chart svg{display:block;width:100%;height:auto;overflow:visible;border-radius:6px}
+.dash-chart svg:focus-visible{outline:3px solid var(--color-focus);outline-offset:4px}
+.dash-chart .bar{fill:var(--color-primary)}
+.dash-chart .bar.is-active{fill:var(--color-accent)}
+.dash-chart .grid{stroke:var(--color-border);stroke-width:1;shape-rendering:crispEdges}
+.dash-chart .axis{fill:var(--color-muted);font-size:11px;font-variant-numeric:tabular-nums}
+.dash-tip{position:fixed;z-index:50;display:flex;flex-direction:column;padding:.4rem .65rem;font-size:.85rem;line-height:1.3;pointer-events:none;
+  color:var(--color-text);background:var(--color-bg);border:1px solid var(--color-border);border-radius:8px;box-shadow:0 8px 20px -8px rgb(0 0 0 / .35)}
+.dash-tip span{color:var(--color-muted)}
+.dash-table-view{margin-top:1rem}
+.dash-table-view summary{cursor:pointer;font-weight:700;color:var(--color-primary)}
+.dash-table-view .table-wrap{max-height:22rem;overflow-y:auto;margin-top:.5rem}
+table.dash-list td,table.dash-list th{font-variant-numeric:tabular-nums}
+
+/* Listas com barra (aparelhos, páginas) */
+.dash-grid{display:grid;gap:0 1.5rem}
+@media (min-width:860px){.dash-grid{grid-template-columns:1fr 1fr}}
+.dash-bars{list-style:none;margin:.5rem 0 0;padding:0}
+.dash-bars li{display:grid;grid-template-columns:minmax(0,9rem) minmax(0,1fr) auto;align-items:center;gap:.75rem;padding:.4rem 0}
+.dash-bar-label{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.dash-bar-track{height:10px;border-radius:999px;background:var(--color-surface)}
+.dash-bar{display:block;height:100%;border-radius:999px;background:var(--color-primary)}
+.dash-bar-value{font-variant-numeric:tabular-nums;color:var(--color-muted);font-size:.9rem;text-align:right}
