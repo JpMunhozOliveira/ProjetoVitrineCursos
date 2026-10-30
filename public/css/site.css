@@ -62,14 +62,6 @@
   --v-gold-2: #ffe49a;
 }
 
-/* Cores de cada tipo de faixa, para a transição suave entre blocos (ver "Transições" abaixo).
-   Ficam no body: dentro das faixas escuras os tokens de cor mudam, estes não. */
-body {
-  --v-tone-light: var(--color-bg);
-  --v-tone-soft: var(--v-soft);
-  --v-tone-dark: var(--color-hero);
-}
-
 /* Faixas escuras: os tokens de cor são redefinidos aqui, então cartões, FAQ, listas etc.
    se adaptam sozinhos (texto claro, cartões translúcidos, ícones e links em laranja). */
 .v-hero,
@@ -145,7 +137,7 @@ main p {
   text-wrap: pretty;
 }
 .v-section {
-  padding: clamp(3.5rem, 7vw, 5.5rem) 0;
+  padding: clamp(2.5rem, 5vw, 4rem) 0;
   color: var(--color-text);
 }
 .v-section.is-light {
@@ -157,7 +149,7 @@ main p {
 /* Títulos de seção centralizados (os que ficam dentro de cartões ou ao lado de foto seguem o conteúdo). */
 .v-section > .container > h2 {
   max-width: 26ch;
-  margin: 0 auto 2.5rem;
+  margin: 0 auto 2rem;
   text-align: center;
 }
 .v-section > .container > .v-eyebrow {
@@ -167,7 +159,7 @@ main p {
    fica depois da descrição (e não entre o título e ela). */
 .v-intro {
   max-width: 62ch;
-  margin: 0 auto 2.5rem;
+  margin: 0 auto 2rem;
   font-size: 1.1rem;
   line-height: 1.6;
   text-align: center;
@@ -260,10 +252,10 @@ main p {
   position: relative;
 }
 .v-hero {
-  padding: clamp(3.5rem, 8vw, 6rem) 0 clamp(4rem, 9vw, 6.5rem);
+  padding: clamp(2.75rem, 6vw, 4.5rem) 0 clamp(3rem, 6.5vw, 5rem);
 }
 .v-final {
-  padding: clamp(4rem, 8vw, 6rem) 0;
+  padding: clamp(3rem, 6vw, 4.5rem) 0;
 }
 .v-hero-grid {
   display: grid;
@@ -653,7 +645,7 @@ html {
 }
 /* A primeira seção começa abaixo da pílula. */
 main > section:first-child {
-  padding-top: calc(var(--v-nav-space) + clamp(2.5rem, 6vw, 4.5rem));
+  padding-top: calc(var(--v-nav-space) + clamp(2rem, 4.5vw, 3.5rem));
 }
 /* Pré-visualização do rascunho: a pílula fica abaixo da faixa amarela de aviso. */
 body .preview-banner ~ .site-header {
@@ -664,67 +656,16 @@ html[data-editor] body .site-header {
   position: relative;
 }
 
-/* ---------- Transições entre blocos ----------
-   Em vez de um corte seco entre faixas de cores diferentes, o topo de cada seção começa na cor da
-   seção anterior e se dissolve na própria cor. A cor anterior vem do vizinho (seletor "+"). */
+/* ---------- Seções ----------
+   Corte reto entre as faixas (sem degradê). Cada seção é a base das próprias camadas: a
+   textura de pontinhos das faixas azuis (::before) fica atrás do conteúdo (.container). */
 main > section {
-  --v-prev: transparent;
   position: relative;
   isolation: isolate;
 }
 main > section > .container {
   position: relative;
   z-index: 1;
-}
-main > section + section::after {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto;
-  z-index: 0;
-  height: var(--v-fade, clamp(56px, 7vw, 96px));
-  pointer-events: none;
-  /* oklab: a passagem do marinho para o claro fica azulada, sem o cinza "sujo" do sRGB */
-  background: linear-gradient(
-    in oklab to bottom,
-    var(--v-prev),
-    color-mix(in oklab, var(--v-prev) 80%, transparent) 20%,
-    color-mix(in oklab, var(--v-prev) 45%, transparent) 50%,
-    color-mix(in oklab, var(--v-prev) 15%, transparent) 78%,
-    transparent
-  );
-}
-main > .is-light + section {
-  --v-prev: var(--v-tone-light);
-}
-main > .is-soft + section {
-  --v-prev: var(--v-tone-soft);
-}
-main > :is(.is-dark, .v-hero, .v-final, .v-strip) + section {
-  --v-prev: var(--v-tone-dark);
-}
-/* A faixa de chamada é baixa: transição curta nela e logo depois dela. */
-main > .v-strip,
-main > .v-strip + section {
-  --v-fade: 28px;
-}
-/* Fim da página: a última seção também se dissolve no rodapé azul-marinho. */
-main > section:last-child::before {
-  content: "";
-  position: absolute;
-  inset: auto 0 0;
-  z-index: 0;
-  height: clamp(48px, 6vw, 88px);
-  pointer-events: none;
-  background: linear-gradient(to top, var(--v-navy), color-mix(in srgb, var(--v-navy) 35%, transparent) 45%, transparent);
-}
-main > section.v-final:last-child::before,
-main > section.v-hero:last-child::before,
-main > section.v-strip:last-child::before,
-main > section.is-dark:last-child::before {
-  /* nas faixas escuras o ::before já desenha os pontinhos; a cor já é a do rodapé */
-  inset: 0;
-  height: auto;
-  background: radial-gradient(rgb(255 255 255 / 0.08) 1px, transparent 1.5px) 0 0 / 22px 22px;
 }
 
 /* ==========================================================
@@ -816,11 +757,41 @@ main > section.is-dark:last-child::before {
   width: 22px;
   height: 22px;
 }
-html[data-editor] .to-top {
+/* "Acessar agora" (páginas de vendas): pílula laranja à esquerda do "voltar ao topo", na mesma
+   altura; aparece junto com ele e some quando um botão de compra da página está na tela (main.js). */
+.btn-cta.float-buy {
+  position: fixed;
+  right: calc(max(16px, env(safe-area-inset-right)) + 58px);
+  bottom: max(16px, env(safe-area-inset-bottom));
+  z-index: 30;
+  min-height: 48px;
+  padding: 0 1.3rem;
+  font-size: 0.98rem;
+  border-radius: 999px;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(12px);
+  transition:
+    opacity 0.25s,
+    transform 0.25s,
+    visibility 0.25s,
+    background 0.15s;
+}
+.btn-cta.float-buy.is-visible {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+}
+.btn-cta.float-buy.is-visible:hover {
+  transform: translateY(-2px);
+}
+html[data-editor] :is(.to-top, .float-buy) {
   display: none;
 }
 @media (prefers-reduced-motion: reduce) {
-  .to-top {
+  .to-top,
+  .btn-cta.float-buy,
+  .btn-cta.float-buy.is-visible:hover {
     transform: none;
     transition: opacity 0.01s, visibility 0.01s;
   }

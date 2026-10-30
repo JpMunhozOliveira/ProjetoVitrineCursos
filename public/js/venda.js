@@ -268,15 +268,27 @@
   ].join(",");
   // O cartão de compra (preço e botão) entra sem esperar a cascata dos outros itens.
   var NO_DELAY = ".buy-card";
-  var STEP = 70, MAX_STEPS = 6; // itens de uma mesma grade entram em cascata
+  var STEP = 70, MAX_STEPS = 4;
 
+  // Entra quando o topo do item passa de 90% da altura da tela, qualquer que seja a altura dele
+  // (threshold 0: um bloco alto não fica vazio esperando uma fração dele aparecer).
+  // Cascata só entre os itens que entram JUNTOS, em ordem de posição (de cima para baixo, da
+  // esquerda para a direita): uma grade que aparece inteira entra em sequência; um item que
+  // entra sozinho ao rolar aparece na hora, sem atraso.
   var observer = new IntersectionObserver(function (entries) {
-    entries.forEach(function (entry) {
-      if (!entry.isIntersecting) return;
-      observer.unobserve(entry.target);
-      entry.target.classList.add("is-in");
+    var arriving = entries.filter(function (entry) { return entry.isIntersecting; });
+    arriving.sort(function (a, b) {
+      return a.boundingClientRect.top - b.boundingClientRect.top || a.boundingClientRect.left - b.boundingClientRect.left;
     });
-  }, { rootMargin: "0px 0px -8% 0px", threshold: 0.12 });
+    var step = 0;
+    arriving.forEach(function (entry) {
+      var el = entry.target;
+      observer.unobserve(el);
+      var delay = el.matches(NO_DELAY) ? 0 : Math.min(step++, MAX_STEPS) * STEP;
+      if (delay) el.style.setProperty("--reveal-delay", delay + "ms");
+      el.classList.add("is-in");
+    });
+  }, { rootMargin: "0px 0px -10% 0px", threshold: 0 });
 
   // Terminada a entrada, a classe sai: os cartões voltam à própria transição (efeito ao passar o mouse).
   function done(event) {
@@ -292,8 +304,6 @@
     // O que já aparece ao abrir a página não é animado (não atrasa a primeira dobra).
     if (el.getBoundingClientRect().top < fold) return;
     if (el.parentElement && el.parentElement.closest(SELECTOR)) return; // já entra junto com o cartão em volta
-    var index = el.parentElement ? [].indexOf.call(el.parentElement.children, el) : 0;
-    if (index > 0 && !el.matches(NO_DELAY)) el.style.setProperty("--reveal-delay", Math.min(index, MAX_STEPS) * STEP + "ms");
     el.classList.add("reveal");
     el.addEventListener("transitionend", done);
     observer.observe(el);
