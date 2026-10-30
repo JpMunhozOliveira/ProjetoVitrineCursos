@@ -15,6 +15,13 @@ const IMAGE_SIZES = {
   "slide-img": "(min-width: 1100px) 700px, (min-width: 760px) 64vw, calc(100vw - 2rem)",
   "author-photo": "(min-width: 760px) 320px, calc(100vw - 2rem)",
   "buy-media": "240px",
+  "stack-img": "(min-width: 860px) 300px, 55vw",
+  "book-img": "(min-width: 860px) 340px, 60vw",
+  "laptop-img": "(min-width: 1100px) 480px, (min-width: 860px) 44vw, calc(100vw - 2rem)",
+  "phone-img": "160px",
+  "mosaic-img": "(min-width: 860px) 260px, 45vw",
+  "demo-img": "(min-width: 1100px) 1000px, calc(100vw - 2rem)",
+  "feature-img": "(min-width: 1100px) 520px, (min-width: 860px) 46vw, calc(100vw - 2rem)",
   "v-logo": "200px",
   "quote-photo": "52px",
 };
@@ -48,6 +55,11 @@ const alignAttr = (value) => { const a = alignOf(rawOf(value)); return a ? html`
 // Textos com várias linhas: cada parágrafo (separado por linha em branco) vira um <p>.
 const paragraphs = (value, cls) => paragraphsHtml(rawOf(value)).map((p) =>
   html`<p${cls ? html` class="${cls}"` : null}${alignAttr(value)}>${p}</p>`);
+
+// Texto "um item por linha" (tópicos de módulo, listas): cada linha não vazia vira um item.
+const linesOf = (value) => rawOf(value).replace(/^\[align=[a-z]+\]/, "").split(/\n+/).filter((l) => l.trim()).map(toHtml);
+// Número com dois dígitos (01, 02…): passos da linha do tempo e módulos do currículo.
+const pad2 = (n) => String(n).padStart(2, "0");
 
 const svg = (name, cls = "ico") => html`<svg class="${cls}" aria-hidden="true"><use href="#i-${name}"/></svg>`;
 const mark = (positive) => html`<svg aria-hidden="true"><use href="#i-${positive ? "check" : "x"}"/></svg>`;
@@ -153,6 +165,13 @@ function createContext(data, { live = false } = {}) {
     paras(path, value, cls) {
       return ctx.live ? html`<div${ctx.field(path, value)} data-multiline>${paragraphs(value, cls)}</div>` : paragraphs(value, cls);
     },
+    // Lista "um item por linha". Página pública: <ul> (nada, se vazia). No editor: um <div> editável
+    // com uma linha por <div> (Enter cria outra linha), com a mesma aparência da lista.
+    lines(path, value, cls = "") {
+      const items = linesOf(value);
+      if (ctx.live) return html`<div class="v-lines${cls ? ` ${cls}` : ""}"${ctx.field(path, value)} data-multiline>${items.map((l) => html`<div>${l}</div>`)}</div>`;
+      return items.length ? html`<ul class="v-lines${cls ? ` ${cls}` : ""}">${items.map((l) => html`<li>${l}</li>`)}</ul>` : null;
+    },
     // Ícone de um campo "icon". No editor leva data-icon-field (clicar nele abre a escolha de ícone).
     icon(path, name, cls = "ico") {
       if (!ctx.live) return svg(name, cls);
@@ -246,9 +265,100 @@ function authorLinks(b, ctx) {
   return html`<ul class="link-list author-links">${links.map(([x, i]) => linkItem(ctx, "links", i, x, linkKind(x.url)))}${ctx.addItem("links", b.links)}</ul>`;
 }
 
+// Triângulo do botão de play (dentro do círculo laranja; o ícone "play" do sprite já tem círculo).
+const PLAY = html`<svg class="v-play-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 6.5l10 5.5-10 5.5z" fill="currentColor"/></svg>`;
+
+// Endereço do player embutido de um vídeo do YouTube ou do Vimeo (ou null para outros sites).
+// YouTube vai pelo domínio "nocookie" (sem cookies de rastreio até a pessoa dar play).
+function videoEmbed(url) {
+  let u;
+  try { u = new URL(url); } catch { return null; }
+  const host = u.hostname.toLowerCase().replace(/^(www|m)\./, "");
+  let id = null;
+  if (host === "youtu.be") id = u.pathname.slice(1);
+  else if (host === "youtube.com" || host === "youtube-nocookie.com") {
+    id = u.searchParams.get("v") || (/^\/(?:embed|shorts|live)\/([^/]+)/.exec(u.pathname) || [])[1];
+  }
+  if (id && /^[\w-]{11}$/.test(id)) return `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0`;
+  if (host === "vimeo.com" || host === "player.vimeo.com") {
+    const num = (/^\/(?:video\/)?(\d{5,12})(?:\/|$)/.exec(u.pathname) || [])[1];
+    if (num) return `https://player.vimeo.com/video/${num}?autoplay=1`;
+  }
+  return null;
+}
+
+// Visual da abertura, conforme o estilo escolhido no bloco:
+//   image   -> a imagem principal, como sempre;
+//   book    -> a imagem principal como capa de um livro em 3D (manuais, guias);
+//   stack   -> composição 3D com a principal e as extras (mesmas peças da página inicial);
+//   mosaic  -> grade com a principal e as extras;
+//   screen  -> a principal dentro de uma janela (barra com três pontos), para telas de software;
+//   devices -> a principal num notebook e a 1ª extra num celular à frente;
+//   video   -> a principal como capa, com o botão de play do vídeo de apresentação.
+// As etiquetas viram "chips" sobre as imagens. Sem imagem nenhuma: null (o texto ocupa a largura).
+function heroVisual(b, ctx) {
+  const chip = (path, label) => ctx.show(label) && html`<span class="v-chip"${ctx.field(path, label)}>${label}</span>`;
+  // Principal + extras com imagem (no editor, extras vazias viram o espaço clicável de imagem).
+  const pieces = (cls) => [
+    { img: ctx.img(b.image, cls, { priority: true, path: "image" }), chip: chip("image_label", b.image_label), i: null },
+    ...b.extra_images.map((x, i) => ({
+      img: ctx.img(x.image, cls, { path: `extra_images.${i}.image` }), // só a principal tem prioridade de download
+      chip: chip(`extra_images.${i}.label`, x.label), i,
+    })),
+  ].filter((x) => x.img);
+  const piece = (x, cls) => html`<figure class="${cls}"${x.i !== null && ctx.item("extra_images", x.i)}>${x.img}${x.chip}${x.i !== null && ctx.remove("extra_images", x.i)}</figure>`;
+  const addExtra = () => ctx.addItem("extra_images", b.extra_images, "div");
+
+  if (b.visual === "stack" || b.visual === "mosaic") {
+    const stack = b.visual === "stack";
+    const items = pieces(stack ? "stack-img" : "mosaic-img");
+    if (!items.length) return null;
+    const inner = stack
+      ? html`<div class="hero-covers v-stack" data-count="${items.length}">${items.map((x) => piece(x, "hero-cover"))}</div>`
+      : html`<div class="v-mosaic" data-count="${items.length}">${items.map((x) => piece(x, "v-tile"))}</div>`;
+    return html`<div class="v-visual-wrap">${inner}${addExtra()}</div>`;
+  }
+
+  if (b.visual === "book") {
+    const cover = ctx.img(b.image, "book-img", { priority: true, path: "image" });
+    if (!cover) return null;
+    return html`<figure class="v-visual v-book"><div class="v-book-3d">${cover}</div>${chip("image_label", b.image_label)}</figure>`;
+  }
+
+  if (b.visual === "devices") {
+    const screen = ctx.img(b.image, "laptop-img", { priority: true, path: "image" });
+    if (!screen) return null;
+    const x = b.extra_images[0];
+    const phone = x && ctx.img(x.image, "phone-img", { path: "extra_images.0.image" });
+    return html`<div class="v-visual-wrap"><figure class="v-visual v-devices${phone ? " has-phone" : ""}">
+      <div class="v-laptop"><div class="v-laptop-screen">${screen}</div><span class="v-laptop-base" aria-hidden="true"></span></div>
+      ${phone && html`<div class="v-phone"${ctx.item("extra_images", 0)}>${phone}${chip("extra_images.0.label", x.label)}${ctx.remove("extra_images", 0)}</div>`}
+      ${chip("image_label", b.image_label)}
+    </figure>${!phone && addExtra()}</div>`;
+  }
+
+  if (b.visual === "video") {
+    const embed = b.video_url ? videoEmbed(b.video_url) : null;
+    const img = ctx.img(b.image, "v-media", { priority: true, path: "image" });
+    if (!img && !b.video_url && !ctx.live) return null;
+    const cover = img || html`<span class="v-video-blank" aria-hidden="true"></span>`;
+    const play = b.video_url
+      ? html`<a class="v-play" href="${b.video_url}" target="_blank" rel="noopener noreferrer"${embed ? html` data-embed="${embed}"` : null} aria-label="Assistir ao vídeo de apresentação (abre o vídeo)">${PLAY}</a>`
+      : ctx.live && html`<span class="v-play is-empty" title="Defina o link do vídeo em Configurar bloco ⚙">${PLAY}</span>`;
+    return html`<figure class="v-visual v-video">${cover}${play}${chip("image_label", b.image_label)}</figure>`;
+  }
+
+  const img = ctx.img(b.image, "v-media", { priority: true, path: "image" });
+  if (!img) return null;
+  if (b.visual === "screen") {
+    return html`<figure class="v-visual v-screen"><span class="v-screen-bar" aria-hidden="true"><i></i><i></i><i></i></span>${img}${chip("image_label", b.image_label)}</figure>`;
+  }
+  return html`<figure class="v-visual">${img}${chip("image_label", b.image_label)}</figure>`;
+}
+
 const RENDERERS = {
   hero(b, ctx) {
-    const media = ctx.img(b.image, "v-media", { priority: true, path: "image" });
+    const media = heroVisual(b, ctx);
     const Title = ctx.firstHero() ? "h1" : "h2"; // só um <h1> por página
     const title = b.title || ctx.product.title;
     const titleField = ctx.field("title", b.title, { fallback: true });
@@ -259,6 +369,7 @@ const RENDERERS = {
       ${ctx.eyebrow(b)}
       ${Title === "h1" ? html`<h1${titleField}>${title}</h1>` : html`<h2${titleField}>${title}</h2>`}
       ${ctx.show(b.lead) && html`<p class="lead"${ctx.field("lead", b.lead)}>${b.lead}</p>`}
+      ${(b.stats.length > 0 || ctx.live) && html`<ul class="v-stats" aria-label="Números do produto">${b.stats.map((x, i) => html`<li${ctx.item("stats", i)}><strong${ctx.field(`stats.${i}.value`, x.value)}>${x.value}</strong> <span${ctx.field(`stats.${i}.label`, x.label)}>${x.label}</span>${ctx.remove("stats", i)}</li>`)}${ctx.addItem("stats", b.stats)}</ul>`}
       ${(b.badges.length > 0 || ctx.live) && html`<ul class="badges" aria-label="Resumo do material">${b.badges.map((x, i) => html`<li${ctx.item("badges", i)}>${ctx.show(x.strong) && html`<strong${ctx.field(`badges.${i}.strong`, x.strong)}>${x.strong}</strong>`} ${ctx.text(`badges.${i}.text`, x.text)}${ctx.remove("badges", i)}</li>`)}${ctx.addItem("badges", b.badges)}</ul>`}
       <div class="offer">${ctx.price(b.price_label, "price_label")}${ctx.cta(b.cta_label, "Comprar agora", "cta_label")}</div>
     </div>
@@ -282,7 +393,9 @@ const RENDERERS = {
     const id = ctx.headingId();
     return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark({ hidden: !b.items.length })}><div class="container">
   ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
-  <ul class="grid8${cols(b)}">${b.items.map((x, i) => html`<li${ctx.item("items", i)}>${ctx.icon(`items.${i}.icon`, x.icon)}<strong${ctx.field(`items.${i}.title`, x.title)}>${x.title}</strong><span${ctx.field(`items.${i}.text`, x.text)}>${x.text}</span>${ctx.remove("items", i)}</li>`)}${ctx.addItem("items", b.items)}</ul>
+  ${b.layout === "timeline"
+    ? html`<ol class="v-steps" data-count="${b.items.length}">${b.items.map((x, i) => html`<li${ctx.item("items", i)}><span class="v-step-num" aria-hidden="true">${pad2(i + 1)}</span><strong${ctx.field(`items.${i}.title`, x.title)}>${x.title}</strong><span${ctx.field(`items.${i}.text`, x.text)}>${x.text}</span>${ctx.remove("items", i)}</li>`)}${ctx.addItem("items", b.items)}</ol>`
+    : html`<ul class="grid8${cols(b)}">${b.items.map((x, i) => html`<li${ctx.item("items", i)}>${ctx.icon(`items.${i}.icon`, x.icon)}<strong${ctx.field(`items.${i}.title`, x.title)}>${x.title}</strong><span${ctx.field(`items.${i}.text`, x.text)}>${x.text}</span>${ctx.remove("items", i)}</li>`)}${ctx.addItem("items", b.items)}</ul>`}
 </div></section>`;
   },
 
@@ -294,14 +407,23 @@ const RENDERERS = {
     if (ctx.live && b.images.length < BLOCKS.gallery.fields.images.max) slides.push({ img: ctx.imageSlot("slide-img", "images.0.image", { add: "images" }), i: null });
     if (!slides.length) return null;
     const id = ctx.headingId();
+    // Com título ou tópicos nas imagens: ao lado do carrossel, o painel do slide atual (venda.js
+    // mostra só o do slide na tela; sem JavaScript aparecem todos).
+    const real = slides.filter((x) => x.i !== null);
+    const panels = real.some((x) => b.images[x.i].title || b.images[x.i].topics) && html`<div class="module-panels" aria-live="polite">${real.map((x, n) => {
+      const item = b.images[x.i];
+      return html`<div class="module-panel" data-slide="${n}"><p class="module-num"><strong>${pad2(n + 1)}</strong> / ${pad2(real.length)}</p>${ctx.show(item.title) && html`<h3${ctx.field(`images.${x.i}.title`, item.title)}>${item.title}</h3>`}${ctx.lines(`images.${x.i}.topics`, item.topics)}</div>`;
+    })}</div>`;
     return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark({ hidden: !filled })}><div class="container">
   ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
+  ${panels ? html`<div class="gallery-split">` : null}
   <div class="carousel" role="region" aria-roledescription="carrossel" aria-labelledby="${id}">
     <button class="car-btn prev" type="button" aria-label="Slide anterior" hidden>‹</button>
     <ul class="track">${slides.map((s, n) => html`<li class="slide" aria-label="Slide ${n + 1} de ${slides.length}"${s.i !== null && ctx.item("images", s.i)}>${s.img}${s.i !== null && ctx.remove("images", s.i)}</li>`)}</ul>
     <button class="car-btn next" type="button" aria-label="Próximo slide" hidden>›</button>
     <div class="dots" hidden></div>
   </div>
+  ${panels ? html`${panels}</div>` : null}
 </div></section>`;
   },
 
@@ -422,9 +544,47 @@ const RENDERERS = {
       ${card(b.guarantee_title || b.guarantee_text, "buy-guarantee", html`${svg("shield")}${pair("guarantee_title", b.guarantee_title, "guarantee_text", b.guarantee_text)}`)}
       ${ctx.cta(b.cta_label, "Garantir agora", "cta_label", { icon: "lock" })}
       <p class="buy-note"${ctx.field("note", b.note, { fallback: true })}>${b.note || "Pagamento processado com segurança pela Kiwify."}</p>
+      ${(b.seals.length > 0 || ctx.live) && html`<ul class="buy-seals" aria-label="Compra segura">${b.seals.map((x, i) => html`<li${ctx.item("seals", i)}>${ctx.icon(`seals.${i}.icon`, x.icon, "seal-ico")}${ctx.text(`seals.${i}.text`, x.text)}${ctx.remove("seals", i)}</li>`)}${ctx.addItem("seals", b.seals)}</ul>`}
     </div>
   </div>
 </section>`;
+  },
+
+  // Currículo: módulos que abrem e fecham (mesmo acordeão do FAQ), com a lista de tópicos.
+  curriculum(b, ctx) {
+    if (!b.items.length && !ctx.live) return null;
+    const id = ctx.headingId();
+    return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark({ hidden: !b.items.length })}><div class="container narrow">
+  ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
+  ${b.items.map((x, i) => html`<details class="faq module"${ctx.live ? html` open` : null}${ctx.item("items", i)}><summary><span class="module-head"><span class="module-tag">Módulo ${pad2(i + 1)}</span>${ctx.text(`items.${i}.title`, x.title)}${ctx.show(x.meta) && html`<small class="module-meta"${ctx.field(`items.${i}.meta`, x.meta)}>${x.meta}</small>`}</span></summary>${ctx.lines(`items.${i}.topics`, x.topics, "module-topics")}${ctx.remove("items", i)}</details>`)}${ctx.addItem("items", b.items, "div")}
+</div></section>`;
+  },
+
+  // Demonstração: abas com uma imagem grande e legenda (venda.js liga as abas; sem JavaScript e no
+  // editor, os painéis ficam um embaixo do outro). Página pública: só as abas com imagem.
+  demo(b, ctx) {
+    const items = b.items.map((x, i) => [x, i]).filter(([x]) => ctx.live || ctx.product.media.get(x.image));
+    if (!items.length && !ctx.live) return null;
+    const id = ctx.headingId();
+    const filled = b.items.some((x) => ctx.product.media.get(x.image));
+    return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark({ hidden: !filled })}><div class="container">
+  ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
+  <div class="demo" data-demo>
+    <div class="demo-tabs" role="tablist" aria-labelledby="${id}" hidden>${items.map(([x], n) => html`<button type="button" role="tab" id="${id}-tab-${n}" aria-controls="${id}-panel-${n}" aria-selected="${n === 0}"${n ? html` tabindex="-1"` : null}>${x.label || `Parte ${n + 1}`}</button>`)}</div>
+    ${items.map(([x, i], n) => html`<figure class="demo-panel" role="tabpanel" id="${id}-panel-${n}" aria-labelledby="${id}-tab-${n}"${ctx.item("items", i)}>${ctx.live ? html`<p class="demo-label"${ctx.field(`items.${i}.label`, x.label)}>${x.label}</p>` : null}${ctx.img(x.image, "demo-img", { path: `items.${i}.image` })}${ctx.show(x.caption) && html`<figcaption${ctx.field(`items.${i}.caption`, x.caption)}>${x.caption}</figcaption>`}${ctx.remove("items", i)}</figure>`)}${ctx.addItem("items", b.items, "div")}
+  </div>
+</div></section>`;
+  },
+
+  // Texto e imagem: linhas em duas colunas que alternam o lado da imagem (CSS: :nth-child(even)).
+  feature(b, ctx) {
+    if (!b.items.length && !ctx.live) return null;
+    return html`<section class="${ctx.sectionClass(b)}" aria-label="Destaques"${ctx.mark({ hidden: !b.items.length })}><div class="container features-alt">
+  ${b.items.map((x, i) => {
+    const img = ctx.img(x.image, "feature-img", { path: `items.${i}.image` });
+    return html`<article class="feature-row${img ? "" : " no-media"}"${ctx.item("items", i)}><div class="feature-text">${ctx.show(x.eyebrow) && html`<p class="v-eyebrow"${ctx.field(`items.${i}.eyebrow`, x.eyebrow)}>${x.eyebrow}</p>`}<h2${ctx.field(`items.${i}.title`, x.title)}>${x.title}</h2>${ctx.paras(`items.${i}.text`, x.text)}${ctx.lines(`items.${i}.bullets`, x.bullets, "feature-list")}</div>${img}${ctx.remove("items", i)}</article>`;
+  })}${ctx.addItem("items", b.items, "div")}
+</div></section>`;
   },
 
   // Redes sociais: botões em pílula centralizados. Página pública: só as redes com link.
@@ -445,6 +605,7 @@ const HIDDEN_REASON = {
   gallery: "adicione imagens",
   author: "preencha o nome do autor",
   social: "coloque o link de pelo menos uma rede",
+  demo: "adicione uma imagem em pelo menos uma aba",
 };
 
 // Cores da página: só inclui a folha de estilo quando não é a paleta padrão (que já está no venda.css).
@@ -537,7 +698,6 @@ function renderSalesPage(product, { baseUrl, preview = false, now = Date.now() }
   ${preview === true && html`<div class="preview-banner" role="status"><strong>Pré-visualização do rascunho salvo.</strong> ${data.published_at && data.status === "published" ? "O público vê a última versão publicada; publique no editor para levar estas alterações ao ar." : "Esta página ainda não está visível para o público."}</div>`}
   ${SPRITE}
   <div id="site-header"${brandAttrs(data)}></div>
-  ${!live && html`<a class="v-back" href="/catalogo.html" data-back>${svg("arrowleft", "v-back-ico")}<span class="v-back-text">Voltar</span></a>`}
   <main id="conteudo" class="venda">
 ${body}
   </main>

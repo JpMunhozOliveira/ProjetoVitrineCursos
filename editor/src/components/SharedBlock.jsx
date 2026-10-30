@@ -88,12 +88,21 @@ function SharedLinkFields({ block, index }) {
 // Corpo do formulário de um bloco (painel Bloco e cartão do painel Estrutura): bloco vinculado
 // mostra a ligação com o bloco salvo; bloco comum mostra os campos (e, se o tipo for
 // compartilhável, a opção de virar bloco salvo).
+// Campo com showIf (esquema do servidor): só aparece quando o outro campo do bloco tem um dos
+// valores (ex.: o link do vídeo só no estilo Vídeo). O valor continua guardado.
+function isShown(field, block, schema) {
+  const rule = field.showIf;
+  if (!rule) return true;
+  const value = block[rule.field] ?? schema.blocks[block.type].fields[rule.field]?.default;
+  return rule.in.includes(value);
+}
+
 export function BlockFormBody({ block, index }) {
   const { schema, isShared } = useEditor();
   if (block.shared) return <SharedLinkFields block={block} index={index} />;
   return (
     <>
-      {Object.entries(schema.blocks[block.type].fields).map(([name, field]) => (
+      {Object.entries(schema.blocks[block.type].fields).filter(([, field]) => isShown(field, block, schema)).map(([name, field]) => (
         <Field key={name} field={field} value={block[name]} path={["sections", index, name]} />
       ))}
       {!isShared && isShareable(schema, block.type) && <SaveAsShared block={block} index={index} />}

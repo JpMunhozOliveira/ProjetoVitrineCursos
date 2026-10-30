@@ -49,6 +49,7 @@
     if (form.elements.category.selectedIndex < 0) form.elements.category.value = "";
     if (form.elements.area.selectedIndex < 0) form.elements.area.value = ""; // idem para a área
     form.elements.featured.checked = !!p.featured;
+    form.elements.card_badge.value = p.card_badge || "available";
     form.elements.price.value = priceToInput(p.price_cents);
     cover.show(p.image || null);
     brand.select(p.brand_id || "");
@@ -60,6 +61,7 @@
     var data = {};
     TEXT_FIELDS.forEach(function (f) { data[f] = form.elements[f].value; });
     data.featured = form.elements.featured.checked;
+    data.card_badge = form.elements.card_badge.value;
     data.price_cents = parsePrice(form.elements.price.value);
     data.image_id = cover.image ? cover.image.id : null;
     data.brand_id = form.elements.brand_id.value || null;

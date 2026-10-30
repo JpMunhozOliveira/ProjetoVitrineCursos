@@ -415,7 +415,6 @@ dialog.viewer:has(.viewer-edit:not([hidden])) img{max-height:calc(100dvh - 20rem
 .block-name{font-weight:800}
 .block-summary{flex:1 1 12rem;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.9rem}
 .block-body{padding:.5rem 1.25rem 1rem;border-top:1px solid var(--color-border)}
-.block-help{margin:.25rem 0 1rem}
 
 /* Botões pequenos de ícone (↑ ↓ ✕) */
 .tools{display:flex;flex:none;gap:.25rem}

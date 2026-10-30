@@ -2,6 +2,455 @@
    A base comum do site (cores, fonte, menu flutuante, faixas, botão de compra, cartões, rodapé)
    fica em site.css, carregado antes deste arquivo. */
 
+/* ---------- Ícones dos blocos ----------
+   Maiores que no resto do site e em laranja sólido: degradê na cor de destaque com o desenho em
+   branco (a cor de texto sobre o laranja do tema), com um leve brilho em cima e sombra laranja. */
+.venda .ico {
+  width: 56px;
+  height: 56px;
+  padding: 14px;
+  border-radius: 16px;
+  color: var(--v-cta-text);
+  background: linear-gradient(145deg, color-mix(in srgb, var(--v-cta) 78%, #fff), var(--v-cta) 50%, var(--v-cta-hover));
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.28),
+    0 10px 22px -10px color-mix(in srgb, var(--v-cta) 85%, transparent);
+}
+.venda .ico.big {
+  width: 72px;
+  height: 72px;
+  padding: 18px;
+  border-radius: 20px;
+}
+
+/* ---------- Abertura: título forte, números em destaque e visual flexível ---------- */
+.venda .v-hero :is(h1, h2) {
+  font-size: clamp(2.3rem, 5.2vw, 3.8rem);
+  line-height: 1.04;
+}
+.venda .v-hero .btn-cta {
+  min-height: 60px;
+  padding: 1rem 2.25rem;
+  font-size: 1.1rem;
+}
+/* Números em destaque (ex.: 6 módulos · 18h de aula · 1 ano de acesso): grandes, em linha. */
+.v-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 0;
+  margin: 0 0 1.75rem;
+  padding: 0;
+  list-style: none;
+}
+.v-stats li {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0 clamp(1rem, 2.5vw, 1.75rem);
+  border-left: 1px solid var(--v-line);
+}
+.v-stats li:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+.v-stats strong {
+  font-size: clamp(2rem, 4.2vw, 2.75rem);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.035em;
+  font-variant-numeric: tabular-nums;
+  color: var(--v-cta);
+}
+.v-stats li > span {
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: var(--color-muted);
+}
+/* Visual: imagem com etiqueta ("chip") flutuante. */
+.v-visual {
+  position: relative;
+  margin: 0;
+}
+.v-chip {
+  position: absolute;
+  z-index: 2;
+  left: -0.75rem;
+  bottom: 1.5rem;
+  padding: 0.45rem 0.95rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--v-cta-text);
+  background: var(--v-cta);
+  border-radius: 999px;
+  box-shadow: 0 12px 24px -8px rgb(0 0 0 / 0.55);
+}
+/* Tela: a imagem dentro de uma janela com a barra de três pontos (telas de software). */
+.v-screen {
+  overflow: hidden;
+  background: #0b1424;
+  border: 1px solid rgb(255 255 255 / 0.16);
+  border-radius: 14px;
+  box-shadow:
+    0 0 0 6px rgb(255 255 255 / 0.04),
+    0 34px 70px -24px rgb(0 0 0 / 0.75);
+  transform: perspective(1400px) rotateY(-6deg) rotateX(2deg);
+}
+.v-screen-bar {
+  display: flex;
+  gap: 6px;
+  padding: 0.7rem 0.9rem;
+  background: rgb(255 255 255 / 0.06);
+  border-bottom: 1px solid rgb(255 255 255 / 0.08);
+}
+.v-screen-bar i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ff5f57;
+}
+.v-screen-bar i:nth-child(2) {
+  background: #febc2e;
+}
+.v-screen-bar i:nth-child(3) {
+  background: #28c840;
+}
+.v-hero .v-screen .v-media {
+  display: block;
+  border-radius: 0;
+  filter: none;
+}
+.v-screen .v-chip {
+  left: 1rem;
+  bottom: 1rem;
+}
+/* Composição 3D: as peças da página inicial (.hero-covers), com as imagens na proporção delas
+   (manuais em pé, fluxogramas deitados) e posições próprias para até 4 imagens. */
+.v-visual-wrap {
+  width: 100%;
+}
+.hero-covers.v-stack {
+  aspect-ratio: 1 / 1;
+  max-width: 520px;
+}
+.v-stack .hero-cover {
+  width: 54%;
+  aspect-ratio: auto;
+  background: var(--v-navy-2);
+}
+.v-stack .hero-cover img,
+.v-stack .hero-cover .img-slot {
+  height: auto;
+  object-fit: contain;
+}
+.v-stack .hero-cover:nth-child(1) { left: 4%; top: 26%; }
+.v-stack .hero-cover:nth-child(2) { left: 42%; top: 14%; }
+.v-stack .hero-cover:nth-child(3) { left: 18%; top: 0; }
+.v-stack .hero-cover:nth-child(4) { left: 46%; top: 2%; width: 46%; }
+.v-stack[data-count="1"] .hero-cover:nth-child(1) { left: 18%; top: 6%; width: 64%; }
+.v-stack[data-count="2"] .hero-cover:nth-child(1) { left: 6%; top: 22%; }
+.v-stack[data-count="2"] .hero-cover:nth-child(2) { left: 40%; top: 4%; }
+.hero-cover .v-chip {
+  left: 0.6rem;
+  bottom: 0.6rem;
+}
+
+/* Livro / manual 3D: a capa em perspectiva, com lombada escura à esquerda e o bloco de folhas
+   à direita (listras finas). A sombra no chão dá o apoio. */
+.v-book {
+  display: grid;
+  place-items: center;
+  padding: 1rem 0 2.5rem;
+  perspective: 1600px;
+}
+.v-book-3d {
+  position: relative;
+  width: min(72%, 340px);
+  transform: rotateY(-26deg) rotateX(4deg);
+  transform-style: preserve-3d;
+  transition: transform 0.4s ease;
+}
+.v-book-3d::before,
+.v-book-3d::after {
+  content: "";
+  position: absolute;
+  top: 1.2%;
+  bottom: 1.2%;
+}
+/* Folhas: aparecem atrás da capa, do lado direito. */
+.v-book-3d::after {
+  right: -26px;
+  width: 30px;
+  z-index: -1;
+  background: repeating-linear-gradient(90deg, #f4f1ea 0 2px, #d9d3c6 2px 3px);
+  border-radius: 0 4px 4px 0;
+  transform: translateZ(-12px);
+  box-shadow: 6px 0 14px rgb(0 0 0 / 0.35);
+}
+/* Lombada: faixa escura e um brilho na dobra da capa. */
+.v-book-3d::before {
+  left: 0;
+  width: 7%;
+  z-index: 1;
+  background: linear-gradient(90deg, rgb(0 0 0 / 0.45), rgb(255 255 255 / 0.18) 55%, transparent);
+  pointer-events: none;
+}
+.book-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 3px 8px 8px 3px;
+  box-shadow:
+    0 2px 0 rgb(255 255 255 / 0.12) inset,
+    18px 30px 50px -14px rgb(0 0 0 / 0.7);
+}
+.v-book::after {
+  content: "";
+  position: absolute;
+  bottom: 0.9rem;
+  left: 22%;
+  right: 18%;
+  height: 26px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(0 0 0 / 0.55), transparent);
+  filter: blur(6px);
+  z-index: -1;
+}
+@media (hover: hover) {
+  .v-book:hover .v-book-3d {
+    transform: rotateY(-14deg) rotateX(2deg);
+  }
+}
+.v-book .v-chip {
+  left: 8%;
+  bottom: 3.5rem;
+}
+
+/* Notebook e celular: a imagem principal na tela do notebook e a 1ª extra num celular à frente,
+   no canto inferior direito. */
+.v-devices {
+  padding-bottom: 1.5rem;
+}
+.v-devices.has-phone {
+  padding-right: 9%;
+}
+.v-laptop-screen {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  padding: 2.2% 2.2% 3%;
+  background: #0b0f17;
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-radius: 16px 16px 4px 4px;
+  box-shadow: 0 30px 60px -24px rgb(0 0 0 / 0.75);
+}
+.laptop-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+  border-radius: 4px;
+}
+.v-laptop-base {
+  display: block;
+  height: 14px;
+  margin-inline: -7%;
+  background: linear-gradient(#cfd5de, #8a93a3 70%, #5b6473);
+  border-radius: 2px 2px 14px 14px;
+  box-shadow: 0 18px 30px -12px rgb(0 0 0 / 0.7);
+}
+.v-laptop-base::after {
+  content: "";
+  display: block;
+  width: 16%;
+  height: 5px;
+  margin-inline: auto;
+  background: #6b7484;
+  border-radius: 0 0 8px 8px;
+}
+.v-phone {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  width: 27%;
+  aspect-ratio: 9 / 19;
+  overflow: hidden;
+  padding: 5px;
+  background: #0b0f17;
+  border: 1px solid rgb(255 255 255 / 0.2);
+  border-radius: 24px;
+  box-shadow: -10px 24px 44px -12px rgb(0 0 0 / 0.75);
+}
+.phone-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+  border-radius: 19px;
+}
+.v-phone .v-chip {
+  left: 50%;
+  bottom: 0.6rem;
+  translate: -50% 0;
+  white-space: nowrap;
+}
+.v-devices > .v-chip {
+  bottom: 3rem;
+}
+
+/* Vídeo: capa 16:9 com o botão de play laranja no centro; o clique troca pela reprodução
+   (venda.js). Sem JavaScript, o botão abre o vídeo numa nova aba. */
+.v-video {
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-radius: 18px;
+  box-shadow: 0 30px 60px -24px rgb(0 0 0 / 0.75);
+}
+.v-hero .v-video .v-media {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 0;
+  filter: none;
+}
+.v-video-blank {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background:
+    radial-gradient(circle at 30% 20%, color-mix(in srgb, var(--v-cta) 22%, transparent), transparent 55%),
+    linear-gradient(135deg, var(--v-navy-2), #050b16);
+}
+.v-video::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(transparent 45%, rgb(0 0 0 / 0.35));
+  pointer-events: none;
+}
+.v-play {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 84px;
+  height: 84px;
+  translate: -50% -50%;
+  color: var(--v-cta-text);
+  background: var(--v-cta);
+  border-radius: 50%;
+  box-shadow: 0 14px 34px -8px color-mix(in srgb, var(--v-cta) 80%, transparent);
+  transition:
+    transform 0.2s,
+    background 0.2s;
+  animation: play-pulse 2.4s ease-out infinite;
+}
+.v-play:hover {
+  background: var(--v-cta-hover);
+  transform: scale(1.08);
+}
+.v-play.is-empty {
+  opacity: 0.55;
+  animation: none;
+}
+.v-play-ico {
+  width: 36px;
+  height: 36px;
+  margin-left: 4px; /* centro óptico do triângulo */
+}
+@keyframes play-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--v-cta) 55%, transparent);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 22px transparent;
+  }
+}
+.v-video .v-chip {
+  left: 1rem;
+  bottom: 1rem;
+}
+.v-video.is-playing::after {
+  content: none;
+}
+.v-video iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+/* Mosaico: grade de 2 colunas com a principal e as extras. Com 3 imagens a primeira ocupa a
+   altura toda à esquerda; com 1, ocupa tudo. */
+.v-mosaic {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: minmax(120px, 1fr);
+  gap: 12px;
+  aspect-ratio: 5 / 4;
+}
+.v-mosaic[data-count="1"] {
+  grid-template-columns: 1fr;
+}
+.v-mosaic[data-count="2"] {
+  aspect-ratio: 2 / 1;
+}
+.v-mosaic[data-count="3"] .v-tile:first-child {
+  grid-row: span 2;
+}
+.v-tile {
+  position: relative;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-radius: 16px;
+  box-shadow: 0 22px 44px -22px rgb(0 0 0 / 0.75);
+}
+.mosaic-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+@media (hover: hover) {
+  .v-tile:hover .mosaic-img {
+    transform: scale(1.04);
+  }
+}
+.v-tile .v-chip {
+  left: 0.6rem;
+  bottom: 0.6rem;
+}
+@media (max-width: 859px) {
+  .v-book-3d {
+    width: min(62%, 300px);
+  }
+  .v-devices,
+  .v-mosaic,
+  .v-video {
+    max-width: 560px;
+    margin-inline: auto;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .v-play {
+    animation: none;
+  }
+  .v-book-3d,
+  .mosaic-img {
+    transition: none;
+  }
+}
+
 /* ---------- Abertura e oferta final: peças próprias ---------- */
 .badges {
   display: flex;
@@ -119,10 +568,10 @@
 }
 .offer-benefits .ico,
 .buy-guarantee .ico {
-  width: 42px;
-  height: 42px;
-  padding: 10px;
-  border-radius: 10px;
+  width: 46px;
+  height: 46px;
+  padding: 11px;
+  border-radius: 12px;
 }
 /* Cartões pequenos de texto: credibilidade (à esquerda) e garantia (no cartão de compra). */
 .offer-proof,
@@ -200,6 +649,37 @@
   font-size: 0.88rem;
   text-align: center;
   color: var(--color-muted);
+}
+/* Selos de compra segura: linha compacta no fim do cartão de compra. */
+.buy-seals {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(86px, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+  padding: 1.1rem 0 0;
+  list-style: none;
+  border-top: 1px solid var(--v-line);
+}
+.buy-seals li {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.3;
+  text-align: center;
+  color: var(--color-muted);
+}
+.seal-ico {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  padding: 7px;
+  border-radius: 50%;
+  color: var(--v-cta);
+  background: color-mix(in srgb, var(--v-cta) 14%, transparent);
 }
 
 /* Botões de link (autor: Lattes, LinkedIn, site…; bloco de redes sociais): pílulas com contorno
@@ -439,10 +919,10 @@
   box-shadow: var(--v-shadow-hover);
 }
 .who .ico {
-  width: 42px;
-  height: 42px;
-  padding: 10px;
-  border-radius: 10px;
+  width: 48px;
+  height: 48px;
+  padding: 12px;
+  border-radius: 14px;
 }
 
 /* Destaque: cartão escuro dentro da seção */
@@ -621,10 +1101,321 @@
   font-weight: 600;
 }
 .seals .ico {
-  width: 56px;
-  height: 56px;
-  padding: 14px;
+  width: 60px;
+  height: 60px;
+  padding: 15px;
   border-radius: 50%;
+}
+
+/* ---------- Linha do tempo (Grade de tópicos no formato "passo a passo") ----------
+   Números grandes em laranja ligados por uma linha: na vertical no celular, na horizontal a
+   partir de 860px (a linha sai do número e vai até o passo seguinte). */
+.v-steps {
+  display: grid;
+  gap: 2rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.v-steps > li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr);
+  column-gap: 1rem;
+  row-gap: 0.35rem;
+  align-content: start;
+}
+.v-step-num {
+  grid-row: 1 / span 2;
+  font-size: 2.9rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  font-variant-numeric: tabular-nums;
+  color: var(--v-cta);
+}
+.v-steps > li > strong {
+  grid-column: 2;
+  font-size: 1.2rem;
+  letter-spacing: -0.01em;
+}
+.v-steps > li > span:not(.v-step-num) {
+  grid-column: 2;
+  color: var(--color-muted);
+}
+.v-steps > li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 1.4rem;
+  top: 3.4rem;
+  bottom: -1.6rem;
+  width: 2px;
+  border-radius: 2px;
+  background: linear-gradient(var(--v-cta), color-mix(in srgb, var(--v-cta) 12%, transparent));
+}
+@media (min-width: 860px) {
+  .v-steps {
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    gap: 2.25rem;
+  }
+  .v-steps > li {
+    grid-template-columns: auto minmax(0, 1fr);
+    row-gap: 0.6rem;
+  }
+  .v-step-num {
+    grid-row: 1;
+    font-size: clamp(3rem, 4.6vw, 4.2rem);
+  }
+  .v-steps > li > strong,
+  .v-steps > li > span:not(.v-step-num) {
+    grid-column: 1 / -1;
+  }
+  .v-steps > li > strong {
+    margin-top: 0.4rem;
+  }
+  /* A linha vira o 2º item da primeira linha da grade: sai do número e vai até o próximo passo. */
+  .v-steps > li::after,
+  .v-steps > li:not(:last-child)::after {
+    content: "";
+    position: static;
+    grid-row: 1;
+    grid-column: 2;
+    align-self: center;
+    width: auto;
+    height: 2px;
+    margin-right: -2.25rem;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--v-cta), color-mix(in srgb, var(--v-cta) 15%, transparent));
+  }
+  .v-steps > li:last-child::after {
+    margin-right: 0;
+    background: linear-gradient(90deg, var(--v-cta), transparent);
+  }
+}
+
+/* Lista "um item por linha" (tópicos de módulo, lista do bloco Texto e imagem): marcador laranja. */
+.v-lines {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+.v-lines > li,
+.v-lines > div {
+  position: relative;
+  padding-left: 1.6rem;
+}
+.v-lines > li::before,
+.v-lines > div::before {
+  content: "";
+  position: absolute;
+  left: 0.3rem;
+  top: 0.55em;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--v-cta);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--v-cta) 18%, transparent);
+}
+
+/* Galeria com a lista do módulo: carrossel à esquerda e painel à direita (abaixo, no celular).
+   venda.js mostra só o painel do slide que está na tela; sem JavaScript aparecem todos. */
+.gallery-split {
+  display: grid;
+  gap: 1.5rem;
+}
+@media (min-width: 960px) {
+  .gallery-split {
+    grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+    gap: 2.5rem;
+    align-items: center;
+  }
+  .gallery-split .track {
+    padding-inline: 10%;
+  }
+}
+.module-panel {
+  padding: clamp(1.4rem, 3vw, 2rem);
+  background: var(--v-card);
+  border: 1px solid var(--v-line);
+  border-top: 3px solid var(--v-cta);
+  border-radius: var(--v-radius);
+  box-shadow: var(--v-shadow);
+}
+.module-panel + .module-panel {
+  margin-top: 1rem;
+}
+.module-panels.is-ready .module-panel + .module-panel {
+  margin-top: 0;
+}
+.module-panels.is-ready .module-panel:not([hidden]) {
+  animation: panel-in 0.35s ease-out;
+}
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+.module-num {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-muted);
+}
+.module-num strong {
+  font-size: 2.2rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--v-cta);
+}
+.module-panel h3 {
+  margin: 0.35rem 0 1rem;
+  font-size: 1.3rem;
+}
+
+/* Currículo: módulos no mesmo acordeão do FAQ, com "Módulo 01" em laranja e o detalhe abaixo. */
+.module-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+.module-tag {
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--v-accent-ink);
+}
+.module-meta {
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--color-muted);
+}
+.module-topics {
+  padding: 0 1.35rem 1.3rem;
+  color: var(--color-muted);
+}
+.faq[open] .module-topics {
+  animation: faq-in 0.25s ease-out;
+}
+
+/* Demonstração: abas em pílula acima de uma imagem grande com legenda. */
+.demo-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.35rem;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto 1.75rem;
+  padding: 0.35rem;
+  background: var(--v-card);
+  border: 1px solid var(--v-line);
+  border-radius: 999px;
+  box-shadow: var(--v-shadow);
+}
+.demo-tabs[hidden] {
+  display: none;
+}
+.demo-tabs button {
+  min-height: 44px;
+  padding: 0.55rem 1.3rem;
+  font: inherit;
+  font-weight: 700;
+  color: var(--color-muted);
+  background: none;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+.demo-tabs button:hover {
+  color: var(--color-text);
+}
+.demo-tabs button[aria-selected="true"] {
+  color: var(--v-cta-text);
+  background: var(--v-cta);
+}
+.demo-panel {
+  position: relative;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+.demo-panel + .demo-panel {
+  margin-top: 2.5rem;
+}
+.demo.is-ready .demo-panel + .demo-panel {
+  margin-top: 0;
+}
+.demo.is-ready .demo-panel:not([hidden]) {
+  animation: panel-in 0.35s ease-out;
+}
+.demo-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--v-radius);
+  box-shadow: var(--v-shadow-hover);
+}
+.demo-panel figcaption {
+  max-width: 62ch;
+  margin: 1rem auto 0;
+  text-align: center;
+  color: var(--color-muted);
+}
+.demo-label {
+  margin: 0 0 0.75rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* Texto e imagem: linhas em duas colunas, alternando o lado da imagem a cada linha. */
+.features-alt {
+  display: grid;
+  gap: clamp(3rem, 7vw, 5.5rem);
+}
+.feature-row {
+  position: relative;
+  display: grid;
+  gap: 2rem;
+  align-items: center;
+}
+@media (min-width: 860px) {
+  .feature-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: clamp(2.5rem, 5vw, 4.5rem);
+  }
+  .feature-row:nth-child(even) .feature-text {
+    order: 2;
+  }
+  .feature-row.no-media {
+    grid-template-columns: minmax(0, 760px);
+  }
+}
+.feature-text h2 {
+  margin: 0 0 1rem;
+  text-align: left;
+}
+.feature-text p {
+  color: var(--color-muted);
+}
+.feature-list {
+  margin-top: 1.25rem;
+  font-weight: 600;
+}
+.feature-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 20px;
+  box-shadow: var(--v-shadow-hover);
 }
 
 /* ---------- Galeria (carrossel) ----------
@@ -779,6 +1570,12 @@
     opacity: 1;
     transform: none;
   }
+  .module-panels.is-ready .module-panel:not([hidden]),
+  .demo.is-ready .demo-panel:not([hidden]),
+  .v-screen {
+    animation: none;
+    transform: none;
+  }
 }
 
 /* ---------- Peças das páginas geradas pelo painel ---------- */
@@ -812,80 +1609,6 @@
   color: var(--color-notice-text);
   background: var(--color-notice-bg);
   border-bottom: 2px solid var(--color-accent);
-}
-
-/* ---------- Botão "voltar" (páginas de venda) ----------
-   Pílula fixa no canto superior esquerdo, logo abaixo do menu. Ao rolar a página (classe posta
-   por venda.js) vira só a seta, para cobrir menos o conteúdo. No celular é sempre só a seta. */
-.v-back {
-  position: fixed;
-  top: calc(var(--v-nav-space) + 0.5rem);
-  left: max(1rem, calc((100vw - var(--max-width)) / 2));
-  z-index: 35;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  min-height: 44px;
-  padding: 0 1rem 0 0.8rem;
-  border: 1px solid rgb(255 255 255 / 0.14);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--v-navy) 82%, transparent);
-  backdrop-filter: blur(12px) saturate(1.3);
-  color: var(--v-on-navy);
-  font-weight: 600;
-  font-size: 0.95rem;
-  text-decoration: none;
-  box-shadow: 0 10px 26px -12px rgb(0 0 0 / 0.55);
-  transition:
-    background 0.15s,
-    color 0.15s,
-    padding 0.2s;
-}
-.v-back:hover {
-  background: var(--v-cta);
-  color: var(--v-cta-text);
-}
-.v-back:focus-visible {
-  outline: 3px solid var(--v-cta);
-  outline-offset: 3px;
-}
-.v-back-ico {
-  flex: none;
-  width: 20px;
-  height: 20px;
-}
-/* Só a seta: o texto continua lá para leitores de tela. */
-.v-back.is-compact {
-  width: 44px;
-  padding: 0;
-  justify-content: center;
-}
-.v-back.is-compact .v-back-text {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-@media (max-width: 640px) {
-  .v-back {
-    width: 44px;
-    padding: 0;
-    justify-content: center;
-  }
-  .v-back .v-back-text {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
-  }
-}
-/* Pré-visualização do rascunho: abaixo da faixa amarela de aviso, como o menu. */
-.preview-banner ~ .v-back {
-  top: calc(var(--v-nav-space) + 3.1rem);
 }
 
 /* ---------- Texto formatado (editor: negrito, itálico, cor, alinhamento) ----------

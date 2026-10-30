@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Celetivo Cursos</title>
+  <title>Instituto Celetivo</title>
   <link rel="icon" type="image/png" href="/assets/favicon/favicon.png">
   <meta name="description" content="Explore cursos e materiais digitais de diferentes áreas para desenvolver habilidades e ampliar suas oportunidades.">
   <meta name="referrer" content="strict-origin-when-cross-origin">
@@ -39,12 +39,15 @@
           <a class="btn-cta" href="/catalogo.html">Explorar cursos</a>
           <a class="btn-ghost" href="/sobre.html">Conheça a empresa</a>
         </div>
+        <ul class="hero-perks" aria-label="O que você encontra">
+          <li><svg class="ico" aria-hidden="true"><use href="#i-grid"/></svg><span>Variedade de conteúdos</span></li>
+          <li><svg class="ico" aria-hidden="true"><use href="#i-doc"/></svg><span>Conteúdo acessível</span></li>
+          <li><svg class="ico" aria-hidden="true"><use href="#i-clock"/></svg><span>Flexibilidade</span></li>
+        </ul>
       </div>
-      <ul class="hero-panel" aria-label="O que você encontra">
-        <li><svg class="ico" aria-hidden="true"><use href="#i-grid"/></svg><span><strong>Variedade de conteúdos</strong>Opções para diferentes interesses e objetivos.</span></li>
-        <li><svg class="ico" aria-hidden="true"><use href="#i-doc"/></svg><span><strong>Conteúdo acessível</strong>Informações organizadas de forma clara e objetiva.</span></li>
-        <li><svg class="ico" aria-hidden="true"><use href="#i-clock"/></svg><span><strong>Flexibilidade</strong>Estude de acordo com sua disponibilidade.</span></li>
-      </ul>
+      <!-- Capas dos produtos em 3D, montadas pelo main.js (só aparece com 2 capas ou mais).
+           Decorativa: os links acessíveis para os produtos estão nos cartões logo abaixo. -->
+      <div id="hero-covers" class="hero-covers" aria-hidden="true" hidden></div>
     </div>
   </section>
 
@@ -65,13 +68,13 @@
       <h2 id="t-produtos">Encontre seu próximo curso</h2>
       <p class="v-intro">Conheça os cursos disponíveis e descubra novas possibilidades para sua trajetória.</p>
       <div id="catalogo" class="grid"><div class="skeleton-card" aria-hidden="true"></div><div class="skeleton-card" aria-hidden="true"></div><div class="skeleton-card" aria-hidden="true"></div></div>
-      <p class="more" id="ver-todos"><a class="btn-ghost" href="/catalogo.html">Ver todos os cursos</a></p>
+      <p class="more" id="ver-todos"><a class="btn-cta" href="/catalogo.html">Ver todos os cursos</a></p>
     </div>
   </section>
 
   <section class="v-section is-light" aria-labelledby="t-por-que">
     <div class="container">
-      <p class="v-eyebrow">Por que escolher a Celetivo Cursos</p>
+      <p class="v-eyebrow">Por que escolher o Instituto Celetivo</p>
       <h2 id="t-por-que">Conteúdo pensado para você</h2>
       <div class="features">
         <article class="v-card"><svg class="ico" aria-hidden="true"><use href="#i-doc"/></svg><h3>Clareza e organização</h3><p>Materiais estruturados para facilitar a compreensão dos assuntos.</p></article>

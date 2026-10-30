@@ -210,7 +210,7 @@ const icon = (label = "Ícone") => ({ type: "icon", label });
 const image = (label, extra = {}) => ({ type: "image", label, ...extra });
 const bool = (label) => ({ type: "bool", label });
 // noun: nome de UM item (no editor, o botão "Adicionar <noun>" no fim da lista, direto na página).
-const list = (label, max, item, noun = "item") => ({ type: "list", label, max, item, noun });
+const list = (label, max, item, noun = "item", extra = {}) => ({ type: "list", label, max, item, noun, ...extra });
 const choice = (label, options, fallback, extra = {}) => ({ type: "choice", label, options, default: fallback, ...extra });
 
 // Campos de aparência, comuns a vários blocos.
@@ -236,7 +236,39 @@ const BLOCKS = {
       badges: list("Selos", 6, { strong: text("Destaque", 30), text: text("Complemento", 40) }, "selo"),
       price_label: text("Texto acima do preço", 40, { placeholder: "Por apenas" }),
       cta_label: text("Texto do botão", 60, { placeholder: "Comprar agora" }),
-      image: image("Imagem (mockup do produto)", { size: "1200 × 900 px", tip: "PNG com fundo transparente fica melhor" }),
+      stats: list("Números em destaque", 4, {
+        value: text("Número", 12, { help: "Ex.: 6, 18h, 1 ano." }), label: text("Texto", 30, { help: "Ex.: módulos, de aula, de acesso." }),
+      }, "número"),
+      visual: choice("Estilo do visual", {
+        image: "Imagem única",
+        book: "Livro / manual 3D",
+        stack: "Composição 3D (várias imagens)",
+        mosaic: "Mosaico (várias imagens)",
+        screen: "Tela (moldura de janela)",
+        devices: "Notebook e celular",
+        video: "Vídeo (play)",
+      }, "image", {
+        help: "Livro: a imagem principal vira a capa de um livro em 3D. Composição e mosaico: a principal e as imagens extras. Tela: a principal numa janela (telas de software). Notebook e celular: a principal no notebook e a 1ª imagem extra no celular. Vídeo: a principal como capa, com o botão de play do vídeo de apresentação.",
+        // Miniatura de cada estilo no editor (SVG 48×32, traço): as opções viram cartões.
+        previews: {
+          image: "M10 5h28v22H10zM10 22l8-7 6 6 4-4 10 9M31 11h.01",
+          book: "M15 3h20v26H15zM15 3l-4 3v24l4-1M35 5h2v22h-2M19 10h12M19 14h8",
+          stack: "M6 11h14v18H6zM17 7h14v18H17zM29 3h13v17H29z",
+          mosaic: "M6 4h17v11H6zM25 4h17v11H25zM6 17h17v11H6zM25 17h17v11H25z",
+          screen: "M5 4h38v24H5zM5 9h38M9 6.5h.01M12 6.5h.01M15 6.5h.01",
+          devices: "M5 5h28v18H5zM1 26h36M36 11h9v18h-9zM39.5 26h2",
+          video: "M5 4h38v24H5zM21 10l9 6-9 6z",
+        },
+      }),
+      image: image("Imagem principal", { size: "1200 × 900 px", tip: "PNG com fundo transparente fica melhor" }),
+      image_label: text("Etiqueta da imagem principal", 30, { help: "Opcional. Ex.: Manual em PDF." }),
+      // showIf: o editor só mostra o campo quando o estilo usa ele (o valor fica guardado igual).
+      video_url: url("Vídeo de apresentação (YouTube ou Vimeo)", { help: "Ex.: youtube.com/watch?v=… ou vimeo.com/…",
+        showIf: { field: "visual", in: ["video"] } }),
+      extra_images: list("Imagens extras (composição, celular, mosaico)", 3, {
+        image: image("Imagem", { size: "900 × 1200 px", tip: "capa, página do manual ou fluxograma" }),
+        label: text("Etiqueta", 30, { help: "Opcional. Ex.: Fluxogramas." }),
+      }, "imagem", { showIf: { field: "visual", in: ["stack", "mosaic", "devices"] } }),
     },
   },
   benefits: {
@@ -258,18 +290,24 @@ const BLOCKS = {
       title: text("Título da seção", 120),
       intro: intro(),
       items: list("Tópicos", 12, { icon: icon(), title: text("Título", 80), text: textarea("Texto", 300) }, "tópico"),
-      columns: columns(),
+      layout: choice("Formato", { grid: "Grade de cartões", timeline: "Linha do tempo (passo a passo)" }, "grid",
+        { help: "Linha do tempo: os tópicos viram passos numerados (01, 02…) ligados por uma linha. Bom para a metodologia." }),
+      columns: { ...columns(), showIf: { field: "layout", in: ["grid"] } },
       background: background(),
     },
   },
   gallery: {
     label: "Galeria (carrossel)",
-    help: "Imagens do produto por dentro. Sem imagens, o bloco não aparece na página.",
+    help: "Imagens do produto por dentro. Com título ou tópicos nas imagens, ao lado do carrossel aparece a lista do módulo que está na tela. Sem imagens, o bloco não aparece na página.",
     fields: {
       eyebrow: eyebrow(),
       title: text("Título da seção", 120),
       intro: intro(),
-      images: list("Imagens", 12, { image: image("Imagem", { required: true, size: "1500 × 1000 px" }) }, "imagem"),
+      images: list("Imagens", 12, {
+        image: image("Imagem", { required: true, size: "1500 × 1000 px" }),
+        title: text("Título do módulo (opcional)", 80),
+        topics: textarea("Tópicos do módulo (um por linha)", 600),
+      }, "imagem"),
       background: background(),
     },
   },
@@ -418,6 +456,51 @@ const BLOCKS = {
       guarantee_text: text("Garantia: texto", 300),
       cta_label: text("Texto do botão", 60, { placeholder: "Garantir agora" }),
       note: text("Aviso abaixo do botão", 160, { help: "Vazio = \"Pagamento processado com segurança pela Kiwify.\"" }),
+      seals: list("Selos de compra segura", 4, { icon: icon(), text: text("Texto", 40) }, "selo"),
+    },
+  },
+  curriculum: {
+    label: "Currículo (módulos)",
+    help: "Módulos que abrem e fecham, cada um com a lista de aulas ou tópicos. Muita informação sem deixar a página longa.",
+    fields: {
+      eyebrow: eyebrow(),
+      title: text("Título da seção", 120),
+      intro: intro(),
+      items: list("Módulos", 20, {
+        title: text("Título do módulo", 120),
+        meta: text("Detalhe (opcional)", 60, { help: "Ex.: 5 aulas · 2h10." }),
+        topics: textarea("Tópicos (um por linha)", 1500),
+      }, "módulo"),
+      background: background(),
+    },
+  },
+  demo: {
+    label: "Demonstração",
+    help: "Mostre o produto por dentro em abas (ex.: Manual, Aula, Fluxograma). Abas sem imagem não aparecem.",
+    fields: {
+      eyebrow: eyebrow(),
+      title: text("Título da seção", 120),
+      intro: intro(),
+      items: list("Abas", 4, {
+        label: text("Nome da aba", 30),
+        image: image("Imagem", { size: "1500 × 1000 px" }),
+        caption: textarea("Legenda", 300),
+      }, "aba"),
+      background: background(),
+    },
+  },
+  feature: {
+    label: "Texto e imagem",
+    help: "Linhas com texto de um lado e imagem do outro, alternando o lado a cada linha.",
+    fields: {
+      items: list("Linhas", 6, {
+        eyebrow: text("Rótulo acima do título", 40),
+        title: text("Título", 120),
+        text: textarea("Texto", 800),
+        bullets: textarea("Lista (um item por linha)", 600),
+        image: image("Imagem", { size: "1200 × 900 px" }),
+      }, "linha"),
+      background: background(),
     },
   },
 };
@@ -589,15 +672,26 @@ function defaultSections() {
   return [
     { type: "hero", eyebrow: "Material profissional", lead: "Uma frase que resume a transformação que o produto entrega.",
       badges: [{ strong: "PDF", text: "Prático" }, { strong: "Acesso", text: "Imediato" }],
+      stats: [{ value: "6", label: "módulos" }, { value: "18h", label: "de aula" }, { value: "1 ano", label: "de acesso" }],
       price_label: "Por apenas", cta_label: "Comprar agora" },
     { type: "benefits", title: "Benefícios", items: [
       { icon: "bolt", title: "Primeiro benefício", text: "Explique o benefício em uma ou duas frases.", callout: "" },
       { icon: "doc", title: "Segundo benefício", text: "Explique o benefício em uma ou duas frases.", callout: "" }] },
-    { type: "topics", eyebrow: "Conteúdo", title: "O que você vai encontrar", items: [
-      { icon: "doc", title: "Tópico 1", text: "Resumo do tópico." },
-      { icon: "check", title: "Tópico 2", text: "Resumo do tópico." }] },
+    { type: "topics", eyebrow: "Metodologia", title: "Como você vai aprender", layout: "timeline", items: [
+      { icon: "video", title: "Assista", text: "Aulas curtas e objetivas, organizadas por módulos." },
+      { icon: "doc", title: "Estude o material", text: "Manual em PDF para estudo e consulta." },
+      { icon: "eye", title: "Visualize", text: "Fluxogramas que mostram o processo de forma visual." },
+      { icon: "target", title: "Aplique", text: "Casos práticos para usar no dia a dia." }] },
     { type: "gallery", eyebrow: "Por dentro", title: "Conheça por dentro", images: [] },
+    { type: "demo", eyebrow: "Demonstração", title: "Veja o que você recebe", items: [
+      { label: "Manual", caption: "Uma página do manual." }, { label: "Aula", caption: "Um trecho de aula." }] },
+    { type: "feature", items: [
+      { eyebrow: "Na prática", title: "Um diferencial do produto", text: "Explique o diferencial em poucas frases.", bullets: "Primeiro ponto\nSegundo ponto" },
+      { eyebrow: "Para consultar", title: "Outro diferencial", text: "Explique o diferencial em poucas frases.", bullets: "" }] },
     { type: "cta", title: "Pronto para começar? O acesso é imediato.", cta_label: "Quero garantir" },
+    { type: "curriculum", eyebrow: "Conteúdo", title: "O que você vai estudar", items: [
+      { title: "Módulo de introdução", meta: "3 aulas", topics: "Primeiro tópico\nSegundo tópico" },
+      { title: "Segundo módulo", meta: "4 aulas", topics: "Primeiro tópico\nSegundo tópico" }] },
     { type: "checklist", icon: "shield", title: "Conteúdo focado no que importa", items: [
       { text: "O que o produto não é", positive: false }, { text: "O que o produto entrega", positive: true }] },
     { type: "comparison", eyebrow: "Diferenciais", title: "Por que este material", left_title: "Alternativa comum",
@@ -608,9 +702,6 @@ function defaultSections() {
     { type: "faq", eyebrow: "Dúvidas", title: "Dúvidas mais frequentes", items: [
       { question: "Em que formato recebo o produto?", answer: "Explique o formato e como acessar." },
       { question: "Tem garantia?", answer: "Explique a política de garantia." }] },
-    { type: "guarantee", title: "Compra segura e garantida", items: [
-      { icon: "shield", text: "Pagamento 100% seguro" }, { icon: "check", text: "7 dias de garantia" },
-      { icon: "bolt", text: "Acesso imediato" }] },
     { type: "offer", eyebrow: "Oferta", title: "Garanta agora o seu acesso",
       text: "Uma frase curta lembrando o que a pessoa leva e por que vale começar hoje.",
       items: [{ icon: "bolt", text: "Acesso imediato" }, { icon: "doc", text: "Conteúdo prático" },
@@ -619,7 +710,8 @@ function defaultSections() {
       price_label: "Oferta especial",
       conditions: [{ text: "Pagamento único" }, { text: "Acesso imediato após a compra" }],
       guarantee_title: "Garantia de 7 dias", guarantee_text: "Se não gostar, devolvemos o seu dinheiro.",
-      cta_label: "Quero me matricular agora" },
+      cta_label: "Quero me matricular agora",
+      seals: [{ icon: "lock", text: "Pagamento seguro" }, { icon: "shield", text: "7 dias de garantia" }, { icon: "bolt", text: "Acesso imediato" }] },
   ].map((block) => validateSections([block]).sections[0]); // preenche os campos que faltam
 }
 

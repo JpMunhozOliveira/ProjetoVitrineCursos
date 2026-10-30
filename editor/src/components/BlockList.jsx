@@ -3,6 +3,7 @@ import { Fragment, useId } from "react";
 import { useEditor } from "../state/context.js";
 import { duplicateBlock } from "../state/document.js";
 import { BlockIcon } from "../ui/BlockIcon.jsx";
+import { InfoTip } from "../ui/InfoTip.jsx";
 import { BlockFormBody } from "./SharedBlock.jsx";
 import { Icon } from "./CanvasOverlay.jsx";
 import { SortableList, useSortableItem, DragHandle } from "../ui/dnd.jsx";
@@ -19,11 +20,20 @@ function summary(block, shared) {
   return plain(block.title || block.name || first.title || first.question || first.text || "");
 }
 
+// Estilo do visual da abertura (ex.: "Livro / manual 3D"), com a miniatura: mostrado na lista.
+function visualOf(block, schema) {
+  const field = schema.blocks[block.type]?.fields.visual;
+  if (!field?.previews || block.shared) return null;
+  const key = block.visual || field.default;
+  return { key, label: field.options[key], d: field.previews[key] };
+}
+
 function BlockCard({ block, index, total, isOpen, isSelected, isHidden, onToggle, onRemove, onDuplicate, onHover }) {
   const { schema, dispatch, focusLater, shared } = useEditor();
   const def = schema.blocks[block.type];
   const bodyId = useId();
   const label = def.label;
+  const visual = visualOf(block, schema);
   const { itemRef, itemStyle, isDragging, handleProps } = useSortableItem(block._key);
 
   function move(delta, action) {
@@ -44,6 +54,12 @@ function BlockCard({ block, index, total, isOpen, isSelected, isHidden, onToggle
           <span className="block-text">
             <span className="block-name"><span className="block-number">{index + 1}</span> <span className="block-label">{label}</span></span>
             <span className="block-summary muted">{summary(block, shared) || "Sem título"}</span>
+            {visual && (
+              <span className="block-visual" title={`Estilo do visual: ${visual.label}`}>
+                <svg viewBox="0 0 48 32" aria-hidden="true" focusable="false"><path d={visual.d} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                <span>{visual.label}</span>
+              </span>
+            )}
           </span>
           {isHidden && (
             <span className="block-flag" title="Não aparece na página: falta conteúdo">
@@ -63,7 +79,7 @@ function BlockCard({ block, index, total, isOpen, isSelected, isHidden, onToggle
         </div>
       </div>
       <div className="block-body" id={bodyId} hidden={!isOpen}>
-        {def.help && <p className="hint block-help">{def.help}</p>}
+        {def.help && <p className="label-row block-about"><span className="muted small">Sobre este bloco</span><InfoTip text={def.help} about={`o bloco ${label}`} /></p>}
         {isHidden && !block.shared && (
           <p className="hint warn">Este bloco não aparece na página no momento: preencha o conteúdo principal (ex.: itens da lista ou imagens).</p>
         )}

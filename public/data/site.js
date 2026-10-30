@@ -5,8 +5,10 @@
    Os textos marcados com REVISAR são sugestões: confira antes de publicar.
    ========================================================== */
 window.SITE = {
-  nome: "Celetivo Cursos",
+  nome: "Instituto Celetivo",
   slogan: "Conhecimento para seus próximos passos",
+  // Parte do slogan que fica em laranja no título da página inicial ("" = sem destaque).
+  sloganDestaque: "próximos passos",
   descricao:
     "Explore cursos e materiais digitais de diferentes áreas para desenvolver habilidades, aprofundar conhecimentos e ampliar suas oportunidades pessoais e profissionais.",
 
@@ -15,7 +17,7 @@ window.SITE = {
     subtitulo: "Conhecimento que abre caminhos, aprendizado para diferentes áreas.",
     titulo: "Cursos e conteúdos para aprender, evoluir e colocar em prática",
     texto:
-      "A Celetivo Cursos é uma plataforma de cursos e materiais de estudo voltada a pessoas que desejam adquirir novos conhecimentos, desenvolver habilidades e se preparar para os desafios do dia a dia.\n\nReunimos conteúdos de diferentes áreas, com foco em oferecer aprendizado acessível, organizado e útil, seja para quem busca aprimoramento profissional, deseja explorar novos assuntos ou quer ampliar suas oportunidades.",
+      "O Instituto Celetivo é uma plataforma de cursos e materiais de estudo voltada a pessoas que desejam adquirir novos conhecimentos, desenvolver habilidades e se preparar para os desafios do dia a dia.\n\nReunimos conteúdos de diferentes áreas, com foco em oferecer aprendizado acessível, organizado e útil, seja para quem busca aprimoramento profissional, deseja explorar novos assuntos ou quer ampliar suas oportunidades.",
     valoresTitulo: "Aprendizado pensado para você",
     valores: [
       { titulo: "Conteúdo acessível", texto: "Explicações claras e organizadas para facilitar a compreensão dos assuntos." },

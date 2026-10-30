@@ -8,6 +8,7 @@ import { SortableList, useSortableItem, DragHandle } from "../ui/dnd.jsx";
 import { IconMenu, IconGlyph } from "./IconMenu.jsx";
 import { plain, hasInline, fromPlain } from "../state/richtext.js";
 import { sizeHint } from "../labels.js";
+import { InfoTip } from "../ui/InfoTip.jsx";
 
 // compact: dentro de itens de lista (textos longos começam com 2 linhas em vez de 3).
 export function Field({ field, value, path, compact, inline }) {
@@ -21,10 +22,6 @@ export function Field({ field, value, path, compact, inline }) {
   }
 }
 
-function Help({ id, text }) {
-  return text ? <p id={id} className="hint">{text}</p> : null;
-}
-
 // inline: item numa linha só — o rótulo fica só para leitores de tela e vira o texto de exemplo da caixa.
 // Campos "url" (endereço de link) usam a mesma caixa, do tipo url (teclado certo no celular).
 // Textos podem ter formatação (negrito, cor…, feita na página): aqui aparecem sem as marcações, e
@@ -36,10 +33,14 @@ function TextField({ field, value, path, compact, inline }) {
   const isUrl = field.type === "url";
   const formatted = !isUrl && hasInline(value);
   const shown = isUrl ? value || "" : plain(value);
-  const describedBy = [field.help && `${id}-help`, formatted && `${id}-fmt`].filter(Boolean).join(" ") || undefined;
+  // Explicação do campo: no "i" ao lado do rótulo. Item numa linha só (rótulo escondido): ao passar
+  // o mouse na caixa (title) e no texto lido pelo leitor de tela (aria-description).
+  const describedBy = [field.help && !inline && `${id}-help`, formatted && `${id}-fmt`].filter(Boolean).join(" ") || undefined;
   return (
     <div className="field">
-      <label htmlFor={id} className={inline ? "sr-only" : undefined}>{field.label}</label>
+      {inline || !field.help
+        ? <label htmlFor={id} className={inline ? "sr-only" : undefined}>{field.label}</label>
+        : <div className="label-row"><label htmlFor={id}>{field.label}</label><InfoTip id={`${id}-help`} text={field.help} about={field.label} /></div>}
       <Tag
         id={id}
         type={field.type === "url" ? "url" : undefined}
@@ -50,9 +51,10 @@ function TextField({ field, value, path, compact, inline }) {
         placeholder={field.placeholder || (inline ? field.label : undefined)}
         rows={field.type === "textarea" ? (compact ? 2 : 3) : undefined}
         aria-describedby={describedBy}
+        title={inline ? field.help : undefined}
+        aria-description={inline ? field.help : undefined}
         onChange={(e) => dispatch({ type: "set", path, value: isUrl ? e.target.value : fromPlain(value, e.target.value), merge: true })}
       />
-      <Help id={`${id}-help`} text={field.help} />
       {formatted && <p id={`${id}-fmt`} className="hint warn">Este texto tem negrito, itálico ou cor. Editar aqui tira essa formatação; para mantê-la, edite direto na página.</p>}
     </div>
   );
@@ -89,18 +91,22 @@ function ChoiceField({ field, value, path }) {
   const name = useId();
   const current = value || field.default;
   return (
-    <fieldset className="field choice-field">
-      <legend>{field.label}</legend>
+    <fieldset className={`field choice-field${field.previews ? " has-previews" : ""}`}>
+      <legend className={field.help ? "legend-info" : undefined}>{field.label}<InfoTip text={field.help} about={field.label} /></legend>
       <div className="choice-options">
         {Object.entries(field.options).map(([key, label]) => (
           <label key={key} className="choice-option" data-option={key}>
             <input type="radio" name={name} value={key} checked={current === key}
               onChange={() => dispatch({ type: "set", path, value: key })} />
+            {field.previews?.[key] && (
+              <svg className="choice-preview" viewBox="0 0 48 32" aria-hidden="true" focusable="false">
+                <path d={field.previews[key]} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            )}
             <span>{label}</span>
           </label>
         ))}
       </div>
-      <Help text={field.help} />
     </fieldset>
   );
 }
@@ -130,7 +136,7 @@ function ImageField({ field, value, path }) {
 
   return (
     <div className="field image-field" role="group" aria-labelledby={labelId}>
-      <span id={labelId} className="field-label">{field.label}{field.required ? " (obrigatória)" : ""}</span>
+      <span className="label-row"><span id={labelId} className="field-label">{field.label}{field.required ? " (obrigatória)" : ""}</span><InfoTip text={sizeHint(field)} about={`${field.label}, tamanho recomendado`} /></span>
       <div className="img-thumb">
         {image ? (
           <button type="button" className="media-zoom" aria-label="Ampliar imagem"
@@ -148,8 +154,6 @@ function ImageField({ field, value, path }) {
             <button type="button" className="btn btn-sm btn-danger" onClick={() => dispatch({ type: "set", path, value: null })}>Remover</button>
           )}
         </div>
-        {field.size && <p className="hint">{sizeHint(field)}</p>}
-        {image && !image.alt_text && <p className="hint warn">Sem texto alternativo: descreva esta imagem na página Imagens.</p>}
       </div>
     </div>
   );

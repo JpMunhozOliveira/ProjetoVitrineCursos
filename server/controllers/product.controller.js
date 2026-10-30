@@ -9,7 +9,7 @@ const { effectiveOffer } = require("../lib/offer");
 // Colunas do produto (alias "p") + dados da capa (alias "m") e da empresa (alias "b", aba Empresas)
 // com o logo dela (alias "bl"). brand_name / brand_logo_id / brand_logo mantêm os nomes de quando
 // ficavam no próprio produto: o site e a página de vendas leem esses campos.
-const COLUMNS = `p.id, p.title, p.slug, p.short_description, p.status, p.category, p.area, p.featured,
+const COLUMNS = `p.id, p.title, p.slug, p.short_description, p.status, p.category, p.area, p.featured, p.card_badge,
   p.price_cents, p.checkout_url, p.image_id, p.brand_id,
   b.name AS brand_name, b.logo_id AS brand_logo_id,
   p.created_at, p.updated_at,
@@ -58,6 +58,8 @@ function publicResponse(row) {
 }
 
 const STATUSES = ["draft", "published", "archived"];
+// Selo do cartão no catálogo: "Acesso imediato", "Última chance" (vermelho), "Novidade" (dourado) ou nenhum.
+const CARD_BADGES = ["available", "last_chance", "new", "none"];
 const MAX_PRICE_CENTS = 100_000_000; // R$ 1.000.000,00
 
 // Textos opcionais: campo -> tamanho máximo. Vazio vira null (o site oculta campos nulos).
@@ -77,7 +79,7 @@ const KIWIFY_FIELDS = ["kiwify_product_id", "kiwify_link_id"];
 const OFFER_FIELDS = ["offer_price_cents", "offer_checkout_url", "offer_kiwify_link_id", "offer_ends_at"];
 
 const FIELDS = new Set([
-  "title", "slug", "status", "category", "area", "featured", "price_cents", "checkout_url",
+  "title", "slug", "status", "category", "area", "featured", "card_badge", "price_cents", "checkout_url",
   ...IMAGE_FIELDS, ...Object.keys(OPTIONAL_TEXT), ...KIWIFY_FIELDS, ...OFFER_FIELDS,
 ]);
 
@@ -157,6 +159,11 @@ function normalizeProductInput(body, isCreate = false) {
   if ("featured" in body) {
     if (typeof body.featured !== "boolean") return { error: "featured deve ser true ou false." };
     values.featured = body.featured;
+  }
+
+  if ("card_badge" in body) {
+    if (!CARD_BADGES.includes(body.card_badge)) return { error: `card_badge deve ser ${CARD_BADGES.join(", ")}.` };
+    values.card_badge = body.card_badge;
   }
 
   if ("price_cents" in body) {
