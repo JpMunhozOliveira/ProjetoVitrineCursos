@@ -465,6 +465,59 @@
     });
   }
 
+  // Troca de empresa (Resumo e Produtos): "Todas" + uma pílula por empresa, com o ícone da aba
+  // (ou o logo). Só aparece com 2 ou mais empresas. A escolha fica no endereço (?empresa=…), para
+  // recarregar a página sem perder o filtro. Devolve uma função que diz a empresa escolhida ("" = todas).
+  // opts.count(id) mostra um número ao lado do nome; opts.extra acrescenta opções no fim ({ value, label }).
+  function brandSwitch(box, brands, onChange, opts) {
+    opts = opts || {};
+    var extra = opts.extra || [];
+    var wanted = new URL(location.href).searchParams.get("empresa") || "";
+    var valid = brands.some(function (b) { return b.id === wanted; }) || extra.some(function (x) { return x.value === wanted; });
+    if (!valid) wanted = "";
+    var chosen = wanted;
+
+    function option(value, label, imgUrl, title) {
+      var input = document.createElement("input");
+      input.type = "radio"; input.name = "brand"; input.value = value;
+      input.checked = value === chosen;
+      input.addEventListener("change", function () {
+        chosen = value;
+        var url = new URL(location.href);
+        if (value) url.searchParams.set("empresa", value); else url.searchParams.delete("empresa");
+        history.replaceState(null, "", url);
+        onChange(value);
+      });
+      var span = document.createElement("span");
+      if (imgUrl) {
+        var img = document.createElement("img");
+        img.src = imgUrl; img.alt = ""; img.width = 28; img.height = 28;
+        span.append(img);
+      }
+      span.append(label);
+      if (opts.count) {
+        var n = document.createElement("small");
+        n.className = "brand-count";
+        n.textContent = opts.count(value);
+        span.append(n);
+      }
+      var lab = document.createElement("label");
+      if (!imgUrl) lab.className = "brand-all";
+      if (title) lab.title = title;
+      lab.append(input, span);
+      return lab;
+    }
+
+    box.replaceChildren(option("", "Todas as empresas"));
+    brands.forEach(function (b) {
+      var pic = b.icon || b.logo, name = b.name || "Empresa sem nome";
+      box.append(option(b.id, name, pic ? pic.url : "/assets/favicon/favicon.png", opts.title ? opts.title(name) : ""));
+    });
+    extra.forEach(function (x) { box.append(option(x.value, x.label)); });
+    box.hidden = brands.length + extra.length < 2;
+    return function () { return chosen; };
+  }
+
   // Canais de divulgação com link pronto na página do produto (utm_source). O Resumo usa os mesmos
   // nomes. Para um canal novo, acrescente uma linha.
   var UTM_SOURCES = [
@@ -473,7 +526,7 @@
   ];
 
   window.Admin = {
-    UTM_SOURCES: UTM_SOURCES, BLOCK_ICONS: BLOCK_ICONS, blockIcon: blockIcon, usagePopover: usagePopover, searchFilter: searchFilter,
+    UTM_SOURCES: UTM_SOURCES, brandSwitch: brandSwitch, BLOCK_ICONS: BLOCK_ICONS, blockIcon: blockIcon, usagePopover: usagePopover, searchFilter: searchFilter,
     api: api, requireSession: requireSession, formatPrice: formatPrice,
     showMessage: showMessage, confirm: confirmAction, setFlash: setFlash, takeFlash: takeFlash,
     uploadImage: uploadImage, formatBytes: formatBytes, viewImage: viewImage, pickImage: pickImage,

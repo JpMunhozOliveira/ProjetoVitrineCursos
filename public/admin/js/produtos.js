@@ -71,15 +71,22 @@
     return terms.every(function (t) { return haystack.indexOf(t) >= 0; }); // todas as palavras precisam aparecer
   }
 
-  // Aplica a busca atual sobre a lista completa e redesenha.
+  // Empresa escolhida nas pílulas acima da busca ("" = todas; "none" = produtos sem empresa).
+  var brand = function () { return ""; };
+  function ofBrand(p, b) { return !b || (b === "none" ? !p.brand_id : p.brand_id === b); }
+
+  // Aplica a empresa e a busca atuais sobre a lista completa e redesenha.
   function applyFilter() {
     var terms = normalize(search.value).split(/\s+/).filter(Boolean);
-    var shown = terms.length ? all.filter(function (p) { return matches(p, terms); }) : all;
+    var b = brand();
+    var base = all.filter(function (p) { return ofBrand(p, b); });
+    var shown = terms.length ? base.filter(function (p) { return matches(p, terms); }) : base;
     render(shown);
 
     $("search").hidden = !all.length;
-    count.textContent = terms.length ? shown.length + " de " + all.length + " produto(s)" : "";
+    count.textContent = terms.length ? shown.length + " de " + base.length + " produto(s)" : "";
     var empty = !all.length ? "Nenhum produto cadastrado ainda."
+      : !base.length ? "Nenhum produto desta empresa."
       : !shown.length ? "Nenhum produto encontrado para “" + search.value.trim() + "”." : "";
     $("empty").textContent = empty;
     $("empty").hidden = !empty;
@@ -137,9 +144,23 @@
     table.hidden = !products.length;
   }
 
-  // Recarrega da API mantendo o que está digitado na busca.
+  // Recarrega da API mantendo o que está digitado na busca e a empresa escolhida.
+  var brands = null;
   async function load() {
-    all = await Admin.api("/products");
+    var lists = await Promise.all([
+      Admin.api("/products"),
+      brands ? brands : Admin.api("/brands").catch(function () { return []; })
+    ]);
+    all = lists[0];
+    brands = lists[1];
+    // As pílulas mostram quantos produtos cada empresa tem; redesenhadas a cada recarga
+    // (a escolha atual continua, pois fica no endereço da página).
+    var extra = all.some(function (p) { return !p.brand_id; }) ? [{ value: "none", label: "Sem empresa" }] : [];
+    brand =Admin.brandSwitch($("brands"), brands, applyFilter, {
+      extra: extra,
+      title: function (name) { return "Ver só os produtos de " + name; },
+      count: function (b) { return all.filter(function (p) { return ofBrand(p, b); }).length; }
+    });
     applyFilter();
   }
 

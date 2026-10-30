@@ -6,7 +6,7 @@
   var $ = function (id) { return document.getElementById(id); };
   var msg = $("msg"), content = $("content"), tip = $("tip");
   var SVG = "http://www.w3.org/2000/svg";
-  var data = null, loading = false, brands = [];
+  var data = null, loading = false;
 
   var nf = new Intl.NumberFormat("pt-BR");
   var compact = new Intl.NumberFormat("pt-BR", { notation: "compact", maximumFractionDigits: 1 });
@@ -242,36 +242,8 @@
   }
 
   function days() { var c = document.querySelector('input[name="days"]:checked'); return c ? c.value : "30"; }
-  function brand() { var c = document.querySelector('input[name="brand"]:checked'); return c ? c.value : ""; }
-
-  /* ---------- Troca de empresa ----------
-     "Todas" + uma opção por empresa, com o ícone da aba (ou o logo). Só aparece com 2 ou mais empresas.
-     A escolha fica no endereço (?empresa=…), para recarregar a página sem perder o filtro. */
-  function option(value, label, imgUrl, checked, title) {
-    var input = el("input", { type: "radio", name: "brand", value: value });
-    input.checked = checked;
-    input.addEventListener("change", function () {
-      var url = new URL(location.href);
-      if (value) url.searchParams.set("empresa", value); else url.searchParams.delete("empresa");
-      history.replaceState(null, "", url);
-      load();
-    });
-    var img = imgUrl ? el("img", { src: imgUrl, alt: "", width: "28", height: "28" }) : null;
-    var lab = el("label", value ? { title: title } : { "class": "brand-all" }, [input, el("span", {}, [img, label])]);
-    return lab;
-  }
-  function renderBrands() {
-    var box = $("brands"), wanted = new URL(location.href).searchParams.get("empresa") || "";
-    if (!brands.some(function (b) { return b.id === wanted; })) wanted = "";
-    box.querySelectorAll("label").forEach(function (l) { l.remove(); });
-    box.append(option("", "Todas as empresas", null, !wanted));
-    brands.forEach(function (b) {
-      var pic = b.icon || b.logo;
-      box.append(option(b.id, b.name || "Empresa sem nome", pic ? pic.url : "/assets/favicon/favicon.png", b.id === wanted,
-        "Ver só os números de " + (b.name || "empresa sem nome")));
-    });
-    box.hidden = brands.length < 2;
-  }
+  // Troca de empresa (Admin.brandSwitch, em common.js): "" = todas.
+  var brand = function () { return ""; };
 
   async function load() {
     if (loading) return;
@@ -319,6 +291,9 @@
 
   Admin.requireSession()
     .then(function () { return Admin.api("/brands").catch(function () { return []; }); })
-    .then(function (list) { brands = list; renderBrands(); return load(); })
+    .then(function (list) {
+      brand = Admin.brandSwitch($("brands"), list, load, { title: function (name) { return "Ver só os números de " + name; } });
+      return load();
+    })
     .catch(function (err) { Admin.showMessage(msg, err.message, "error"); });
 })();
