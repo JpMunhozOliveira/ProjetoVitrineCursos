@@ -11,7 +11,7 @@
   var HEADER = `<a class="skip" href="#conteudo">Pular para o conteúdo</a>
 <header class="site-header">
   <div class="container header-row">
-    <a class="brand" href="/index.html"><img class="brand-mark" src="/assets/favicon/favicon.png" alt="" width="32" height="32"><span data-site="nome">Celetivo Cursos</span></a>
+    <a class="brand" href="/index.html"><img class="brand-mark" src="/assets/favicon/favicon.png" alt="" width="32" height="32"><span data-site="nome">Instituto Celetivo</span></a>
     <div class="header-actions">
       <nav id="nav" class="nav" aria-label="Principal">
         <ul>
@@ -29,7 +29,7 @@
 
   var FOOTER = `<footer class="site-footer">
   <div class="container foot3 foot4">
-    <div><p><strong data-site="nome">Celetivo Cursos</strong> © <span data-year></span></p><p data-site="slogan"></p></div>
+    <div><p><strong data-site="nome">Instituto Celetivo</strong> © <span data-year></span></p><p data-site="slogan"></p></div>
     <nav aria-label="Rodapé: navegação"><p><strong>Navegação</strong></p><p><a href="/catalogo.html">Catálogo</a></p><p><a href="/sobre.html">Sobre</a></p><p><a href="/contato.html">Contato</a></p></nav>
     <nav aria-label="Rodapé: ajuda"><p><strong>Ajuda</strong></p><p><a href="/duvidas.html">Dúvidas frequentes</a></p><p><a href="/termos.html">Termos de uso</a></p><p><a href="/privacidade.html">Política de privacidade</a></p></nav>
     <div><p><strong>Compra segura</strong></p><p>Pagamentos e acesso aos cursos processados pela Kiwify.</p></div>
