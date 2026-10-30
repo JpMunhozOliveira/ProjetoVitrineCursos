@@ -406,9 +406,36 @@
     document.body.append(toTop);
   }
 
+  // Página de vendas: botão "Acessar agora" ao lado do "voltar ao topo", direto para o checkout.
+  // O link é o dos botões de compra da página (o servidor já põe o da oferta, se houver). Leva a
+  // classe btn-cta: o clique é contado e a origem (UTM) vai junto para a Kiwify (track.js).
+  // Some enquanto algum botão de compra da própria página está na tela (não fica repetido).
+  var buy = null, ctaInView = 0;
+  var checkout = toTop && document.body.dataset.page === "venda" && document.querySelector("main a.btn-cta[href]");
+  if (checkout) {
+    buy = el("a", { "class": "btn-cta float-buy", href: checkout.getAttribute("href"), target: "_blank", rel: "noopener noreferrer" },
+      ["Acessar agora", el("span", { "class": "sr-only", text: " (abre o pagamento em nova aba)" })]);
+    document.body.append(buy);
+    if ("IntersectionObserver" in window) {
+      var shown = [];
+      var watch = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          var i = shown.indexOf(e.target);
+          if (e.isIntersecting && i < 0) shown.push(e.target);
+          if (!e.isIntersecting && i >= 0) shown.splice(i, 1);
+        });
+        ctaInView = shown.length;
+        onScroll();
+      });
+      [].forEach.call(document.querySelectorAll("main a.btn-cta[href]"), function (a) { watch.observe(a); });
+    }
+  }
+
   var onScroll = function () {
     if (header) header.classList.toggle("is-scrolled", window.scrollY > 24);
-    if (toTop) toTop.classList.toggle("is-visible", window.scrollY > Math.max(600, window.innerHeight));
+    var past = window.scrollY > Math.max(600, window.innerHeight);
+    if (toTop) toTop.classList.toggle("is-visible", past);
+    if (buy) buy.classList.toggle("is-visible", past && !ctaInView);
   };
   window.addEventListener("scroll", onScroll, { passive: true });
   onScroll();
