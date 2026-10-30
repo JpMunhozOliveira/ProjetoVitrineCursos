@@ -1,4 +1,5 @@
-// Aba Resumo do painel: visitas, cliques em "comprar" e vendas da Kiwify no período escolhido.
+// Aba Resumo do painel: visitas, cliques em "comprar" e vendas da Kiwify no período escolhido,
+// de todas as empresas ou de uma só (?brand=<id>).
 // Tudo agregado aqui no banco; o navegador só desenha.
 const pool = require("../config/database");
 const { TIME_ZONE } = require("../lib/analytics");
@@ -11,6 +12,11 @@ const LOST = "('refunded', 'chargedback')";
 // "Visitas" = visitantes diferentes por dia, somados no período (o resumo do visitante muda todo dia).
 const VISIT = `(date_trunc('day', occurred_at AT TIME ZONE '${TIME_ZONE}'), visitor_hash)`;
 const SOURCE = "COALESCE(utm_source, ref_host, 'direto')";
+// Filtro por empresa ($n = id da empresa, ou null para todas). Visitas e cliques contam pelo produto
+// da página (início, catálogo e outras páginas gerais não são de nenhuma empresa); vendas, pela conta Kiwify.
+const EV_BRAND = (n) => `($${n}::uuid IS NULL OR product_id IN (SELECT id FROM products WHERE brand_id = $${n}))`;
+const SA_BRAND = (n) => `($${n}::uuid IS NULL OR brand_id = $${n})`;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 async function bounds(days) {
   const { rows: [b] } = await pool.query(
@@ -20,22 +26,22 @@ async function bounds(days) {
   return b;
 }
 
-async function totals(from, to) {
+async function totals(from, to, brand) {
   const { rows: [e] } = await pool.query(
     `SELECT COUNT(DISTINCT ${VISIT}) FILTER (WHERE type = 'view')::int AS visits,
             COUNT(*) FILTER (WHERE type = 'view')::int AS views,
             COUNT(*) FILTER (WHERE type = 'checkout_click')::int AS clicks,
             COUNT(DISTINCT ${VISIT}) FILTER (WHERE type = 'checkout_click')::int AS clickers
-       FROM site_events WHERE occurred_at >= $1 AND occurred_at < $2`, [from, to]);
+       FROM site_events WHERE occurred_at >= $1 AND occurred_at < $2 AND ${EV_BRAND(3)}`, [from, to, brand]);
   const { rows: [s] } = await pool.query(
     `SELECT COUNT(*) FILTER (WHERE status IN ${PAID})::int AS sales,
             COALESCE(SUM(net_cents) FILTER (WHERE status IN ${PAID}), 0)::bigint AS revenue_cents,
             COUNT(*) FILTER (WHERE status IN ${LOST})::int AS refunds
-       FROM kiwify_sales WHERE created_at >= $1 AND created_at < $2`, [from, to]);
+       FROM kiwify_sales WHERE created_at >= $1 AND created_at < $2 AND ${SA_BRAND(3)}`, [from, to, brand]);
   return { ...e, sales: s.sales, revenue_cents: Number(s.revenue_cents), refunds: s.refunds };
 }
 
-async function daily(from, to) {
+async function daily(from, to, brand) {
   const { rows } = await pool.query(
     `WITH days AS (
        SELECT generate_series(date_trunc('day', $1::timestamptz AT TIME ZONE $3),
@@ -44,50 +50,51 @@ async function daily(from, to) {
        SELECT (occurred_at AT TIME ZONE $3)::date AS day,
               COUNT(DISTINCT visitor_hash) FILTER (WHERE type = 'view')::int AS visits,
               COUNT(*) FILTER (WHERE type = 'checkout_click')::int AS clicks
-         FROM site_events WHERE occurred_at >= $1 AND occurred_at < $2 GROUP BY 1),
+         FROM site_events WHERE occurred_at >= $1 AND occurred_at < $2 AND ${EV_BRAND(4)} GROUP BY 1),
      sa AS (
        SELECT (created_at AT TIME ZONE $3)::date AS day, COUNT(*)::int AS sales
-         FROM kiwify_sales WHERE created_at >= $1 AND created_at < $2 AND status IN ${PAID} GROUP BY 1)
+         FROM kiwify_sales WHERE created_at >= $1 AND created_at < $2 AND status IN ${PAID} AND ${SA_BRAND(4)} GROUP BY 1)
      SELECT to_char(d.day, 'YYYY-MM-DD') AS day, COALESCE(ev.visits, 0) AS visits,
             COALESCE(ev.clicks, 0) AS clicks, COALESCE(sa.sales, 0) AS sales
-       FROM days d LEFT JOIN ev USING (day) LEFT JOIN sa USING (day) ORDER BY d.day`, [from, to, TIME_ZONE]);
+       FROM days d LEFT JOIN ev USING (day) LEFT JOIN sa USING (day) ORDER BY d.day`, [from, to, TIME_ZONE, brand]);
   return rows;
 }
 
-async function byProduct(from, to) {
+async function byProduct(from, to, brand) {
   const { rows } = await pool.query(
     `WITH ev AS (
        SELECT product_id,
               COUNT(DISTINCT ${VISIT}) FILTER (WHERE type = 'view')::int AS visits,
               COUNT(*) FILTER (WHERE type = 'checkout_click')::int AS clicks
-         FROM site_events WHERE occurred_at >= $1 AND occurred_at < $2 AND product_id IS NOT NULL GROUP BY 1),
+         FROM site_events WHERE occurred_at >= $1 AND occurred_at < $2 AND product_id IS NOT NULL AND ${EV_BRAND(3)} GROUP BY 1),
      sa AS (
        SELECT kiwify_product_id, MAX(product_name) AS name, COUNT(*)::int AS sales, SUM(net_cents)::bigint AS revenue_cents
-         FROM kiwify_sales WHERE created_at >= $1 AND created_at < $2 AND status IN ${PAID} GROUP BY 1)
+         FROM kiwify_sales WHERE created_at >= $1 AND created_at < $2 AND status IN ${PAID} AND ${SA_BRAND(3)} GROUP BY 1)
      SELECT p.id, p.title, p.slug, COALESCE(ev.visits, 0) AS visits, COALESCE(ev.clicks, 0) AS clicks,
             COALESCE(sa.sales, 0) AS sales, COALESCE(sa.revenue_cents, 0)::bigint AS revenue_cents
        FROM products p
        LEFT JOIN ev ON ev.product_id = p.id
        LEFT JOIN sa ON sa.kiwify_product_id = p.kiwify_product_id
-      WHERE ev.product_id IS NOT NULL OR sa.kiwify_product_id IS NOT NULL OR p.status = 'published'
+      WHERE ($3::uuid IS NULL OR p.brand_id = $3)
+        AND (ev.product_id IS NOT NULL OR sa.kiwify_product_id IS NOT NULL OR p.status = 'published')
      UNION ALL
      SELECT NULL, COALESCE(sa.name, 'Outro produto da Kiwify'), NULL, 0, 0, sa.sales, sa.revenue_cents
        FROM sa WHERE NOT EXISTS (SELECT 1 FROM products p WHERE p.kiwify_product_id = sa.kiwify_product_id)
-     ORDER BY sales DESC, visits DESC, title`, [from, to]);
+     ORDER BY sales DESC, visits DESC, title`, [from, to, brand]);
   return rows.map((r) => ({ ...r, revenue_cents: Number(r.revenue_cents) }));
 }
 
 // Origem: utm_source do link, senão o site de onde a pessoa veio, senão "direto".
-async function bySource(from, to) {
+async function bySource(from, to, brand) {
   const { rows: ev } = await pool.query(
     `SELECT ${SOURCE} AS source,
             COUNT(DISTINCT ${VISIT}) FILTER (WHERE type = 'view')::int AS visits,
             COUNT(*) FILTER (WHERE type = 'checkout_click')::int AS clicks
-       FROM site_events WHERE occurred_at >= $1 AND occurred_at < $2 GROUP BY 1`, [from, to]);
+       FROM site_events WHERE occurred_at >= $1 AND occurred_at < $2 AND ${EV_BRAND(3)} GROUP BY 1`, [from, to, brand]);
   const { rows: sa } = await pool.query(
     `SELECT COALESCE(utm_source, 'sem origem') AS source, COUNT(*)::int AS sales,
             SUM(net_cents)::bigint AS revenue_cents
-       FROM kiwify_sales WHERE created_at >= $1 AND created_at < $2 AND status IN ${PAID} GROUP BY 1`, [from, to]);
+       FROM kiwify_sales WHERE created_at >= $1 AND created_at < $2 AND status IN ${PAID} AND ${SA_BRAND(3)} GROUP BY 1`, [from, to, brand]);
   const map = new Map(ev.map((r) => [r.source, { ...r, sales: 0, revenue_cents: 0 }]));
   for (const r of sa) {
     const row = map.get(r.source) || { source: r.source, visits: 0, clicks: 0, sales: 0, revenue_cents: 0 };
@@ -98,25 +105,25 @@ async function bySource(from, to) {
   return [...map.values()].sort((a, b) => b.sales - a.sales || b.visits - a.visits).slice(0, 15);
 }
 
-async function byDevice(from, to) {
+async function byDevice(from, to, brand) {
   const { rows } = await pool.query(
     `SELECT device, COUNT(DISTINCT ${VISIT})::int AS visits
-       FROM site_events WHERE occurred_at >= $1 AND occurred_at < $2 AND type = 'view'
-      GROUP BY 1 ORDER BY 2 DESC`, [from, to]);
+       FROM site_events WHERE occurred_at >= $1 AND occurred_at < $2 AND type = 'view' AND ${EV_BRAND(3)}
+      GROUP BY 1 ORDER BY 2 DESC`, [from, to, brand]);
   return rows;
 }
 
-async function topPages(from, to) {
+async function topPages(from, to, brand) {
   const { rows } = await pool.query(
     `SELECT path, COUNT(*)::int AS views
-       FROM site_events WHERE occurred_at >= $1 AND occurred_at < $2 AND type = 'view'
-      GROUP BY 1 ORDER BY 2 DESC, 1 LIMIT 10`, [from, to]);
+       FROM site_events WHERE occurred_at >= $1 AND occurred_at < $2 AND type = 'view' AND ${EV_BRAND(3)}
+      GROUP BY 1 ORDER BY 2 DESC, 1 LIMIT 10`, [from, to, brand]);
   return rows;
 }
 
 // Pagamentos por empresa com conta Kiwify conectada, contados nas vendas copiadas (o resumo pronto
 // da Kiwify, GET /stats, devolve números inconsistentes, como 600% de cartões aprovados).
-async function kiwifyByBrand(from, to) {
+async function kiwifyByBrand(from, to, brand) {
   const { rows } = await pool.query(
     `SELECT b.name AS brand, a.sales_synced_at AS synced_at, a.sales_sync_error AS sync_error,
             COUNT(s.*) FILTER (WHERE s.status IN ${PAID})::int AS paid,
@@ -129,27 +136,32 @@ async function kiwifyByBrand(from, to) {
        FROM kiwify_accounts a
        JOIN brands b ON b.id = a.brand_id
        LEFT JOIN kiwify_sales s ON s.brand_id = a.brand_id AND s.created_at >= $1 AND s.created_at < $2
-      GROUP BY b.name, a.sales_synced_at, a.sales_sync_error ORDER BY b.name`, [from, to]);
+      WHERE ($3::uuid IS NULL OR a.brand_id = $3)
+      GROUP BY b.name, a.sales_synced_at, a.sales_sync_error ORDER BY b.name`, [from, to, brand]);
   return rows;
 }
 
-async function warnings() {
+async function warnings(brand) {
   const { rows } = await pool.query(
-    `SELECT id, title, kiwify_sync_error FROM products WHERE kiwify_sync_error IS NOT NULL ORDER BY title LIMIT 10`);
+    `SELECT id, title, kiwify_sync_error FROM products
+      WHERE kiwify_sync_error IS NOT NULL AND ($1::uuid IS NULL OR brand_id = $1) ORDER BY title LIMIT 10`, [brand]);
   return rows.map((r) => ({ product_id: r.id, title: r.title, message: r.kiwify_sync_error }));
 }
 
 async function getDashboard(req, res) {
   const days = Number(req.query.days || 30);
   if (!PERIODS.has(days)) return res.status(400).json({ error: "Período inválido (use 7, 30 ou 90 dias)." });
+  const brand = req.query.brand || null;
+  if (brand && !UUID.test(brand)) return res.status(400).json({ error: "Empresa inválida." });
   const b = await bounds(days);
   const [current, previous, series, products, sources, devices, pages, kiwify, alerts] = await Promise.all([
-    totals(b.start, b.end), totals(b.prev_start, b.start), daily(b.start, b.end), byProduct(b.start, b.end),
-    bySource(b.start, b.end), byDevice(b.start, b.end), topPages(b.start, b.end), kiwifyByBrand(b.start, b.end), warnings(),
+    totals(b.start, b.end, brand), totals(b.prev_start, b.start, brand), daily(b.start, b.end, brand),
+    byProduct(b.start, b.end, brand), bySource(b.start, b.end, brand), byDevice(b.start, b.end, brand),
+    topPages(b.start, b.end, brand), kiwifyByBrand(b.start, b.end, brand), warnings(brand),
   ]);
   const { rows: [{ any }] } = await pool.query("SELECT EXISTS (SELECT 1 FROM site_events) AS any");
   return res.json({ data: {
-    days, start: b.start, end: b.end, has_events: any,
+    days, brand, start: b.start, end: b.end, has_events: any,
     totals: current, previous, daily: series, products, sources, devices, pages, kiwify, warnings: alerts,
   } });
 }

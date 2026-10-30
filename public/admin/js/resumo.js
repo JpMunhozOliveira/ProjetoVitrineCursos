@@ -6,7 +6,7 @@
   var $ = function (id) { return document.getElementById(id); };
   var msg = $("msg"), content = $("content"), tip = $("tip");
   var SVG = "http://www.w3.org/2000/svg";
-  var data = null, loading = false;
+  var data = null, loading = false, brands = [];
 
   var nf = new Intl.NumberFormat("pt-BR");
   var compact = new Intl.NumberFormat("pt-BR", { notation: "compact", maximumFractionDigits: 1 });
@@ -201,7 +201,8 @@
     d.products.forEach(function (p) { if (p.slug) slugs[p.slug] = p.title; });
     renderTiles(d.totals, d.previous);
     var fmt = function (iso) { return new Date(iso).toLocaleDateString("pt-BR", { day: "numeric", month: "short" }); };
-    $("period").textContent = "De " + fmt(d.start) + " até hoje. Comparação com os " + d.days + " dias anteriores. Visitas = pessoas diferentes por dia.";
+    $("period").textContent = "De " + fmt(d.start) + " até hoje. Comparação com os " + d.days + " dias anteriores. Visitas = pessoas diferentes por dia." +
+      (d.brand ? " Com uma empresa escolhida, contam só as visitas às páginas dos produtos dela (início e catálogo ficam de fora)." : "");
     $("empty").hidden = d.has_events;
     renderCharts();
 
@@ -240,13 +241,43 @@
   }
 
   function days() { var c = document.querySelector('input[name="days"]:checked'); return c ? c.value : "30"; }
+  function brand() { var c = document.querySelector('input[name="brand"]:checked'); return c ? c.value : ""; }
+
+  /* ---------- Troca de empresa ----------
+     "Todas" + uma opção por empresa, com o ícone da aba (ou o logo). Só aparece com 2 ou mais empresas.
+     A escolha fica no endereço (?empresa=…), para recarregar a página sem perder o filtro. */
+  function option(value, label, imgUrl, checked, title) {
+    var input = el("input", { type: "radio", name: "brand", value: value });
+    input.checked = checked;
+    input.addEventListener("change", function () {
+      var url = new URL(location.href);
+      if (value) url.searchParams.set("empresa", value); else url.searchParams.delete("empresa");
+      history.replaceState(null, "", url);
+      load();
+    });
+    var img = imgUrl ? el("img", { src: imgUrl, alt: "", width: "28", height: "28" }) : null;
+    var lab = el("label", value ? { title: title } : { "class": "brand-all" }, [input, el("span", {}, [img, label])]);
+    return lab;
+  }
+  function renderBrands() {
+    var box = $("brands"), wanted = new URL(location.href).searchParams.get("empresa") || "";
+    if (!brands.some(function (b) { return b.id === wanted; })) wanted = "";
+    box.querySelectorAll("label").forEach(function (l) { l.remove(); });
+    box.append(option("", "Todas as empresas", null, !wanted));
+    brands.forEach(function (b) {
+      var pic = b.icon || b.logo;
+      box.append(option(b.id, b.name || "Empresa sem nome", pic ? pic.url : "/assets/favicon/favicon.png", b.id === wanted,
+        "Ver só os números de " + (b.name || "empresa sem nome")));
+    });
+    box.hidden = brands.length < 2;
+  }
 
   async function load() {
     if (loading) return;
     loading = true;
     content.classList.add("is-loading");
     try {
-      data = await Admin.api("/dashboard?days=" + days());
+      data = await Admin.api("/dashboard?days=" + days() + (brand() ? "&brand=" + encodeURIComponent(brand()) : ""));
       content.hidden = false; // antes de desenhar: os gráficos medem a largura disponível
       render();
       Admin.showMessage(msg, "");
@@ -285,5 +316,8 @@
   }
   window.addEventListener("scroll", hideTip, { passive: true });
 
-  Admin.requireSession().then(load).catch(function (err) { Admin.showMessage(msg, err.message, "error"); });
+  Admin.requireSession()
+    .then(function () { return Admin.api("/brands").catch(function () { return []; }); })
+    .then(function (list) { brands = list; renderBrands(); return load(); })
+    .catch(function (err) { Admin.showMessage(msg, err.message, "error"); });
 })();
