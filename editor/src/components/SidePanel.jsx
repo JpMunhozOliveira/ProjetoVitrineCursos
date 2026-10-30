@@ -7,6 +7,7 @@
 import { useEffect, useRef } from "react";
 import { useEditor } from "../state/context.js";
 import { BlockIcon } from "../ui/BlockIcon.jsx";
+import { InfoTip } from "../ui/InfoTip.jsx";
 import { BlockFormBody } from "./SharedBlock.jsx";
 
 export const PANEL_LABELS = { block: "Bloco", structure: "Estrutura", page: "Cores" };
@@ -20,8 +21,7 @@ function BlockFields({ block, index, hidden, header }) {
   return (
     <div key={block._key} className="block-fields">
       {header}
-      <h3 className="panel-block-title"><BlockIcon type={block.type} /> <span className="block-number">{index + 1}</span> {def.label}</h3>
-      {def.help && <p className="hint block-help">{def.help}</p>}
+      <h3 className="panel-block-title"><BlockIcon type={block.type} /> <span className="block-number">{index + 1}</span> {def.label}<InfoTip text={def.help} about={`o bloco ${def.label}`} /></h3>
       {hidden && !block.shared && <p className="hint warn">Este bloco não aparece na página no momento: preencha o conteúdo principal (ex.: itens da lista ou imagens).</p>}
       <BlockFormBody block={block} index={index} />
     </div>

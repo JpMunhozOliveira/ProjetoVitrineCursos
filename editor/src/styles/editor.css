@@ -379,3 +379,92 @@ dialog.picker.icon-menu::backdrop { background: rgb(0 0 0 / .08); }
 
 /* Tela inicial (página ainda sem conteúdo): centralizada abaixo da barra de cima. */
 .editor-main > .start-box { position: relative; max-width: 44rem; margin: calc(var(--bar-top) + 3rem) auto 0; }
+
+/* "i" de informação nos campos e blocos (InfoTip.jsx; peças .info-pop do admin.css): o balão
+   ocupa a largura da linha do rótulo, para caber no painel estreito sem sair pela borda. */
+.panel-block-title,
+.choice-field legend.legend-info,
+.image-field .label-row {
+  position: relative;
+}
+.choice-field legend.legend-info {
+  width: 100%;
+}
+.image-field .label-row .field-label {
+  margin-bottom: 0;
+}
+:is(.label-row, .legend-info, .panel-block-title) .info-text {
+  left: 0;
+  right: 0;
+  width: auto;
+  top: calc(100% + 4px);
+  font-size: .88rem;
+}
+.panel-block-title .info-pop {
+  margin-left: .1rem;
+}
+.block-about {
+  margin: 0 0 .5rem;
+}
+
+/* Imagem: o rótulo (com o "i") ocupa a linha de cima; miniatura e botões ficam embaixo. */
+.image-field .label-row {
+  grid-column: 1 / -1;
+}
+
+/* Escolha com miniaturas (ex.: estilo do visual da abertura): cartões com o desenho em cima. */
+.choice-field.has-previews .choice-options {
+  grid-template-columns: repeat(auto-fill, minmax(6.4rem, 1fr));
+  gap: .45rem;
+}
+.choice-field.has-previews .choice-options .choice-option {
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: .3rem;
+  padding: .55rem .4rem .5rem;
+  font-size: .78rem;
+  line-height: 1.2;
+  text-align: center;
+}
+.choice-preview {
+  width: 48px;
+  height: 32px;
+  color: var(--color-muted);
+}
+.choice-option:has(input:checked) .choice-preview,
+.choice-option:hover .choice-preview {
+  color: var(--color-primary);
+}
+
+/* Estrutura: o estilo do visual da abertura aparece no cartão do bloco (miniatura + nome). */
+.block-visual {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  width: fit-content;
+  margin-top: .2rem;
+  padding: .1rem .5rem .1rem .3rem;
+  font-size: .75rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+  border-radius: 999px;
+}
+.block-visual svg {
+  width: 24px;
+  height: 16px;
+  flex: none;
+}
+.choice-field.has-previews .choice-option[data-option]::before {
+  content: none;
+}
+
+/* Opções de texto (ex.: fundo da seção): no máximo 2 por linha no painel estreito, para
+   "Automático" caber no botão; se ainda faltar espaço, o texto quebra dentro dele. */
+.choice-field:not(.has-previews) .choice-options {
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+}
+.choice-option > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
