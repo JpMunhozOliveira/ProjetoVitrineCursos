@@ -217,7 +217,8 @@
     }), "Nenhum produto publicado ainda.");
 
     fillTable("sources", d.sources.map(function (s) {
-      return [s.source, nf.format(s.visits), nf.format(s.clicks), nf.format(s.sales), s.revenue_cents ? Admin.formatPrice(s.revenue_cents) : "—"];
+      var known = Admin.UTM_SOURCES.find(function (u) { return u.value === s.source; });
+      return [known ? known.label : s.source, nf.format(s.visits), nf.format(s.clicks), nf.format(s.sales), s.revenue_cents ? Admin.formatPrice(s.revenue_cents) : "—"];
     }), "Nenhuma visita no período.");
 
     barList("devices", d.devices.map(function (r) { return { label: DEVICES[r.device] || r.device, value: r.visits, share: true }; }), "Nenhuma visita no período.");

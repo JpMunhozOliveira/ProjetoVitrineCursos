@@ -465,8 +465,15 @@
     });
   }
 
+  // Canais de divulgação com link pronto na página do produto (utm_source). O Resumo usa os mesmos
+  // nomes. Para um canal novo, acrescente uma linha.
+  var UTM_SOURCES = [
+    { value: "instagram", label: "Instagram" },
+    { value: "whatsapp", label: "WhatsApp" }
+  ];
+
   window.Admin = {
-    BLOCK_ICONS: BLOCK_ICONS, blockIcon: blockIcon, usagePopover: usagePopover, searchFilter: searchFilter,
+    UTM_SOURCES: UTM_SOURCES, BLOCK_ICONS: BLOCK_ICONS, blockIcon: blockIcon, usagePopover: usagePopover, searchFilter: searchFilter,
     api: api, requireSession: requireSession, formatPrice: formatPrice,
     showMessage: showMessage, confirm: confirmAction, setFlash: setFlash, takeFlash: takeFlash,
     uploadImage: uploadImage, formatBytes: formatBytes, viewImage: viewImage, pickImage: pickImage,

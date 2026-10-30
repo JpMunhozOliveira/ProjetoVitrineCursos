@@ -172,4 +172,16 @@ async function refreshSales(_req, res) {
   return res.json({ data: result });
 }
 
-module.exports = { getDashboard, refreshSales };
+// Campanhas já usadas (utm_campaign), mais recentes primeiro: o gerador de links da página do
+// produto sugere estas, para a mesma campanha não aparecer com nomes diferentes.
+async function listCampaigns(_req, res) {
+  const { rows } = await pool.query(
+    `SELECT campaign FROM (
+       SELECT utm_campaign AS campaign, occurred_at AS at FROM site_events WHERE utm_campaign IS NOT NULL
+       UNION ALL
+       SELECT utm_campaign, created_at FROM kiwify_sales WHERE utm_campaign IS NOT NULL
+     ) c GROUP BY campaign ORDER BY MAX(at) DESC LIMIT 50`);
+  return res.json({ data: rows.map((r) => r.campaign) });
+}
+
+module.exports = { getDashboard, refreshSales, listCampaigns };

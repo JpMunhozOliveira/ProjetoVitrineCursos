@@ -230,6 +230,25 @@
         <p id="sales-status"></p>
       </section>
 
+      <section id="promo" class="sales-zone promo-zone" aria-labelledby="promo-title" hidden>
+        <div class="title-row">
+          <h2 id="promo-title">Links de divulgação</h2>
+          <span class="info-pop">
+            <button class="info-btn" type="button" aria-label="Sobre os links de divulgação" aria-describedby="promo-info" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></button>
+            <span id="promo-info" class="info-text" role="tooltip">Use um link diferente em cada lugar onde divulgar este produto. O Resumo mostra quantas visitas, cliques e vendas vieram de cada um. A campanha é opcional e serve para separar ações, como um lançamento ou uma promoção.</span>
+          </span>
+        </div>
+        <p id="promo-warn" class="hint warn" hidden></p>
+        <div class="field promo-campaign">
+          <label for="promo-campaign">Campanha <span class="muted">(opcional)</span></label>
+          <input id="promo-campaign" list="promo-campaigns" maxlength="60" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="ex.: lancamento" aria-describedby="promo-campaign-hint">
+          <datalist id="promo-campaigns"></datalist>
+          <p id="promo-campaign-hint" class="hint">Escolha uma já usada para os números ficarem juntos no Resumo.</p>
+        </div>
+        <ul id="promo-links" class="promo-links"></ul>
+        <p id="promo-msg" class="sr-only" role="status" aria-live="polite"></p>
+      </section>
+
       <section id="danger" class="danger-zone" aria-labelledby="danger-title" hidden>
         <h2 id="danger-title">Remover produto</h2>
         <p id="danger-text"></p>

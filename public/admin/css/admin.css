@@ -368,6 +368,25 @@ dialog.viewer:has(.viewer-edit:not([hidden])) img{max-height:calc(100dvh - 20rem
 /* Área "Página de vendas" na edição do produto */
 .sales-zone{max-width:900px;margin-top:2.5rem;padding:1rem 1.25rem;border:1px solid var(--color-border);border-radius:var(--radius);background:var(--color-surface)}
 .sales-zone h2{font-size:1.15rem}
+/* Links de divulgação (página do produto): canal à esquerda, link e Copiar à direita. */
+.promo-zone .title-row h2{margin:0}
+.promo-zone .warn{margin:.5rem 0 0}
+.promo-campaign{max-width:24rem;margin:1rem 0}
+.promo-campaign .hint{margin:.25rem 0 0}
+.promo-links{display:grid;gap:.6rem;margin:0;padding:0;list-style:none}
+.promo-links li{display:grid;grid-template-columns:6.5rem minmax(0,1fr);align-items:center;gap:.75rem}
+.promo-name{font-weight:700}
+.promo-line{display:flex;align-items:center;gap:.5rem;min-width:0}
+.promo-url,.promo-other{min-height:40px;padding:.4rem .65rem;font:inherit;font-size:.88rem;color:var(--color-text);background:var(--color-bg);border:2px solid var(--color-border);border-radius:10px}
+.promo-url{flex:1;min-width:0;text-overflow:ellipsis}
+.promo-other{flex:none;width:9rem}
+.promo-line .btn{flex:none;min-width:6.5rem}
+@media (max-width:719px){
+  .promo-links{gap:1rem}
+  .promo-links li{grid-template-columns:minmax(0,1fr);gap:.3rem}
+  .promo-line{flex-wrap:wrap}
+  .promo-other{flex:1 1 100%;width:auto}
+}
 
 /* ==========================================================
    Editor da página de vendas (pagina.html)
