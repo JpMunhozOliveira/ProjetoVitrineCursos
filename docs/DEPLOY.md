@@ -151,6 +151,35 @@ docker compose logs caddy     # procure "certificate obtained successfully"
 
 ✅ **Conferir:** abra `https://seusite.com.br/api/health`. Deve aparecer `{"status":"ok","database":"connected"}` com o cadeado do HTTPS.
 
+## 7.1. (Opcional) Levar o conteúdo do seu PC para o servidor
+
+O GitHub guarda **só o código**. O banco (produtos, páginas de vendas, blocos salvos, empresas, contas Kiwify, administrador, números do Resumo) e as imagens enviadas pelo painel ficam no seu PC, e o servidor novo começa vazio. Se você já cadastrou tudo no PC e quer o mesmo conteúdo no servidor:
+
+**a) No seu PC** (Git Bash, na pasta do projeto, com o Docker rodando):
+```bash
+sh scripts/backup.sh
+```
+Gera em `backups/` um `db-….dump` (banco) e um `uploads-….tar.gz` (imagens). A pasta `backups/` não vai para o GitHub (tem todos os dados do site): nunca a coloque num commit.
+
+**b) Copie a `KIWIFY_ENCRYPTION_KEY` do `.env` do PC para o `.env` do servidor** e rode `docker compose up -d` no servidor. As chaves das contas Kiwify estão criptografadas com ela; sem a mesma chave, tudo funciona, mas é preciso conectar as contas de novo na aba Empresas.
+
+**c) Envie os arquivos** (PowerShell, na pasta do projeto):
+```powershell
+scp backups\db-*.dump backups\uploads-*.tar.gz deploy@IP_DO_SERVIDOR:/srv/vitrine/backups/
+```
+
+**d) No servidor**, restaure e acerte as permissões do usuário do app no banco restaurado:
+```bash
+cd /srv/vitrine
+sh scripts/restore.sh backups/db-AAAA-MM-DD_HHMM.dump backups/uploads-AAAA-MM-DD_HHMM.tar.gz
+docker compose run --rm migrate
+```
+
+Atenção:
+- **A restauração substitui tudo** o que houver no servidor. Use só na primeira vez, com o servidor vazio. Para atualizar um site que já está no ar, siga a etapa 11 (os dados de lá continuam).
+- **O administrador vem junto:** pule a etapa 8 e entre no painel com o mesmo login do PC.
+- **Vem tudo o que está no banco do PC**, inclusive visitas e cliques de teste no Resumo. Se preferir começar limpo, não restaure: crie o administrador (etapa 8) e cadastre o conteúdo direto no painel do servidor.
+
 ## 8. Criar o administrador do painel
 
 ```bash
